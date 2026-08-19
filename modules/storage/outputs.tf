@@ -7,6 +7,10 @@ output "efs_dns_name" {
   value       = aws_efs_file_system.main.dns_name
 }
 
-output "efs_sg_id" {
-  value = aws_security_group.efs.id
+output "s3_bucket_name" {
+  value = aws_s3_bucket.static.bucket
+}
+
+output "s3_bucket_arn" {
+  value = aws_s3_bucket.static.arn
 }
