@@ -13,10 +13,9 @@ variable "private_db_subnet_ids" {
   type        = list(string)
 }
 
-variable "private_app_subnet_cidrs" {
-  description = "Django 서버 서브넷 대역 (보안그룹 인바운드용)"
-  type        = list(string)
-  default     = ["10.0.11.0/24", "10.0.12.0/24"]
+variable "db_sg_id" {
+  description = "security 모듈에서 받아오는 DB 보안그룹 ID"
+  type        = string
 }
 
 variable "db_name" {
@@ -31,5 +30,5 @@ variable "db_username" {
 
 variable "db_password" {
   type      = string
-  sensitive = true   # 비밀번호라 터미널에 안 찍힘
+  sensitive = true
 }

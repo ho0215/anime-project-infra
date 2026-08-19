@@ -12,8 +12,7 @@ variable "private_app_subnet_ids" {
   type        = list(string)
 }
 
-variable "private_app_subnet_cidrs" {
-  description = "Django 서버 서브넷 대역 (보안그룹용)"
-  type        = list(string)
-  default     = ["10.0.11.0/24", "10.0.12.0/24"]
+variable "efs_sg_id" {
+  description = "security 모듈에서 받아오는 EFS 보안그룹 ID"
+  type        = string
 }
