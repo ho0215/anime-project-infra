@@ -33,3 +33,8 @@ variable "private_db_subnet_cidrs" {
   type        = list(string)
   default     = ["10.0.21.0/24", "10.0.22.0/24"]
 }
+
+variable "nat_network_interface_id" {
+  description = "nat 모듈에서 생성된 NAT 인스턴스의 network interface id"
+  type        = string
+}
