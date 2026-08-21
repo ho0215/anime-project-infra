@@ -27,7 +27,7 @@ data "aws_subnets" "db" {
 data "aws_security_group" "db_sg" {
   filter {
     name   = "tag:Name"
-    values = ["*db-sg*"]
+    values = ["aniverse-rds-sg"]
   }
   filter {
     name   = "vpc-id"
@@ -38,8 +38,8 @@ data "aws_security_group" "db_sg" {
 # 2. 내가 만든 모듈 불러오기 (경로 주의: 한 칸 위)
 module "my_database_test" {
   source                = "../"
-  vpc_id                = data.aws_vpc.aniverse.id
-  private_db_subnet_ids = data.aws_subnets.db.ids
+  #vpc_id                = data.aws_vpc.aniverse.id
+  #private_db_subnet_ids = data.aws_subnets.db.ids
   db_sg_id              = data.aws_security_group.db_sg.id  # 추가
   db_password           = "aniverse1234"
 }

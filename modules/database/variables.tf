@@ -6,11 +6,13 @@ variable "project_name" {
 variable "vpc_id" {
   description = "network 모듈에서 받아오는 VPC ID"
   type        = string
+  default     = "" #
 }
 
 variable "private_db_subnet_ids" {
   description = "RDS 배치할 프라이빗 DB 서브넷 ID 목록"
   type        = list(string)
+  default = [] #
 }
 
 variable "db_sg_id" {
