@@ -91,17 +91,40 @@ resource "aws_launch_template" "app" {
 }
 
 # ── Bastion Host (퍼블릭 서브넷) ──────────────────────
-resource "aws_instance" "bastion" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.micro"
-  subnet_id                   = var.public_subnet_ids[0]
-  associate_public_ip_address = true
-  vpc_security_group_ids      = aniverse-bastion-sg
-  iam_instance_profile        = aws_iam_instance_profile.app_profile.name
+#resource "aws_instance" "bastion" {
+#  ami                         = data.aws_ami.ubuntu.id
+#  instance_type               = "t3.micro"
+#  subnet_id                   = var.public_subnet_ids[0]
+#  associate_public_ip_address = true
+#  vpc_security_group_ids      = aniverse-bastion-sg
+#  iam_instance_profile        = aws_iam_instance_profile.app_profile.name
 
-  tags = {
-    Name = "${var.project_name}-bastion"
-  }
+#  tags = {
+#    Name = "${var.project_name}-bastion"
+#  }
+#}
+
+resource "aws_iam_role" "app_role" {
+  name = "${var.project_name}-app-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "app_ssm" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "app_profile" {
+  name = "${var.project_name}-app-instance-profile"
+  role = aws_iam_role.app_role.name
 }
 
 # ── Auto Scaling Group (프라이빗 앱 서브넷) ───────────

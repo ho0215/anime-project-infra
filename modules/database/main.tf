@@ -23,8 +23,8 @@ resource "aws_db_instance" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.db_sg_id]  # security 모듈꺼 받아옴
 
-  multi_az            = true
-  skip_final_snapshot = true
+  multi_az            = false
+  skip_final_snapshot = false
 
   tags = {
     Name = "${var.project_name}-rds"
