@@ -15,10 +15,10 @@ resource "aws_efs_mount_target" "main" {
 
 # ── S3 버킷 (정적 파일용) ───────────────────────────────
 resource "aws_s3_bucket" "static" {
-  bucket = "${var.project_name}-static"
+  bucket = var.bucket_name
 
   tags = {
-    Name = "${var.project_name}-static"
+    Name = var.bucket_name
   }
 }
 
