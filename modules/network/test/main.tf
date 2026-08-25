@@ -7,7 +7,7 @@ provider "aws" {
 module "my_network_test" {
   source = "../"
 
-  nat_network_interface_id  = "eni-08af1b3b54ae0bab4"
+  nat_network_interface_id = "eni-08af1b3b54ae0bab4"
 }
 
 # 3. 결과 확인용 출력

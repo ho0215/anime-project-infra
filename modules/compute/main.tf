@@ -5,6 +5,10 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
   subnets            = var.public_subnet_ids
+
+  tags = {
+    Name = "${var.project_name}-alb"
+  }
 }
 
 # ── ALB 타겟 그룹 및 리스너 ──────────────────────────
@@ -17,7 +21,14 @@ resource "aws_lb_target_group" "app" {
   health_check {
     path                = "/health/"
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "${var.project_name}-tg"
   }
 }
 
@@ -35,7 +46,7 @@ resource "aws_lb_listener" "http" {
 # ── 우분투 22.04 LTS 최신 AMI 조회 ────────────────────
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical 공식 계정
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -48,62 +59,43 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 # ── Launch Template (프라이빗 앱 인스턴스용) ────────────
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-app-template"
   image_id      = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
+  instance_type = var.instance_type
 
   vpc_security_group_ids = [var.app_sg_id]
 
-  # IAM 역할 부여 (SSM 및 CodeDeploy 권한 필수)
   iam_instance_profile {
     name = aws_iam_instance_profile.app_profile.name
   }
 
-  # 인스턴스 부팅 시 CodeDeploy Agent 자동 설치
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    set -e
-
-    # 네트워크 초기화 대기
-    sleep 10
-
-    apt-get update -y
-    apt-get install -y ruby-full wget
-
-    cd /tmp
-    wget https://aws-codedeploy-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/latest/install
-    chmod +x ./install
-    ./install auto
-
-    systemctl enable codedeploy-agent
-    systemctl start codedeploy-agent
-  EOF
-  )
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    efs_dns_name       = var.efs_dns_name
+    db_host            = var.db_host
+    db_port            = var.db_port
+    db_name            = var.db_name
+    db_username        = var.db_username
+    db_password        = var.db_password
+    static_bucket_name = var.static_bucket_name
+    aws_region         = data.aws_region.current.name
+    django_secret_key  = var.django_secret_key
+  }))
 
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "${var.project_name}-app-instance"
+      Name    = "${var.project_name}-app-instance"
+      Project = var.project_name
     }
   }
 }
 
-# ── Bastion Host (퍼블릭 서브넷) ──────────────────────
-#resource "aws_instance" "bastion" {
-#  ami                         = data.aws_ami.ubuntu.id
-#  instance_type               = "t3.micro"
-#  subnet_id                   = var.public_subnet_ids[0]
-#  associate_public_ip_address = true
-#  vpc_security_group_ids      = aniverse-bastion-sg
-#  iam_instance_profile        = aws_iam_instance_profile.app_profile.name
-
-#  tags = {
-#    Name = "${var.project_name}-bastion"
-#  }
-#}
-
+# ── IAM: SSM + CodeDeploy + S3 ─────────────────────────
 resource "aws_iam_role" "app_role" {
   name = "${var.project_name}-app-role"
 
@@ -122,6 +114,31 @@ resource "aws_iam_role_policy_attachment" "app_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "app_codedeploy" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"
+}
+
+resource "aws_iam_role_policy" "app_s3" {
+  name = "${var.project_name}-app-s3"
+  role = aws_iam_role.app_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "StaticBucket"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+        Resource = [
+          var.static_bucket_arn,
+          "${var.static_bucket_arn}/*",
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "app_profile" {
   name = "${var.project_name}-app-instance-profile"
   role = aws_iam_role.app_role.name
@@ -129,15 +146,27 @@ resource "aws_iam_instance_profile" "app_profile" {
 
 # ── Auto Scaling Group (프라이빗 앱 서브넷) ───────────
 resource "aws_autoscaling_group" "app" {
-  name                = "${var.project_name}-asg"
-  desired_capacity    = 2
-  max_size            = 4
-  min_size            = 2
-  vpc_zone_identifier = var.private_app_subnet_ids
-  target_group_arns   = [aws_lb_target_group.app.arn]
+  name                      = "${var.project_name}-asg"
+  desired_capacity          = var.asg_desired_capacity
+  max_size                  = var.asg_max_size
+  min_size                  = var.asg_min_size
+  vpc_zone_identifier       = var.private_app_subnet_ids
+  target_group_arns         = [aws_lb_target_group.app.arn]
+  health_check_type         = "ELB"
+  health_check_grace_period = 300
 
   launch_template {
     id      = aws_launch_template.app.id
     version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.project_name}-app-instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }

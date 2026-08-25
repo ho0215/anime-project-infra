@@ -29,7 +29,7 @@ resource "aws_network_acl_rule" "db_inbound_mysql" {
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = each.key  # App 서브넷 대역, variables.tf에 정의
+  cidr_block     = each.key # App 서브넷 대역, variables.tf에 정의
   from_port      = 3306
   to_port        = 3306
 }
@@ -67,7 +67,7 @@ resource "aws_network_acl_rule" "db_outbound_ephemeral" {
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = var.private_app_subnet_cidrs[0]  # 또는 여러 대역이면 규칙을 여러 개로 분리
+  cidr_block     = var.private_app_subnet_cidrs[0] # 또는 여러 대역이면 규칙을 여러 개로 분리
   from_port      = 1024
   to_port        = 65535
 }

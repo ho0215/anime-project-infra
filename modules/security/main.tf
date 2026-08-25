@@ -53,10 +53,10 @@ resource "aws_security_group" "app" {
   }
 
   ingress {
-    description = "SSH from within VPC (bastion/SSM)"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "SSH from within VPC (bastion/SSM)"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     security_groups = [aws_security_group.bastion.id]
   }
 
@@ -177,7 +177,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = var.admin_cidr_blocks   # 팀원들 고정IP 또는 사무실/집 IP만
+    cidr_blocks = var.admin_cidr_blocks # 팀원들 고정IP 또는 사무실/집 IP만
   }
 
   egress {

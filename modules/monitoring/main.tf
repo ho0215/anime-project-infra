@@ -19,11 +19,11 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   namespace           = "AWS/EC2"
   period              = "120" # 120초(2분) 동안 검사
   statistic           = "Average"
-  threshold           = "80"  # 평균 CPU 80% 이상일 때 경보!
+  threshold           = "80" # 평균 CPU 80% 이상일 때 경보!
 
-  alarm_description   = "ASG 내 EC2 인스턴스들의 평균 CPU 사용률이 80%를 초과했습니다."
-  alarm_actions       = [aws_sns_topic.alerts.arn]
-  ok_actions          = [aws_sns_topic.alerts.arn] # 상태가 정상으로 복구되었을 때도 알림
+  alarm_description = "ASG 내 EC2 인스턴스들의 평균 CPU 사용률이 80%를 초과했습니다."
+  alarm_actions     = [aws_sns_topic.alerts.arn]
+  ok_actions        = [aws_sns_topic.alerts.arn] # 상태가 정상으로 복구되었을 때도 알림
 
   dimensions = {
     AutoScalingGroupName = var.asg_name
@@ -41,9 +41,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   statistic           = "Sum"
   threshold           = "10" # 1분 동안 5XX 에러가 10번 이상 발생하면 경보!
 
-  alarm_description   = "ALB에서 5XX 서버 에러가 비정상적으로 많이 발생하고 있습니다."
-  alarm_actions       = [aws_sns_topic.alerts.arn]
-  ok_actions          = [aws_sns_topic.alerts.arn]
+  alarm_description = "ALB에서 5XX 서버 에러가 비정상적으로 많이 발생하고 있습니다."
+  alarm_actions     = [aws_sns_topic.alerts.arn]
+  ok_actions        = [aws_sns_topic.alerts.arn]
 
   dimensions = {
     LoadBalancer = var.alb_arn_suffix

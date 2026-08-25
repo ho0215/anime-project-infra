@@ -4,7 +4,7 @@ resource "aws_instance" "nat" {
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [var.nat_sg_id]
   source_dest_check      = false
-  iam_instance_profile = aws_iam_instance_profile.nat_profile.name
+  iam_instance_profile   = aws_iam_instance_profile.nat_profile.name
 
   user_data = <<-EOF
     #!/bin/bash

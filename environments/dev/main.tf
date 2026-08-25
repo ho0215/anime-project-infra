@@ -1,14 +1,21 @@
 # ==========================================
-# 팀원 1: Network, NAT, Security
+# Network / NAT / Security
 # ==========================================
 module "network" {
-  source                   = "../../modules/network"
+  source = "../../modules/network"
+
+  project_name             = var.project_name
   vpc_cidr                 = var.vpc_cidr
+  public_subnet_cidrs      = var.public_subnet_cidrs
+  private_app_subnet_cidrs = var.private_app_subnet_cidrs
+  private_db_subnet_cidrs  = var.private_db_subnet_cidrs
   nat_network_interface_id = module.nat.primary_network_interface_id
 }
 
 module "security" {
-  source                   = "../../modules/security"
+  source = "../../modules/security"
+
+  project_name             = var.project_name
   vpc_id                   = module.network.vpc_id
   vpc_cidr                 = var.vpc_cidr
   private_app_subnet_cidrs = var.private_app_subnet_cidrs
@@ -17,49 +24,89 @@ module "security" {
 }
 
 module "nat" {
-  # 1. 모듈 경로 (실수로 지워졌던 부분)
-  source           = "../../modules/nat"
-  
-  # 2. 이번에 추가해야 할 필수 변수 2가지
-  project_name     = "aniverse"
-  nat_ami          = "ami-0cde067c44daf99fc" # 서울 리전의 Amazon Linux 2 최신 이미지
-  
-  # 3. 기존에 있던 네트워크 및 보안 그룹 연결 고리
+  source = "../../modules/nat"
+
+  project_name     = var.project_name
+  nat_ami          = var.nat_ami
   public_subnet_id = module.network.public_subnet_ids[0]
   nat_sg_id        = module.security.nat_sg_id
 }
 
 # ==========================================
-# 팀원 3: Database & Storage
+# Database & Storage
 # ==========================================
 module "database" {
-  source                = "../../modules/database"
-  vpc_id                = module.network.vpc_id
-  private_db_subnet_ids = module.network.private_db_subnet_ids
-  db_sg_id              = module.security.db_sg_id
-  db_password           = var.db_password
+  source = "../../modules/database"
+
+  project_name                 = var.project_name
+  vpc_id                       = module.network.vpc_id
+  private_db_subnet_ids        = module.network.private_db_subnet_ids
+  db_sg_id                     = module.security.db_sg_id
+  db_password                  = var.db_password
+  db_snapshot_identifier       = var.db_snapshot_identifier
+  restore_from_latest_snapshot = var.restore_from_latest_snapshot
+  backup_retention_period      = var.backup_retention_period
+  deletion_protection          = var.deletion_protection
 }
 
 module "storage" {
-  source                 = "../../modules/storage"
+  source = "../../modules/storage"
+
+  project_name           = var.project_name
   vpc_id                 = module.network.vpc_id
   private_app_subnet_ids = module.network.private_app_subnet_ids
   efs_sg_id              = module.security.efs_sg_id
-
-  # 전 세계에서 유일한 나만의 버킷 이름 지정!
-  bucket_name            = "aniverse-static-ho0215-dev-2026"
+  bucket_name            = var.static_bucket_name
 }
 
 # ==========================================
-# 팀원 2: Compute & Traffic
+# Compute (ALB / ASG / Launch Template)
 # ==========================================
 module "compute" {
-  source                   = "../../modules/compute"
-  vpc_id                   = module.network.vpc_id
-  public_subnet_ids        = module.network.public_subnet_ids
-  private_app_subnet_ids   = module.network.private_app_subnet_ids
-  alb_sg_id                = module.security.alb_sg_id
-  app_sg_id                = module.security.app_sg_id
-  efs_dns_name             = module.storage.efs_dns_name
-  db_endpoint              = module.database.rds_endpoint
+  source = "../../modules/compute"
+
+  project_name           = var.project_name
+  vpc_id                 = module.network.vpc_id
+  public_subnet_ids      = module.network.public_subnet_ids
+  private_app_subnet_ids = module.network.private_app_subnet_ids
+  alb_sg_id              = module.security.alb_sg_id
+  app_sg_id              = module.security.app_sg_id
+  efs_dns_name           = module.storage.efs_dns_name
+  db_host                = module.database.rds_address
+  db_port                = module.database.rds_port
+  db_name                = "aniverse"
+  db_username            = "admin"
+  db_password            = var.db_password
+  static_bucket_name     = module.storage.s3_bucket_name
+  static_bucket_arn      = module.storage.s3_bucket_arn
+  django_secret_key      = var.django_secret_key
+  asg_desired_capacity   = var.asg_desired_capacity
+  asg_min_size           = var.asg_min_size
+  asg_max_size           = var.asg_max_size
+}
+
+# ==========================================
+# CI/CD (CodeDeploy + deploy S3) — 기존에 미연결
+# ==========================================
+module "cicd" {
+  source = "../../modules/cicd"
+
+  project_name          = var.project_name
+  asg_name              = module.compute.asg_name
+  app_role_name         = module.compute.app_role_name
+  codedeploy_app_name   = var.codedeploy_app_name
+  codedeploy_group_name = var.codedeploy_group_name
+}
+
+# ==========================================
+# Monitoring (옵션: alert_email 이 있을 때만)
+# ==========================================
+module "monitoring" {
+  count  = var.alert_email != "" ? 1 : 0
+  source = "../../modules/monitoring"
+
+  project_name   = var.project_name
+  alert_email    = var.alert_email
+  asg_name       = module.compute.asg_name
+  alb_arn_suffix = module.compute.alb_arn_suffix
 }
