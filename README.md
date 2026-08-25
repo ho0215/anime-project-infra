@@ -24,7 +24,7 @@ cd bootstrap
 terraform init && terraform apply
 ```
 
-이후 `environments/dev` 는 S3 백엔드(`aniverse-tfstate`)를 사용합니다.
+이후 `environments/dev` 는 S3 백엔드(`aniverse-tfstate-ho0215`)를 사용합니다.
 
 ## GitHub Secrets / Variables
 

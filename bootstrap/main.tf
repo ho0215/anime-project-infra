@@ -2,16 +2,17 @@ provider "aws" {
   region = "ap-northeast-2"
 }
 
-# ── tfstate 저장용 S3 ──────────────────────────────────
+# S3 버킷 이름은 전 세계 유일.
+# "aniverse-tfstate" 는 다른 계정이 이미 사용 중(HeadBucket 403)이므로
+# 계정/사용자별로 고유한 이름을 사용한다.
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "aniverse-tfstate"
+  bucket = "aniverse-tfstate-ho0215"
 
   tags = {
-    Name = "aniverse-tfstate"
+    Name = "aniverse-tfstate-ho0215"
   }
 }
 
-# 버전 관리 (실수로 덮어써도 복구 가능)
 resource "aws_s3_bucket_versioning" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
   versioning_configuration {
@@ -19,7 +20,6 @@ resource "aws_s3_bucket_versioning" "tfstate" {
   }
 }
 
-# 퍼블릭 접근 완전 차단 (tfstate는 절대 공개 X)
 resource "aws_s3_bucket_public_access_block" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
 
@@ -29,7 +29,6 @@ resource "aws_s3_bucket_public_access_block" "tfstate" {
   restrict_public_buckets = true
 }
 
-# ── 잠금용 DynamoDB ────────────────────────────────────
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = "aniverse-terraform-lock"
   billing_mode = "PAY_PER_REQUEST"
