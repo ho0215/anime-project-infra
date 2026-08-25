@@ -110,7 +110,7 @@ AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 USE_HTTPS=False
 GEMINI_API_KEY='${gemini_api_key}'
-GEMINI_MODEL='gemini-2.0-flash'
+GEMINI_MODEL='gemini-3.6-flash'
 DJANGO_CSRF_TRUSTED_ORIGINS='http://*.elb.amazonaws.com,https://*.elb.amazonaws.com'
 EOF
 chown ubuntu:ubuntu "$ENV_FILE"
