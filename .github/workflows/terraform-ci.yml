@@ -42,7 +42,6 @@ jobs:
       TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
       TF_VAR_django_secret_key: ${{ secrets.TF_VAR_DJANGO_SECRET_KEY }}
       TF_VAR_gemini_api_key: ${{ secrets.TF_VAR_GEMINI_API_KEY }}
-      TF_VAR_db_snapshot_identifier: ${{ secrets.TF_VAR_DB_SNAPSHOT_IDENTIFIER }}
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
 
     steps:
@@ -73,8 +72,6 @@ jobs:
 
       - name: Terraform plan
         id: plan
-        env:
-          TF_VAR_restore_from_latest_snapshot: ${{ vars.TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT == 'true' }}
         run: |
           set -o pipefail
           # CD apply 직후 lock 경합 대비

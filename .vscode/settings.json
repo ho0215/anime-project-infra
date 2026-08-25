@@ -1,6 +1,3 @@
 {
-  "terraform.languageServer.enable": true,
-  "terraform.languageServer.terraform.rootModulePaths": [
-    "environments/dev"
-  ]
+  "terraform.languageServer.enable": true
 }

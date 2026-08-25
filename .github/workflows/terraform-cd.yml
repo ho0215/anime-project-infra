@@ -91,13 +91,48 @@ jobs:
           fi
           echo "restore_latest=$RESTORE" >> "$GITHUB_OUTPUT"
 
+      - name: Patch RDS restore literals into main.tf
+        # var.* 전달은 Terraform LS 오탐을 유발해서, apply 직전에 literal 만 덮어쓴다.
+        run: |
+          python3 <<'PY'
+          import os, pathlib, re
+          snap = os.environ.get("SNAP", "").strip()
+          restore = os.environ.get("RESTORE", "false").strip().lower() == "true"
+          path = pathlib.Path("main.tf")
+          text = path.read_text()
+          def repl_str(name, value):
+              nonlocal text
+              text, n = re.subn(
+                  rf'({name}\s*=\s*)"[^"]*"',
+                  rf'\1"{value}"',
+                  text,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit(f"failed to patch {name}")
+          def repl_bool(name, value):
+              nonlocal text
+              text, n = re.subn(
+                  rf'({name}\s*=\s*)(true|false)',
+                  rf'\1{str(value).lower()}',
+                  text,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit(f"failed to patch {name}")
+          repl_str("db_snapshot_identifier", snap)
+          repl_bool("restore_from_latest_snapshot", restore)
+          path.write_text(text)
+          print(f"patched db_snapshot_identifier={snap!r} restore_from_latest_snapshot={restore}")
+          PY
+        env:
+          SNAP: ${{ steps.snap.outputs.snapshot_id }}
+          RESTORE: ${{ steps.snap.outputs.restore_latest }}
+
       - name: Terraform init
         run: terraform init -input=false
 
       - name: Terraform apply
-        env:
-          TF_VAR_db_snapshot_identifier: ${{ steps.snap.outputs.snapshot_id }}
-          TF_VAR_restore_from_latest_snapshot: ${{ steps.snap.outputs.restore_latest }}
         run: |
           terraform apply -auto-approve -input=false
           terraform output -json > /tmp/tf-outputs.json
@@ -141,7 +176,6 @@ jobs:
       TF_VERSION: "1.10.5"
       TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
       TF_VAR_django_secret_key: ${{ secrets.TF_VAR_DJANGO_SECRET_KEY }}
-      TF_VAR_db_snapshot_identifier: ${{ secrets.TF_VAR_DB_SNAPSHOT_IDENTIFIER }}
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
 
     steps:
