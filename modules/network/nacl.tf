@@ -21,10 +21,10 @@ locals {
   }
 
   # 응답(에페메럴) outbound 도 모든 app 서브넷에 열어줘야 함.
-  # 예전에는 [0] 만 허용해서 2번째 AZ EC2 → RDS 가 timeout(110) 났음.
+  # rule_number 100 은 예전 단일 규칙과 충돌하므로 110+ 사용.
   db_outbound_ephemeral_rules = {
     for idx, cidr in var.private_app_subnet_cidrs :
-    cidr => 100 + idx
+    cidr => 110 + idx
   }
 }
 
