@@ -1,4 +1,4 @@
-# nacl.tf
+# nacl.tf — DB 서브넷 전용 NACL (stateless: 왕복 규칙을 모두 열어야 함)
 
 resource "aws_network_acl" "private_db" {
   vpc_id     = aws_vpc.main.id
@@ -12,12 +12,19 @@ resource "aws_network_acl" "private_db" {
 locals {
   db_inbound_mysql_rules = {
     for idx, cidr in var.private_app_subnet_cidrs :
-    cidr => idx + 100
+    cidr => 100 + idx
   }
 
   db_inbound_redis_rules = {
     for idx, cidr in var.private_app_subnet_cidrs :
-    cidr => idx + 200
+    cidr => 200 + idx
+  }
+
+  # 응답(에페메럴) outbound 도 모든 app 서브넷에 열어줘야 함.
+  # 예전에는 [0] 만 허용해서 2번째 AZ EC2 → RDS 가 timeout(110) 났음.
+  db_outbound_ephemeral_rules = {
+    for idx, cidr in var.private_app_subnet_cidrs :
+    cidr => 100 + idx
   }
 }
 
@@ -29,7 +36,7 @@ resource "aws_network_acl_rule" "db_inbound_mysql" {
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = each.key # App 서브넷 대역, variables.tf에 정의
+  cidr_block     = each.key
   from_port      = 3306
   to_port        = 3306
 }
@@ -47,8 +54,7 @@ resource "aws_network_acl_rule" "db_inbound_redis" {
   to_port        = 6379
 }
 
-# 응답 트래픽용 에페메럴 포트 허용 (VPC 전체 대역 기준)
-# (현재는 사용 안 하지만 팀원이 모니터링 기능 도입 예정이라 유지)
+# 클라이언트 → DB 접속 시 쓰는 ephemeral 포트 응답용 (inbound to DB from VPC)
 resource "aws_network_acl_rule" "db_inbound_ephemeral" {
   network_acl_id = aws_network_acl.private_db.id
   rule_number    = 300
@@ -60,14 +66,28 @@ resource "aws_network_acl_rule" "db_inbound_ephemeral" {
   to_port        = 65535
 }
 
-# App 서브넷으로의 응답 트래픽(에페메럴 포트) 허용
+# DB → App 응답 트래픽 (모든 private app 서브넷)
 resource "aws_network_acl_rule" "db_outbound_ephemeral" {
+  for_each = local.db_outbound_ephemeral_rules
+
   network_acl_id = aws_network_acl.private_db.id
-  rule_number    = 100
+  rule_number    = each.value
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = var.private_app_subnet_cidrs[0] # 또는 여러 대역이면 규칙을 여러 개로 분리
+  cidr_block     = each.key
   from_port      = 1024
   to_port        = 65535
+}
+
+# VPC 내부 기타 egress 여유분
+resource "aws_network_acl_rule" "db_outbound_vpc_all" {
+  network_acl_id = aws_network_acl.private_db.id
+  rule_number    = 300
+  egress         = true
+  protocol       = "-1"
+  rule_action    = "allow"
+  cidr_block     = var.vpc_cidr
+  from_port      = 0
+  to_port        = 0
 }
