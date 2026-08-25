@@ -3,6 +3,10 @@ output "deploy_bucket_name" {
   value       = aws_s3_bucket.deploy_bucket.bucket
 }
 
+output "deploy_bucket_arn" {
+  value = aws_s3_bucket.deploy_bucket.arn
+}
+
 output "codedeploy_app_name" {
   description = "CodeDeploy 애플리케이션 이름"
   value       = aws_codedeploy_app.app.name

@@ -30,21 +30,45 @@ resource "aws_s3_bucket_public_access_block" "static" {
   bucket = aws_s3_bucket.static.id
 
   block_public_acls       = true
-  block_public_policy     = false
   ignore_public_acls      = true
+  block_public_policy     = false
   restrict_public_buckets = false
+}
+
+# ACL 비활성 — 버킷 정책으로만 공개 읽기
+resource "aws_s3_bucket_ownership_controls" "static" {
+  bucket = aws_s3_bucket.static.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "static" {
+  bucket = aws_s3_bucket.static.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }
 
 # ── S3 버킷 정책 (읽기 허용) ────────────────────────────
 resource "aws_s3_bucket_policy" "static" {
   bucket = aws_s3_bucket.static.id
 
-  depends_on = [aws_s3_bucket_public_access_block.static]
+  depends_on = [
+    aws_s3_bucket_public_access_block.static,
+    aws_s3_bucket_ownership_controls.static,
+  ]
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Sid       = "PublicReadGetObject"
         Effect    = "Allow"
         Principal = "*"
         Action    = "s3:GetObject"

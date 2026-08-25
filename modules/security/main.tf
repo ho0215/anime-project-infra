@@ -33,7 +33,7 @@ resource "aws_security_group" "alb" {
 # ── App(EC2: Nginx+Django+Channels) SG: ALB → App만 허용 ─
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-app-sg"
-  description = "Allow traffic from ALB only, plus SSH from bastion/VPC"
+  description = "Allow traffic from ALB; management via SSM (no inbound SSH required)"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -52,11 +52,12 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  # Optional bastion SSH hop. Preferred access is SSM Session Manager (outbound 443).
   ingress {
-    description = "SSH from within VPC (bastion/SSM)"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "SSH from bastion (optional; SSM preferred)"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     security_groups = [aws_security_group.bastion.id]
   }
 
@@ -177,7 +178,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = var.admin_cidr_blocks   # 팀원들 고정IP 또는 사무실/집 IP만
+    cidr_blocks = var.admin_cidr_blocks # 팀원들 고정IP 또는 사무실/집 IP만
   }
 
   egress {

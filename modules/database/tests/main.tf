@@ -1,4 +1,17 @@
 # 1. 임시 프로바이더 설정
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
+  }
+}
+
 provider "aws" {
   region = "ap-northeast-2"
 }
@@ -7,7 +20,7 @@ provider "aws" {
 data "aws_vpc" "aniverse" {
   filter {
     name   = "tag:Name"
-    values = ["*aniverse*"] # VPC 태그 이름에 aniverse가 들어간 것 자동 검색
+    values = ["*aniverse*"]
   }
 }
 
@@ -20,14 +33,14 @@ data "aws_subnets" "db" {
 
   filter {
     name   = "tag:Name"
-    values = ["*db*"] # 태그 이름에 db가 포함된 서브넷들 자동 추출
+    values = ["*db*"]
   }
 }
 
 data "aws_security_group" "db_sg" {
   filter {
     name   = "tag:Name"
-    values = ["aniverse-rds-sg"]
+    values = ["*db-sg*", "*rds-sg*", "aniverse-db-sg"]
   }
   filter {
     name   = "vpc-id"
@@ -35,16 +48,16 @@ data "aws_security_group" "db_sg" {
   }
 }
 
-# 2. 내가 만든 모듈 불러오기 (경로 주의: 한 칸 위)
+# 모듈 호출 — private_db_subnet_ids 는 필수 (기본값 없음)
 module "my_database_test" {
-  source                = "../"
-  #vpc_id                = data.aws_vpc.aniverse.id
-  #private_db_subnet_ids = data.aws_subnets.db.ids
-  db_sg_id              = data.aws_security_group.db_sg.id  # 추가
-  db_password           = "aniverse1234"
+  source = "../"
+
+  vpc_id                = data.aws_vpc.aniverse.id
+  private_db_subnet_ids = data.aws_subnets.db.ids
+  db_sg_id              = data.aws_security_group.db_sg.id
+  db_password           = "Aniverse1234!"
 }
 
-# 3. 결과 확인용 출력
 output "test_rds_endpoint" {
   value = module.my_database_test.rds_endpoint
 }
