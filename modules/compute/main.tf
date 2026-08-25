@@ -146,14 +146,15 @@ resource "aws_iam_instance_profile" "app_profile" {
 
 # ── Auto Scaling Group (프라이빗 앱 서브넷) ───────────
 resource "aws_autoscaling_group" "app" {
-  name                      = "${var.project_name}-asg"
-  desired_capacity          = var.asg_desired_capacity
-  max_size                  = var.asg_max_size
-  min_size                  = var.asg_min_size
-  vpc_zone_identifier       = var.private_app_subnet_ids
-  target_group_arns         = [aws_lb_target_group.app.arn]
-  health_check_type         = "ELB"
-  health_check_grace_period = 300
+  name                = "${var.project_name}-asg"
+  desired_capacity    = var.asg_desired_capacity
+  max_size            = var.asg_max_size
+  min_size            = var.asg_min_size
+  vpc_zone_identifier = var.private_app_subnet_ids
+  target_group_arns   = [aws_lb_target_group.app.arn]
+  health_check_type   = "ELB"
+  # user_data 가 임시 /health/ 를 띄우고, CodeDeploy 가 앱을 설치할 시간을 확보
+  health_check_grace_period = 900
 
   launch_template {
     id      = aws_launch_template.app.id

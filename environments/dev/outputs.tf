@@ -43,3 +43,13 @@ output "efs_dns_name" {
 output "restored_from_snapshot" {
   value = module.database.restored_from_snapshot
 }
+
+output "ssm_endpoint_ids" {
+  description = "Private SSM VPC endpoint IDs (ssm / ssmmessages / ec2messages)"
+  value       = module.endpoints.ssm_endpoint_ids
+}
+
+output "ssm_connect_hint" {
+  description = "Local command to open an SSM shell on an ASG instance"
+  value       = "ASG_NAME=${module.compute.asg_name} ./scripts/ssm-connect.sh"
+}

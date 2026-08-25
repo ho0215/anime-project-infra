@@ -33,7 +33,7 @@ resource "aws_security_group" "alb" {
 # ── App(EC2: Nginx+Django+Channels) SG: ALB → App만 허용 ─
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-app-sg"
-  description = "Allow traffic from ALB only, plus SSH from bastion/VPC"
+  description = "Allow traffic from ALB; management via SSM (no inbound SSH required)"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -52,8 +52,9 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  # Optional bastion SSH hop. Preferred access is SSM Session Manager (outbound 443).
   ingress {
-    description     = "SSH from within VPC (bastion/SSM)"
+    description     = "SSH from bastion (optional; SSM preferred)"
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"

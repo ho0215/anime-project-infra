@@ -106,6 +106,21 @@ jobs:
           echo "- CODE_DEPLOY_GROUP_NAME=$(terraform output -raw codedeploy_group_name)" >> "$GITHUB_STEP_SUMMARY"
           echo "- ALB_URL=$(terraform output -raw alb_url)" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Wait until ASG instances are SSM Online
+        working-directory: .
+        env:
+          ASG_NAME: aniverse-asg
+          AWS_REGION: ap-northeast-2
+          TIMEOUT_SEC: "900"
+        run: bash scripts/wait-for-ssm.sh
+
+      - name: Record SSM connect hint
+        run: |
+          echo "### SSM access" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "ASG_NAME=$(terraform output -raw asg_name) ./scripts/ssm-connect.sh" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
   destroy:
     name: Terraform Destroy (keeps RDS final snapshot)
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'

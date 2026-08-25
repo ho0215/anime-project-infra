@@ -6,9 +6,12 @@ GitHub Secrets에 자격 증명만 등록하면 GitHub Actions로 **인프라 Ap
 
 ```
 bootstrap/           # 최초 1회: tfstate S3 + lock 테이블
-environments/dev/    # 루트 모듈 (network→security→nat→database→storage→compute→cicd→monitoring)
+environments/dev/    # 루트 모듈 (network→security→nat→endpoints→database→storage→compute→cicd→monitoring)
 modules/
-  network, security, nat, database, storage, compute, cicd, monitoring
+  network, security, nat, endpoints, database, storage, compute, cicd, monitoring
+scripts/
+  ssm-connect.sh     # ASG 인스턴스에 SSM Session Manager로 접속
+  wait-for-ssm.sh    # Apply 후 SSM Online 대기 (CI)
 .github/workflows/
   terraform-ci.yml   # PR: fmt / validate / plan
   terraform-cd.yml   # main push: apply / workflow_dispatch: apply|destroy
@@ -49,7 +52,39 @@ terraform init && terraform apply
 
 ### IAM 권한 (최소 가이드)
 
-해당 IAM 사용자/롤에 VPC, EC2, ELB, ASG, RDS, S3, EFS, IAM(PassRole 포함), CodeDeploy, CloudWatch, SNS 권한이 필요합니다. 학습용으로는 `AdministratorAccess`로 시작해도 됩니다.
+해당 IAM 사용자/롤에 VPC, EC2, ELB, ASG, RDS, S3, EFS, IAM(PassRole 포함), CodeDeploy, CloudWatch, SNS, **SSM (StartSession / DescribeInstanceInformation)** 권한이 필요합니다. 학습용으로는 `AdministratorAccess`로 시작해도 됩니다.
+
+## SSM으로 EC2 접속 (키페어/배스천 불필요)
+
+Private 앱 인스턴스는 다음이 갖춰져 있어야 Session Manager에 붙습니다.
+
+1. IAM: `AmazonSSMManagedInstanceCore` (compute 모듈에 포함)
+2. Agent: user_data 가 `amazon-ssm-agent` 설치/기동
+3. 네트워크: VPC Interface Endpoints (`ssm`, `ssmmessages`, `ec2messages`) + NAT egress
+
+로컬에서:
+
+```bash
+# Session Manager plugin 필요
+# https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html
+
+ASG_NAME=aniverse-asg ./scripts/ssm-connect.sh
+# 또는
+./scripts/ssm-connect.sh i-0xxxxxxxxxxxx
+```
+
+Apply 워크플로는 `scripts/wait-for-ssm.sh` 로 Online 여부를 검증합니다.
+
+## EC2 라이브러리 / 부트 순서
+
+| 단계 | 설치 내용 |
+|------|-----------|
+| Launch Template user_data | nginx(임시 `/health/`), mysqlclient **빌드 의존성**, SSM agent, CodeDeploy agent, `.env` |
+| CodeDeploy `install_dependencies.sh` | 동일 apt 재확인 → venv → `pip install` (mysqlclient 선행) → migrate |
+| CodeDeploy `start_server.sh` | nginx + systemd `aniverse.service` |
+
+과거 실패 원인: `mysqlclient` pip 빌드 시 `default-libmysqlclient-dev` / `pkg-config` / `python3-dev` 가 없어 `mysql_config` not found.  
+지금은 **user_data + CodeDeploy 양쪽**에서 설치하고, CodeDeploy에서 `mysql_config` 존재 여부를 검사합니다.
 
 ## RDS 영속성 (destroy → apply)
 

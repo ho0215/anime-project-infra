@@ -32,6 +32,16 @@ module "nat" {
   nat_sg_id        = module.security.nat_sg_id
 }
 
+# SSM Session Manager: private EC2 ↔ AWS (NAT 장애에도 접속 가능)
+module "endpoints" {
+  source = "../../modules/endpoints"
+
+  project_name           = var.project_name
+  vpc_id                 = module.network.vpc_id
+  vpc_cidr               = var.vpc_cidr
+  private_app_subnet_ids = module.network.private_app_subnet_ids
+}
+
 # ==========================================
 # Database & Storage
 # ==========================================
