@@ -54,12 +54,13 @@ module "database" {
   db_sg_id              = module.security.db_sg_id
   db_password           = var.db_password
 
-  # RDS 영속성 옵션 — environments/dev/variables.tf 에 선언됨
-  # (TF_VAR_db_snapshot_identifier / TF_VAR_restore_from_latest_snapshot 등으로 덮어쓰기)
-  db_snapshot_identifier       = var.db_snapshot_identifier
-  restore_from_latest_snapshot = var.restore_from_latest_snapshot
-  backup_retention_period      = var.backup_retention_period
-  deletion_protection          = var.deletion_protection
+  # 기본값: 신규 RDS (modules/database defaults 와 동일).
+  # 스냅샷 복원이 필요하면 GitHub Actions 가 apply 직전에 이 값을 덮어쓴다.
+  # var.* 를 쓰지 않는 이유: Terraform LS 가 "No declaration found" 오탐을 반복해서 냄.
+  db_snapshot_identifier       = ""
+  restore_from_latest_snapshot = false
+  backup_retention_period      = 7
+  deletion_protection          = false
 }
 
 module "storage" {
