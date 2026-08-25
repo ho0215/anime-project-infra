@@ -77,7 +77,8 @@ jobs:
           TF_VAR_restore_from_latest_snapshot: ${{ vars.TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT == 'true' }}
         run: |
           set -o pipefail
-          terraform plan -no-color -input=false -out=tfplan | tee plan.txt
+          # CD apply 직후 lock 경합 대비
+          terraform plan -no-color -input=false -lock-timeout=10m -out=tfplan | tee plan.txt
         continue-on-error: true
 
       - name: Comment plan on PR

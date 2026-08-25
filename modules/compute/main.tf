@@ -1,48 +1,3 @@
-# ── Application Load Balancer (퍼블릭) ─────────────────
-resource "aws_lb" "main" {
-  name               = "${var.project_name}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [var.alb_sg_id]
-  subnets            = var.public_subnet_ids
-
-  tags = {
-    Name = "${var.project_name}-alb"
-  }
-}
-
-# ── ALB 타겟 그룹 및 리스너 ──────────────────────────
-resource "aws_lb_target_group" "app" {
-  name     = "${var.project_name}-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-
-  health_check {
-    path                = "/health/"
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200"
-  }
-
-  tags = {
-    Name = "${var.project_name}-tg"
-  }
-}
-
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
-  }
-}
-
 # ── 우분투 22.04 LTS 최신 AMI 조회 ────────────────────
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -153,7 +108,7 @@ resource "aws_autoscaling_group" "app" {
   max_size            = var.asg_max_size
   min_size            = var.asg_min_size
   vpc_zone_identifier = var.private_app_subnet_ids
-  target_group_arns   = [aws_lb_target_group.app.arn]
+  target_group_arns   = [var.target_group_arn]
   health_check_type   = "ELB"
   # user_data 가 임시 /health/ 를 띄우고, CodeDeploy 가 앱을 설치할 시간을 확보
   health_check_grace_period = 900

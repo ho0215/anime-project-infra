@@ -1,10 +1,10 @@
 output "alb_dns_name" {
   description = "애플리케이션 접속용 ALB DNS"
-  value       = module.compute.alb_dns_name
+  value       = module.alb.alb_dns_name
 }
 
 output "alb_url" {
-  value = module.compute.alb_url
+  value = module.alb.alb_url
 }
 
 output "rds_endpoint" {

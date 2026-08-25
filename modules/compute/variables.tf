@@ -3,24 +3,17 @@ variable "project_name" {
   default = "aniverse"
 }
 
-variable "vpc_id" {
-  type = string
-}
-
-variable "public_subnet_ids" {
-  type = list(string)
-}
-
 variable "private_app_subnet_ids" {
   type = list(string)
 }
 
-variable "alb_sg_id" {
+variable "app_sg_id" {
   type = string
 }
 
-variable "app_sg_id" {
-  type = string
+variable "target_group_arn" {
+  description = "ALB 타겟 그룹 ARN (modules/alb 출력)"
+  type        = string
 }
 
 variable "efs_dns_name" {

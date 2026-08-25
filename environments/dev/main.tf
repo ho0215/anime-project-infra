@@ -72,17 +72,27 @@ module "storage" {
 }
 
 # ==========================================
-# Compute (ALB / ASG / Launch Template)
+# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / 리스너)
+# ==========================================
+module "alb" {
+  source = "../../modules/alb"
+
+  project_name      = var.project_name
+  vpc_id            = module.network.vpc_id
+  public_subnet_ids = module.network.public_subnet_ids
+  alb_sg_id         = module.security.alb_sg_id
+}
+
+# ==========================================
+# Compute (ASG / Launch Template / IAM)
 # ==========================================
 module "compute" {
   source = "../../modules/compute"
 
   project_name           = var.project_name
-  vpc_id                 = module.network.vpc_id
-  public_subnet_ids      = module.network.public_subnet_ids
   private_app_subnet_ids = module.network.private_app_subnet_ids
-  alb_sg_id              = module.security.alb_sg_id
   app_sg_id              = module.security.app_sg_id
+  target_group_arn       = module.alb.target_group_arn
   efs_dns_name           = module.storage.efs_dns_name
   db_host                = module.database.rds_address
   db_port                = module.database.rds_port
@@ -121,5 +131,5 @@ module "monitoring" {
   project_name   = var.project_name
   alert_email    = var.alert_email
   asg_name       = module.compute.asg_name
-  alb_arn_suffix = module.compute.alb_arn_suffix
+  alb_arn_suffix = module.alb.alb_arn_suffix
 }
