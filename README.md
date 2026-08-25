@@ -45,14 +45,14 @@ terraform init && terraform apply
 
 | Name | 설명 |
 |------|------|
-| `TF_VAR_DB_SNAPSHOT_IDENTIFIER` | destroy 후 재apply 시 복원할 스냅샷 ID (CD가 `main.tf` literal 에 주입) |
+| `TF_VAR_DB_SNAPSHOT_IDENTIFIER` | destroy 후 재apply 시 복원할 스냅샷 ID (CD가 database 모듈 default 에 주입) |
 
 ### Repository Variables (선택)
 
 | Name | 설명 |
 |------|------|
 | `ALERT_EMAIL` | CloudWatch 알람 SNS 구독 이메일 (비우면 monitoring 미생성) |
-| `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` — 최신 manual 스냅샷 자동 복원 (CD가 `main.tf` literal 에 주입) |
+| `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` — 최신 manual 스냅샷 자동 복원 (CD가 database 모듈 default 에 주입) |
 
 ### IAM 권한 (최소 가이드)
 
@@ -95,13 +95,13 @@ Apply 워크플로는 `scripts/wait-for-ssm.sh` 로 Online 여부를 검증합�
 1. RDS는 `skip_final_snapshot = false` 로 **최종 스냅샷을 남기고** 삭제됩니다.
 2. 자동 백업 보관: 7일 (`backup_retention_period`).
 3. Destroy 워크플로가 최신 manual 스냅샷 ID를 Job Summary에 출력합니다.
-4. 다시 Apply 할 때 CD가 `environments/dev/main.tf` 의 RDS literal 을 덮어씁니다:
+4. 다시 Apply 할 때 CD가 `modules/database/variables.tf` 의 default 를 덮어씁니다:
    - Secret `TF_VAR_DB_SNAPSHOT_IDENTIFIER`에 스냅샷 ID를 넣거나
    - `workflow_dispatch` Apply에서 `restore_from_latest_snapshot=true`
 5. 최초 배포(스냅샷 없음)에서는 복원 플래그를 **끄세요**. 스냅샷이 없으면 plan/apply가 실패합니다.
 
-> `var.db_snapshot_identifier` 같은 root 변수 전달은 Terraform LS 가
-> `No declaration found` 오탐을 반복해서, 코드에는 literal 기본값을 둡니다.
+> `environments/dev/main.tf` 의 `module.database` 에는 snapshot 인자를 넣지 않습니다.
+> (Terraform LS 오탐 방지 — 모듈 변수 default 로 처리)
 
 ## 앱 저장소 연동
 

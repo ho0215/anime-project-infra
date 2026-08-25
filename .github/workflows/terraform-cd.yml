@@ -91,39 +91,29 @@ jobs:
           fi
           echo "restore_latest=$RESTORE" >> "$GITHUB_OUTPUT"
 
-      - name: Patch RDS restore literals into main.tf
-        # var.* 전달은 Terraform LS 오탐을 유발해서, apply 직전에 literal 만 덮어쓴다.
+      - name: Patch RDS restore defaults into database module
+        # root main.tf 에 snapshot 인자를 두면 IDE 오탐이 반복되므로,
+        # 복원 시에만 modules/database/variables.tf default 값을 덮어쓴다.
         run: |
           python3 <<'PY'
           import os, pathlib, re
           snap = os.environ.get("SNAP", "").strip()
           restore = os.environ.get("RESTORE", "false").strip().lower() == "true"
-          path = pathlib.Path("main.tf")
+          path = pathlib.Path("../../modules/database/variables.tf")
           text = path.read_text()
-          def repl_str(name, value):
-              nonlocal text
-              text, n = re.subn(
-                  rf'({name}\s*=\s*)"[^"]*"',
-                  rf'\1"{value}"',
-                  text,
-                  count=1,
-              )
+
+          def patch_default(var_name: str, new_default: str) -> None:
+              global text
+              pattern = rf'(variable\s+"{re.escape(var_name)}"\s*\{{.*?default\s*=\s*)[^\n]+'
+              text2, n = re.subn(pattern, rf"\g<1>{new_default}", text, count=1, flags=re.S)
               if n != 1:
-                  raise SystemExit(f"failed to patch {name}")
-          def repl_bool(name, value):
-              nonlocal text
-              text, n = re.subn(
-                  rf'({name}\s*=\s*)(true|false)',
-                  rf'\1{str(value).lower()}',
-                  text,
-                  count=1,
-              )
-              if n != 1:
-                  raise SystemExit(f"failed to patch {name}")
-          repl_str("db_snapshot_identifier", snap)
-          repl_bool("restore_from_latest_snapshot", restore)
+                  raise SystemExit(f"failed to patch default for {var_name}")
+              text = text2
+
+          patch_default("db_snapshot_identifier", f'"{snap}"')
+          patch_default("restore_from_latest_snapshot", "true" if restore else "false")
           path.write_text(text)
-          print(f"patched db_snapshot_identifier={snap!r} restore_from_latest_snapshot={restore}")
+          print(f"patched module defaults snap={snap!r} restore={restore}")
           PY
         env:
           SNAP: ${{ steps.snap.outputs.snapshot_id }}
