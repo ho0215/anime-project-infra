@@ -1,12 +1,11 @@
-output "alb_dns_name" {
-  description = "ALB 접속 주소 (사용자가 접속하는 URL)"
-  value       = aws_lb.app.dns_name
-}
-
-output "target_group_arn" {
-  value = aws_lb_target_group.app.arn
-}
-
 output "asg_name" {
   value = aws_autoscaling_group.app.name
+}
+
+output "launch_template_id" {
+  value = aws_launch_template.app.id
+}
+
+output "iam_role_name" {
+  value = aws_iam_role.ec2_ssm_role.name
 }
