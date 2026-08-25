@@ -108,16 +108,20 @@ AWS_STORAGE_BUCKET_NAME='${static_bucket_name}'
 AWS_S3_REGION_NAME='${aws_region}'
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
+USE_HTTPS=False
+GEMINI_API_KEY='${gemini_api_key}'
+GEMINI_MODEL='gemini-2.0-flash'
+DJANGO_CSRF_TRUSTED_ORIGINS='http://*.elb.amazonaws.com,https://*.elb.amazonaws.com'
 EOF
 chown ubuntu:ubuntu "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 cp "$ENV_FILE" /etc/aniverse.env
 chmod 600 /etc/aniverse.env
 
-# ── Gunicorn systemd unit (NOT enabled yet — venv appears after CodeDeploy)
+# ── Daphne systemd unit (NOT enabled yet — venv appears after CodeDeploy)
 cat > /etc/systemd/system/aniverse.service <<'UNIT'
 [Unit]
-Description=Aniverse Django (Gunicorn)
+Description=Aniverse Django (Daphne ASGI)
 After=network.target
 
 [Service]
@@ -126,13 +130,12 @@ Group=ubuntu
 WorkingDirectory=/home/ubuntu/aniverse
 EnvironmentFile=-/home/ubuntu/aniverse/.env
 EnvironmentFile=-/etc/aniverse.env
-ExecStart=/home/ubuntu/aniverse/venv/bin/gunicorn \
-  --bind 127.0.0.1:8000 \
-  --workers 2 \
-  --worker-class sync \
-  --access-logfile /home/ubuntu/aniverse/gunicorn-access.log \
-  --error-logfile /home/ubuntu/aniverse/gunicorn-error.log \
-  config.wsgi:application
+ExecStart=/home/ubuntu/aniverse/venv/bin/daphne \
+  -b 127.0.0.1 \
+  -p 8000 \
+  --access-log /home/ubuntu/aniverse/daphne-access.log \
+  --proxy-headers \
+  config.asgi:application
 Restart=always
 RestartSec=5
 
@@ -140,7 +143,7 @@ RestartSec=5
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-# Do not enable/start here: venv/gunicorn do not exist until CodeDeploy.
+# Do not enable/start here: venv/daphne do not exist until CodeDeploy.
 
 # ── CodeDeploy Agent ─────────────────────────────────────
 cd /tmp

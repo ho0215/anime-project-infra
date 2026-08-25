@@ -72,6 +72,13 @@ variable "django_secret_key" {
   sensitive = true
 }
 
+variable "gemini_api_key" {
+  description = "Google Gemini API key for ANIVERSE AI chatbot (optional)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "instance_type" {
   type    = string
   default = "t3.micro"

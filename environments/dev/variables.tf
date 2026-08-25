@@ -65,6 +65,13 @@ variable "django_secret_key" {
   sensitive   = true
 }
 
+variable "gemini_api_key" {
+  description = "Gemini API key for AI chatbot. GitHub Actions: TF_VAR_gemini_api_key / secret TF_VAR_GEMINI_API_KEY"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 # ── RDS 영속성 ──────────────────────────────────────────
 # 최초 배포: 둘 다 기본값 그대로 (스냅샷 없음 → 신규 RDS)
 variable "db_snapshot_identifier" {

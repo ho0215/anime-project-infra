@@ -85,6 +85,7 @@ resource "aws_launch_template" "app" {
     static_bucket_name = var.static_bucket_name
     aws_region         = data.aws_region.current.name
     django_secret_key  = replace(var.django_secret_key, "'", "'\"'\"'")
+    gemini_api_key     = replace(var.gemini_api_key, "'", "'\"'\"'")
   }))
 
   tag_specifications {

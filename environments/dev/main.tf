@@ -92,6 +92,7 @@ module "compute" {
   static_bucket_name     = module.storage.s3_bucket_name
   static_bucket_arn      = module.storage.s3_bucket_arn
   django_secret_key      = var.django_secret_key
+  gemini_api_key         = var.gemini_api_key
   asg_desired_capacity   = var.asg_desired_capacity
   asg_min_size           = var.asg_min_size
   asg_max_size           = var.asg_max_size
