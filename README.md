@@ -13,9 +13,13 @@ scripts/
   ssm-connect.sh     # ASG 인스턴스에 SSM Session Manager로 접속
   wait-for-ssm.sh    # Apply 후 SSM Online 대기 (CI)
 .github/workflows/
-  terraform-ci.yml   # PR: fmt / validate / plan
-  terraform-cd.yml   # main push: apply / workflow_dispatch: apply|destroy
+  terraform-ci.yml   # PR + feature push: fmt / validate / plan
+  terraform-cd.yml   # main/feature push: apply / workflow_dispatch: apply|destroy
 ```
+
+> **주의:** `main`에 예전에 `.github/workflows/terraform-cd`(확장자 없음) 파일이 있으면 GitHub Actions가 **CD를 아예 인식하지 않습니다**. 이 PR에서 해당 파일을 삭제하고 `terraform-cd.yml`로 교체합니다.
+>
+> S3 백엔드 `use_lockfile = true` 는 **Terraform ≥ 1.10** 이 필요합니다. 워크플로는 `1.10.5`를 사용합니다.
 
 ## 사전 준비 (1회)
 
