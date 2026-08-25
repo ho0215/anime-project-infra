@@ -22,4 +22,5 @@ terraform.rc
 
 #비밀번호 등 민감한 변수 파일
 *.tfvars
-*.tfvars.json
+*.tfvars.json.terraform.lock.hcl
+.terraform/

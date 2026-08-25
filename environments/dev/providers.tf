@@ -13,7 +13,6 @@ terraform {
   #   bucket         = "aniverse-tf-state-bucket"  # 팀원 3이 생성할 S3 버킷 이름
   #   key            = "dev/terraform.tfstate"
   #   region         = "ap-northeast-2"
-  #   dynamodb_table = "aniverse-tf-lock-table"    # 팀원 3이 생성할 DynamoDB 테이블 이름
   #   encrypt        = true
   # }
 }

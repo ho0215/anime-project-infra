@@ -1,4 +1,3 @@
-
 # 1. 임시 프로바이더 설정
 provider "aws" {
   region = "ap-northeast-2"
@@ -8,7 +7,7 @@ provider "aws" {
 module "my_network_test" {
   source = "../"
 
-  nat_network_interface_id  = "subnet-04be3ea857d4e85ef"
+  nat_network_interface_id  = "eni-08af1b3b54ae0bab4"
 }
 
 # 3. 결과 확인용 출력

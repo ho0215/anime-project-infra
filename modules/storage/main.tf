@@ -14,11 +14,14 @@ resource "aws_efs_mount_target" "main" {
 }
 
 # ── S3 버킷 (정적 파일용) ───────────────────────────────
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_s3_bucket" "static" {
-  bucket = "${var.project_name}-static"
+  bucket = "${var.bucket_name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 
   tags = {
-    Name = "${var.project_name}-static"
+    Name = var.bucket_name
   }
 }
 
@@ -26,9 +29,9 @@ resource "aws_s3_bucket" "static" {
 resource "aws_s3_bucket_public_access_block" "static" {
   bucket = aws_s3_bucket.static.id
 
-  block_public_acls       = false
+  block_public_acls       = true
   block_public_policy     = false
-  ignore_public_acls      = false
+  ignore_public_acls      = true
   restrict_public_buckets = false
 }
 
