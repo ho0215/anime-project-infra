@@ -67,9 +67,10 @@ variable "django_secret_key" {
 
 # ── RDS 영속성 ──────────────────────────────────────────
 variable "db_snapshot_identifier" {
-  description = "지정 시 해당 스냅샷에서 RDS 복원. destroy 후 재apply 시 사용"
+  description = "지정 시 해당 스냅샷에서 RDS 복원. 비우면 신규 생성"
   type        = string
-  default     = ""
+  default     = null
+  nullable    = true
 }
 
 variable "restore_from_latest_snapshot" {

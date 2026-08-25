@@ -10,7 +10,7 @@ variable "vpc_id" {
 }
 
 variable "private_db_subnet_ids" {
-  description = "RDS 배치할 프라이빗 DB 서브넷 ID 목록"
+  description = "RDS 배치할 프라이빗 DB 서브넷 ID 목록 (2개 AZ 이상 권장)"
   type        = list(string)
 }
 
@@ -47,13 +47,14 @@ variable "deletion_protection" {
 }
 
 variable "db_snapshot_identifier" {
-  description = "지정 시 해당 스냅샷에서 RDS 복원. 비우면 신규 또는 최신 스냅샷 정책 따름"
+  description = "지정 시 해당 스냅샷에서 RDS 복원. null/미설정이면 신규 생성"
   type        = string
-  default     = ""
+  default     = null
+  nullable    = true
 }
 
 variable "restore_from_latest_snapshot" {
-  description = "true 이면 동일 식별자(aniverse-rds)의 최신 manual 스냅샷에서 복원. 스냅샷이 없으면 apply 가 실패하므로 최초 배포는 false"
+  description = "true 이면 aniverse-rds 의 최신 manual 스냅샷에서 복원. 스냅샷이 없으면 실패하므로 최초 배포는 false"
   type        = bool
   default     = false
 }
