@@ -55,10 +55,11 @@ module "database" {
   db_password           = var.db_password
 
   # 최초 배포는 기본값(신규 RDS). 복원 시에만 tfvars/환경변수로 덮어쓰기.
-  db_snapshot_identifier       = var.db_snapshot_identifier
-  restore_from_latest_snapshot = var.restore_from_latest_snapshot
-  backup_retention_period      = var.backup_retention_period
-  deletion_protection          = var.deletion_protection
+  # coalesce: IDE/LS 가 var 를 string|null 로 볼 때도 모듈 타입으로 전달
+  db_snapshot_identifier       = coalesce(var.db_snapshot_identifier, "")
+  restore_from_latest_snapshot = coalesce(var.restore_from_latest_snapshot, false)
+  backup_retention_period      = coalesce(var.backup_retention_period, 7)
+  deletion_protection          = coalesce(var.deletion_protection, false)
 }
 
 module "storage" {

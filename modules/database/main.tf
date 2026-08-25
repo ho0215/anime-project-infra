@@ -14,9 +14,15 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
+# ── 스냅샷 ID 정규화 ("" / 공백 → null = 신규 생성) ─────
+locals {
+  snapshot_trimmed  = trimspace(var.db_snapshot_identifier)
+  explicit_snapshot = local.snapshot_trimmed != "" ? local.snapshot_trimmed : null
+}
+
 # ── 최신 manual 스냅샷 조회 (옵션, 기본 OFF) ─────────────
 data "aws_db_snapshot" "latest" {
-  count = var.restore_from_latest_snapshot && var.db_snapshot_identifier == "" ? 1 : 0
+  count = var.restore_from_latest_snapshot && local.explicit_snapshot == null ? 1 : 0
 
   most_recent            = true
   db_instance_identifier = "${var.project_name}-rds"
@@ -24,7 +30,6 @@ data "aws_db_snapshot" "latest" {
 }
 
 locals {
-  explicit_snapshot     = var.db_snapshot_identifier != "" ? var.db_snapshot_identifier : null
   latest_snapshot       = try(data.aws_db_snapshot.latest[0].id, null)
   effective_snapshot_id = local.explicit_snapshot != null ? local.explicit_snapshot : local.latest_snapshot
   is_restore            = local.effective_snapshot_id != null
