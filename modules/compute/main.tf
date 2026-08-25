@@ -15,7 +15,6 @@ data "aws_ami" "ubuntu" {
 }
 
 data "aws_region" "current" {}
-data "aws_caller_identity" "current" {}
 
 # ── Launch Template (프라이빗 앱 인스턴스용) ────────────
 resource "aws_launch_template" "app" {
