@@ -55,6 +55,7 @@ module "database" {
   db_password           = var.db_password
 
   # 최초 배포는 기본값(신규 RDS). 복원 시에만 tfvars/환경변수로 덮어쓰기.
+  # nullable=false 변수 — null 없이 "" / false / number 만 전달 (coalesce 는 "" 에서 실패함)
   db_snapshot_identifier       = var.db_snapshot_identifier
   restore_from_latest_snapshot = var.restore_from_latest_snapshot
   backup_retention_period      = var.backup_retention_period

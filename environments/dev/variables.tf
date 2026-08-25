@@ -74,26 +74,31 @@ variable "gemini_api_key" {
 
 # ── RDS 영속성 ──────────────────────────────────────────
 # 최초 배포: 둘 다 기본값 그대로 (스냅샷 없음 → 신규 RDS)
+# nullable=false: null 추론으로 인한 IDE/타입 오류 방지 ("" / false / 숫자만 허용)
 variable "db_snapshot_identifier" {
   description = "복원할 RDS 스냅샷 ID. 비우면(\"\") 신규 생성"
   type        = string
   default     = ""
+  nullable    = false
 }
 
 variable "restore_from_latest_snapshot" {
   description = "true 이면 aniverse-rds 의 최신 manual 스냅샷에서 복원 (스냅샷 필수)"
   type        = bool
   default     = false
+  nullable    = false
 }
 
 variable "backup_retention_period" {
-  type    = number
-  default = 7
+  type     = number
+  default  = 7
+  nullable = false
 }
 
 variable "deletion_protection" {
-  type    = bool
-  default = false
+  type     = bool
+  default  = false
+  nullable = false
 }
 
 # ── CodeDeploy 이름 (앱 저장소 deploy.yml 과 일치) ──────
