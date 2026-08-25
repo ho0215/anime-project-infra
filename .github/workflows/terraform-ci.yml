@@ -23,6 +23,11 @@ permissions:
   contents: read
   pull-requests: write
 
+# CD(apply) 와 동시에 plan 하면 S3 state lock 충돌 → 같은 그룹으로 직렬화
+concurrency:
+  group: terraform-dev
+  cancel-in-progress: false
+
 jobs:
   plan:
     name: Format / Validate / Plan
