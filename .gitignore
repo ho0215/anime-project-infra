@@ -26,3 +26,4 @@ terraform.rc
 !terraform.tfvars.example
 
 .terraform/
+**/.terraform/*
