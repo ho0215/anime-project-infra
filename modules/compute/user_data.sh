@@ -94,16 +94,18 @@ fi
 chown -R ubuntu:ubuntu "$MEDIA_DIR" || true
 
 # ── Django 런타임 환경파일 ───────────────────────────────
+# 값은 반드시 따옴표로 감싼다. (SECRET_KEY 에 ) 등이 있으면
+# bash source / 일부 파서가 깨진다. Django-environ · systemd 모두 인용 지원.)
 cat > "$ENV_FILE" <<EOF
-DJANGO_SECRET_KEY=${django_secret_key}
+DJANGO_SECRET_KEY='${django_secret_key}'
 DJANGO_DEBUG=False
-DB_NAME=${db_name}
-DB_USER=${db_username}
-DB_PASSWORD=${db_password}
-DB_HOST=${db_host}
-DB_PORT=${db_port}
-AWS_STORAGE_BUCKET_NAME=${static_bucket_name}
-AWS_S3_REGION_NAME=${aws_region}
+DB_NAME='${db_name}'
+DB_USER='${db_username}'
+DB_PASSWORD='${db_password}'
+DB_HOST='${db_host}'
+DB_PORT='${db_port}'
+AWS_STORAGE_BUCKET_NAME='${static_bucket_name}'
+AWS_S3_REGION_NAME='${aws_region}'
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 EOF

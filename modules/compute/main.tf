@@ -80,10 +80,11 @@ resource "aws_launch_template" "app" {
     db_port            = var.db_port
     db_name            = var.db_name
     db_username        = var.db_username
-    db_password        = var.db_password
+    # .env 단일 인용부호 이스케이프
+    db_password        = replace(var.db_password, "'", "'\"'\"'")
     static_bucket_name = var.static_bucket_name
     aws_region         = data.aws_region.current.name
-    django_secret_key  = var.django_secret_key
+    django_secret_key  = replace(var.django_secret_key, "'", "'\"'\"'")
   }))
 
   tag_specifications {
