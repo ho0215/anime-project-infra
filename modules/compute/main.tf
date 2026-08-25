@@ -75,11 +75,11 @@ resource "aws_launch_template" "app" {
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    efs_dns_name       = var.efs_dns_name
-    db_host            = var.db_host
-    db_port            = var.db_port
-    db_name            = var.db_name
-    db_username        = var.db_username
+    efs_dns_name = var.efs_dns_name
+    db_host      = var.db_host
+    db_port      = var.db_port
+    db_name      = var.db_name
+    db_username  = var.db_username
     # .env 단일 인용부호 이스케이프
     db_password        = replace(var.db_password, "'", "'\"'\"'")
     static_bucket_name = var.static_bucket_name
