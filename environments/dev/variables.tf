@@ -66,11 +66,11 @@ variable "django_secret_key" {
 }
 
 # ── RDS 영속성 ──────────────────────────────────────────
+# 최초 배포: 둘 다 기본값 그대로 (스냅샷 없음 → 신규 RDS)
 variable "db_snapshot_identifier" {
-  description = "지정 시 해당 스냅샷에서 RDS 복원. 비우면 신규 생성"
+  description = "복원할 RDS 스냅샷 ID. 비우면(\"\") 신규 생성"
   type        = string
-  default     = null
-  nullable    = true
+  default     = ""
 }
 
 variable "restore_from_latest_snapshot" {

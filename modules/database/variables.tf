@@ -46,11 +46,11 @@ variable "deletion_protection" {
   default     = false
 }
 
+# 빈 문자열("") = 신규 생성. 스냅샷 ID를 넣으면 해당 스냅샷에서 복원.
 variable "db_snapshot_identifier" {
-  description = "지정 시 해당 스냅샷에서 RDS 복원. null/미설정이면 신규 생성"
+  description = "복원할 RDS 스냅샷 ID. 비우면(\"\") 신규 생성"
   type        = string
-  default     = null
-  nullable    = true
+  default     = ""
 }
 
 variable "restore_from_latest_snapshot" {
