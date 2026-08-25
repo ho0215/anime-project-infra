@@ -5,5 +5,5 @@
 # django_secret_key    = "change-me-django-secret"
 # alert_email          = "you@example.com"
 
-# RDS snapshot restore: Terraform CD patches modules/database/variables.tf
-# defaults when TF_VAR_DB_SNAPSHOT_IDENTIFIER / restore flags are set.
+# RDS snapshot restore: Terraform CD patches locals in
+# modules/database/main.tf when restore secrets/inputs are set.

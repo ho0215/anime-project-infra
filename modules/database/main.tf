@@ -14,15 +14,21 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
-# ── 스냅샷 ID 정규화 ("" / 공백 → null = 신규 생성) ─────
+# ── RDS 영속성 옵션 (literal locals — var 쓰면 IDE 오탐 반복) ─
+# 스냅샷 복원 시 GitHub Actions 가 아래 두 줄만 덮어쓴다.
 locals {
-  snapshot_trimmed  = trimspace(var.db_snapshot_identifier)
+  db_snapshot_identifier       = ""
+  restore_from_latest_snapshot = false
+  backup_retention_period      = 7
+  deletion_protection          = false
+
+  snapshot_trimmed  = trimspace(local.db_snapshot_identifier)
   explicit_snapshot = local.snapshot_trimmed != "" ? local.snapshot_trimmed : null
 }
 
 # ── 최신 manual 스냅샷 조회 (옵션, 기본 OFF) ─────────────
 data "aws_db_snapshot" "latest" {
-  count = var.restore_from_latest_snapshot && local.explicit_snapshot == null ? 1 : 0
+  count = local.restore_from_latest_snapshot && local.explicit_snapshot == null ? 1 : 0
 
   most_recent            = true
   db_instance_identifier = "${var.project_name}-rds"
@@ -82,13 +88,13 @@ resource "aws_db_instance" "main" {
   multi_az            = false
   publicly_accessible = false
 
-  backup_retention_period   = var.backup_retention_period
+  backup_retention_period   = local.backup_retention_period
   backup_window             = "18:00-19:00"
   maintenance_window        = "sun:19:00-sun:20:00"
   skip_final_snapshot       = false
   final_snapshot_identifier = "${var.project_name}-rds-final-${random_id.final_snapshot_suffix.hex}"
   copy_tags_to_snapshot     = true
-  deletion_protection       = var.deletion_protection
+  deletion_protection       = local.deletion_protection
 
   lifecycle {
     ignore_changes = [
