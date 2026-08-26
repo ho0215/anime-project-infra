@@ -9,7 +9,7 @@ output "alb_zone_id" {
 }
 
 output "alb_url" {
-  value = var.certificate_arn != "" ? "https://${aws_lb.main.dns_name}" : "http://${aws_lb.main.dns_name}"
+  value = var.enable_https ? "https://${aws_lb.main.dns_name}" : "http://${aws_lb.main.dns_name}"
 }
 
 output "alb_arn" {

@@ -21,5 +21,4 @@ variable "alb_arn_suffix" {
 variable "target_group_arn_suffix" {
   description = "Target Group ARN Suffix (UnHealthyHostCount)"
   type        = string
-  default     = ""
 }
