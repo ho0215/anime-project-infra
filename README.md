@@ -48,7 +48,8 @@ Outputs의 `github_actions_role_arn` 을 GitHub Actions **Variable** `AWS_ROLE_A
 
 | Name | 설명 |
 |------|------|
-| `AWS_ROLE_ARN` | bootstrap output `github_actions_role_arn` (OIDC) |
+| `AWS_ROLE_ARN` | bootstrap output `github_actions_role_arn` (OIDC용) |
+| `AWS_USE_OIDC` | `true` 일 때만 OIDC 사용. **비우면 Access Key로 apply** (권장: 일단 비움) |
 | `ALERT_EMAIL` | CloudWatch SNS 구독 이메일 |
 | `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` |
 
