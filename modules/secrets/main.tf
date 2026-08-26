@@ -9,7 +9,7 @@ resource "aws_secretsmanager_secret" "app" {
 }
 
 locals {
-  allowed_hosts = var.domain_name != "" ? "${var.domain_name},www.${var.domain_name}" : "*"
+  allowed_hosts = var.domain_name != "" ? "${var.domain_name},www.${var.domain_name},127.0.0.1,localhost" : "*"
   csrf_trusted_origins = var.domain_name != "" ? (
     var.use_https
     ? "https://${var.domain_name},https://www.${var.domain_name}"
