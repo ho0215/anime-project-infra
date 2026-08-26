@@ -39,15 +39,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve AWS auth mode
+        id: auth
+        run: |
+          if [ -n "${{ vars.AWS_ROLE_ARN }}" ] && [ "${{ vars.AWS_USE_OIDC }}" = "true" ]; then
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=keys" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Debug GitHub OIDC token claims
+        if: steps.auth.outputs.mode == 'oidc'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString('utf8')
+            );
+            console.log('OIDC claims:', JSON.stringify({
+              sub: payload.sub,
+              aud: payload.aud,
+              repository: payload.repository,
+              ref: payload.ref,
+              environment: payload.environment || null,
+            }, null, 2));
+
       - name: Configure AWS credentials (OIDC)
-        if: ${{ vars.AWS_ROLE_ARN != '' }}
+        if: steps.auth.outputs.mode == 'oidc'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-actions-terraform
+          audience: sts.amazonaws.com
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Configure AWS credentials (access keys fallback)
-        if: ${{ vars.AWS_ROLE_ARN == '' }}
+      - name: Configure AWS credentials (access keys)
+        if: steps.auth.outputs.mode == 'keys'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
