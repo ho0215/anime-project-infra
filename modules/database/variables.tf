@@ -33,3 +33,25 @@ variable "db_password" {
   type      = string
   sensitive = true
 }
+
+variable "db_snapshot_identifier" {
+  description = "복원할 RDS manual 스냅샷 ID. 비우면 신규 생성(또는 restore_from_latest_snapshot)"
+  type        = string
+  default     = ""
+}
+
+variable "restore_from_latest_snapshot" {
+  description = "true 이고 db_snapshot_identifier 가 비어 있으면 최신 manual 스냅샷 자동 선택"
+  type        = bool
+  default     = false
+}
+
+variable "backup_retention_period" {
+  type    = number
+  default = 7
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = false
+}

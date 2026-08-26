@@ -22,3 +22,9 @@ variable "certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "enable_access_logs" {
+  description = "ALB access logs → S3"
+  type        = bool
+  default     = true
+}

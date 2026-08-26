@@ -27,3 +27,4 @@ terraform.rc
 
 .terraform/
 **/.terraform/*
+bootstrap/.terraform/
