@@ -115,3 +115,36 @@ variable "subject_alternative_names" {
   type        = list(string)
   default     = ["www.aniverse.my"]
 }
+
+variable "db_snapshot_identifier" {
+  description = "RDS 복원 스냅샷 ID (GitHub: TF_VAR_db_snapshot_identifier / secret TF_VAR_DB_SNAPSHOT_IDENTIFIER)"
+  type        = string
+  default     = ""
+}
+
+variable "restore_from_latest_snapshot" {
+  description = "최신 manual 스냅샷 자동 복원 (GitHub: TF_VAR_restore_from_latest_snapshot)"
+  type        = bool
+  default     = false
+}
+
+variable "waf_rate_limit" {
+  description = "WAF IP당 5분 요청 한도"
+  type        = number
+  default     = 2000
+}
+
+variable "enable_waf" {
+  type    = bool
+  default = true
+}
+
+variable "enable_alb_access_logs" {
+  type    = bool
+  default = true
+}
+
+variable "enable_redis" {
+  type    = bool
+  default = true
+}

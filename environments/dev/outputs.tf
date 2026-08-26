@@ -16,6 +16,19 @@ output "certificate_arn" {
   value = module.acm.certificate_arn
 }
 
+output "waf_web_acl_arn" {
+  value = var.enable_waf ? module.waf[0].web_acl_arn : null
+}
+
+output "redis_url" {
+  value     = var.enable_redis ? module.redis[0].redis_url : null
+  sensitive = true
+}
+
+output "app_secret_arn" {
+  value = module.secrets.secret_arn
+}
+
 output "rds_endpoint" {
   value = module.database.rds_endpoint
 }
