@@ -1,10 +1,14 @@
 # GitHub Actions → AWS OIDC (장기 Access Key 대체)
 # bootstrap apply 후 GitHub Actions Variable AWS_ROLE_ARN 에 role ARN 등록
 #
-# CD job 은 environment: production 을 쓰므로 sub 가
-#   repo:ORG/REPO:environment:production
-# 형태가 된다. 2026-07 이후 생성/옵트인 저장소는 immutable ID 가 붙을 수 있어
-# sub 와일드카드보다 repository 클레임으로 신뢰하는 편이 안전하다.
+# AWS IAM 규칙: GitHub OIDC trust 에는 반드시 범위가 있는
+#   token.actions.githubusercontent.com:sub  (또는 job_workflow_ref)
+# StringEquals/StringLike 조건이 있어야 한다. repository 클레임만으로는 거부됨.
+#
+# CD 는 environment: production 을 쓰므로 sub 예시:
+#   repo:ho0215/anime-project-infra:environment:production
+# 2026-07 이후 immutable sub 예시:
+#   repo:ho0215@123/anime-project-infra@456:environment:production
 
 data "aws_caller_identity" "current" {}
 
@@ -22,7 +26,6 @@ variable "github_repo" {
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  # GitHub 루트 CA 교체 대비 — AWS는 목록 중 일치하는 지문만 사용
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
@@ -37,7 +40,6 @@ data "aws_iam_policy_document" "github_assume" {
   statement {
     sid    = "GitHubActionsOIDC"
     effect = "Allow"
-    # configure-aws-credentials@v4+ 는 TagSession 도 요청할 수 있음
     actions = [
       "sts:AssumeRoleWithWebIdentity",
       "sts:TagSession",
@@ -54,11 +56,16 @@ data "aws_iam_policy_document" "github_assume" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # immutable sub(repo:user@id/repo@id:...) 에도 동일한 값
+    # 저장소로 범위 제한 (AWS가 요구하는 sub 조건). 전체 "*" 단독은 거부됨.
     condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:repository"
-      values   = ["${var.github_org}/${var.github_repo}"]
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values = [
+        # 기존 형식
+        "repo:${var.github_org}/${var.github_repo}:*",
+        # immutable ID 형식 (repo:org@id/name@id:...)
+        "repo:${var.github_org}@*/${var.github_repo}@*:*",
+      ]
     }
   }
 }
