@@ -6,10 +6,10 @@ provider "aws" {
 # "aniverse-tfstate" 는 다른 계정이 이미 사용 중(HeadBucket 403)이므로
 # 계정/사용자별로 고유한 이름을 사용한다.
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "aniverse-tfstate-ho0215"
+  bucket = "aniverse-tfstate-younju"
 
   tags = {
-    Name = "aniverse-tfstate-ho0215"
+    Name = "aniverse-tfstate-younju"
   }
 }
 

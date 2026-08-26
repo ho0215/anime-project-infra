@@ -88,7 +88,7 @@ resource "aws_db_instance" "main" {
   multi_az            = false
   publicly_accessible = false
 
-  backup_retention_period   = local.backup_retention_period
+  backup_retention_period   = 0
   backup_window             = "18:00-19:00"
   maintenance_window        = "sun:19:00-sun:20:00"
   skip_final_snapshot       = false
