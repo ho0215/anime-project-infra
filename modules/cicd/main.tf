@@ -85,8 +85,8 @@ resource "aws_codedeploy_deployment_group" "dg" {
   # 소규모 ASG(2대)에서 1대 실패 시 나머지가 Skip 되는 것을 줄임
   deployment_config_name = "CodeDeployDefault.AllAtOnce"
 
-  # 첫 배포 / 에이전트 이슈 시 ApplicationStop 실패로 전체가 죽지 않게
-  ignore_application_stop_failures = true
+  # ApplicationStop ignore 는 deployment group 속성이 아님.
+  # create-deployment --ignore-application-stop-failures (앱 deploy.yml) 로 처리.
 
   deployment_style {
     deployment_option = "WITHOUT_TRAFFIC_CONTROL"
