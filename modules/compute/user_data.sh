@@ -108,10 +108,11 @@ AWS_STORAGE_BUCKET_NAME='${static_bucket_name}'
 AWS_S3_REGION_NAME='${aws_region}'
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
-USE_HTTPS=False
+USE_HTTPS=${use_https}
+DJANGO_ALLOWED_HOSTS='${allowed_hosts}'
 GEMINI_API_KEY='${gemini_api_key}'
 GEMINI_MODEL='gemini-3.6-flash'
-DJANGO_CSRF_TRUSTED_ORIGINS='http://*.elb.amazonaws.com,https://*.elb.amazonaws.com'
+DJANGO_CSRF_TRUSTED_ORIGINS='${csrf_trusted_origins}'
 EOF
 chown ubuntu:ubuntu "$ENV_FILE"
 chmod 600 "$ENV_FILE"

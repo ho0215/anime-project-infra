@@ -103,3 +103,15 @@ variable "asg_max_size" {
   type    = number
   default = 4
 }
+
+variable "domain_name" {
+  description = "앱 도메인 (Route 53 호스팅 영역이 이미 있어야 함). 가비아 NS → Route 53 위임 후 사용"
+  type        = string
+  default     = "aniverse.my"
+}
+
+variable "subject_alternative_names" {
+  description = "ACM SAN 목록"
+  type        = list(string)
+  default     = ["www.aniverse.my"]
+}

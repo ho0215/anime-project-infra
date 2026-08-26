@@ -66,7 +66,18 @@ module "storage" {
 }
 
 # ==========================================
-# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / 리스너)
+# ACM (기존 Route 53 호스팅 영역 + DNS 검증)
+# ==========================================
+module "acm" {
+  source = "../../modules/acm"
+
+  project_name              = var.project_name
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+}
+
+# ==========================================
+# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / HTTPS)
 # ==========================================
 module "alb" {
   source = "../../modules/alb"
@@ -75,6 +86,34 @@ module "alb" {
   vpc_id            = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   alb_sg_id         = module.security.alb_sg_id
+  certificate_arn   = module.acm.certificate_arn
+}
+
+# apex / www → ALB (ACM 과 ALB 순환 참조 방지를 위해 루트에 둠)
+resource "aws_route53_record" "apex" {
+  zone_id = module.acm.zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "www" {
+  count = contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
+
+  zone_id = module.acm.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
 }
 
 # ==========================================
@@ -97,6 +136,8 @@ module "compute" {
   static_bucket_arn      = module.storage.s3_bucket_arn
   django_secret_key      = var.django_secret_key
   gemini_api_key         = var.gemini_api_key
+  domain_name            = var.domain_name
+  use_https              = true
   asg_desired_capacity   = var.asg_desired_capacity
   asg_min_size           = var.asg_min_size
   asg_max_size           = var.asg_max_size
