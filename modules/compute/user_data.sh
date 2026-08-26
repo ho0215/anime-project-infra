@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Idempotent bootstrap on each EC2 launch (ASG Launch Template user_data).
 # Secrets come from AWS Secrets Manager (app_secret_arn) — not embedded in LT.
+#
+# IMPORTANT: CodeDeploy agent must be installed BEFORE long steps (secrets/EFS).
+# Nginx /health/ makes the instance ALB-healthy early; if CodeDeploy runs before
+# the agent is up, ApplicationStop fails with:
+#   "CodeDeploy agent was not able to receive the lifecycle event"
 set -euxo pipefail
 
 sleep 5
@@ -74,6 +79,24 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
+# ── CodeDeploy Agent (install EARLY — before secrets / EFS) ─
+cd /tmp
+wget -q "https://aws-codedeploy-${aws_region}.s3.${aws_region}.amazonaws.com/latest/install"
+chmod +x ./install
+./install auto
+systemctl enable codedeploy-agent
+systemctl restart codedeploy-agent
+# give the agent a moment to register with the service
+for i in 1 2 3 4 5 6; do
+  if systemctl is-active --quiet codedeploy-agent; then
+    break
+  fi
+  sleep 2
+  systemctl start codedeploy-agent || true
+done
+systemctl is-active --quiet codedeploy-agent
+echo "codedeploy-agent is active"
+
 # ── EFS 마운트 ───────────────────────────────────────────
 if ! mountpoint -q "$MEDIA_DIR"; then
   if mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 \
@@ -86,7 +109,7 @@ if ! mountpoint -q "$MEDIA_DIR"; then
 fi
 chown -R ubuntu:ubuntu "$MEDIA_DIR" || true
 
-# ── Secrets Manager → .env (plaintext not in Launch Template) ─
+# ── Secrets Manager → .env ───────────────────────────────
 python3 <<'PY'
 import json, os, subprocess, time, sys
 
@@ -94,7 +117,7 @@ arn = os.environ["APP_SECRET_ARN"]
 region = os.environ["AWS_REGION"]
 path = os.environ["ENV_FILE"]
 raw = None
-for _ in range(8):
+for _ in range(12):
     try:
         raw = subprocess.check_output(
             [
@@ -159,12 +182,4 @@ WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
 
-# ── CodeDeploy Agent ─────────────────────────────────────
-cd /tmp
-wget -q "https://aws-codedeploy-${aws_region}.s3.${aws_region}.amazonaws.com/latest/install"
-chmod +x ./install
-./install auto
-systemctl enable codedeploy-agent
-systemctl start codedeploy-agent
-
-echo "user_data bootstrap complete (ssm + secrets + nginx health + codedeploy)"
+echo "user_data bootstrap complete (nginx health + codedeploy-agent + secrets)"

@@ -82,6 +82,12 @@ resource "aws_codedeploy_deployment_group" "dg" {
 
   autoscaling_groups = [var.asg_name]
 
+  # 소규모 ASG(2대)에서 1대 실패 시 나머지가 Skip 되는 것을 줄임
+  deployment_config_name = "CodeDeployDefault.AllAtOnce"
+
+  # 첫 배포 / 에이전트 이슈 시 ApplicationStop 실패로 전체가 죽지 않게
+  ignore_application_stop_failures = true
+
   deployment_style {
     deployment_option = "WITHOUT_TRAFFIC_CONTROL"
     deployment_type   = "IN_PLACE"
