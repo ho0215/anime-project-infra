@@ -62,6 +62,9 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
   subnets            = var.public_subnet_ids
+  # 기본값 60초는 거래 채팅(WebSocket)이 조용할 때 연결을 끊어버린다.
+  # 앱 쪽 heartbeat(25초 간격)와 별개로 여유를 둔다.
+  idle_timeout = var.idle_timeout
 
   dynamic "access_logs" {
     for_each = var.enable_access_logs ? [1] : []

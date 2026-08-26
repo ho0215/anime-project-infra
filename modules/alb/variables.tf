@@ -34,3 +34,9 @@ variable "enable_access_logs" {
   type        = bool
   default     = true
 }
+
+variable "idle_timeout" {
+  description = "ALB 연결 유휴 타임아웃(초). WebSocket 채팅 연결이 조용히 끊기지 않도록 AWS 기본값(60)보다 넉넉히 잡는다."
+  type        = number
+  default     = 120
+}
