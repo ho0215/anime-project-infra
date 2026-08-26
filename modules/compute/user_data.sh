@@ -33,6 +33,9 @@ export ENV_FILE
 
 mkdir -p "$PROJECT_DIR" "$MEDIA_DIR" "$PROJECT_DIR/staticfiles"
 chown -R ubuntu:ubuntu "$PROJECT_DIR"
+# nginx(www-data) 가 /home/ubuntu/.../staticfiles 를 읽으려면 상위 디렉터리 +x 필요
+chmod 755 /home/ubuntu
+chmod 755 "$PROJECT_DIR" "$MEDIA_DIR" "$PROJECT_DIR/staticfiles"
 
 # ── SSM Agent ───────────────────────────────────────────
 if ! systemctl is-active --quiet snap.amazon-ssm-agent.amazon-ssm-agent.service \
@@ -54,6 +57,12 @@ server {
     listen 80 default_server;
     server_name _;
     client_max_body_size 128M;
+
+    location = /favicon.ico {
+        alias /home/ubuntu/aniverse/staticfiles/img/favicon.ico;
+        access_log off;
+        log_not_found off;
+    }
 
     location /health/ {
         default_type text/plain;
