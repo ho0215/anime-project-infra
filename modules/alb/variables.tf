@@ -18,9 +18,15 @@ variable "alb_sg_id" {
 }
 
 variable "certificate_arn" {
-  description = "ACM 인증서 ARN. 비우면 HTTP only, 있으면 HTTPS + HTTP→HTTPS redirect"
+  description = "ACM 인증서 ARN (enable_https=true 일 때 필수)"
   type        = string
   default     = ""
+}
+
+variable "enable_https" {
+  description = "HTTPS 리스너 + HTTP→HTTPS redirect. count 에 쓰므로 plan-time 에 확정된 bool 이어야 함 (certificate_arn 직접 비교 금지)"
+  type        = bool
+  default     = true
 }
 
 variable "enable_access_logs" {

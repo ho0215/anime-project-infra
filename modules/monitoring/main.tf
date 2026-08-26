@@ -50,10 +50,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   }
 }
 
-# 5. Unhealthy host
+# 5. Unhealthy host (monitoring 모듈이 켜진 경우 항상 생성 — count 에 unknown suffix 쓰지 않음)
 resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
-  count = var.target_group_arn_suffix != "" ? 1 : 0
-
   alarm_name          = "${var.project_name}-unhealthy-hosts"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "2"

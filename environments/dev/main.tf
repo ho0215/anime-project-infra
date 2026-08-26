@@ -89,6 +89,7 @@ module "alb" {
   public_subnet_ids  = module.network.public_subnet_ids
   alb_sg_id          = module.security.alb_sg_id
   certificate_arn    = module.acm.certificate_arn
+  enable_https       = true
   enable_access_logs = var.enable_alb_access_logs
 }
 
