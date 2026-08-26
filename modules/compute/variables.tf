@@ -72,6 +72,18 @@ variable "gemini_api_key" {
   default     = ""
 }
 
+variable "domain_name" {
+  description = "앱 도메인 (ALLOWED_HOSTS / CSRF / USE_HTTPS)"
+  type        = string
+  default     = ""
+}
+
+variable "use_https" {
+  description = "Django USE_HTTPS (ALB TLS 종료 시 true)"
+  type        = bool
+  default     = false
+}
+
 variable "instance_type" {
   type    = string
   default = "t3.micro"

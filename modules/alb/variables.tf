@@ -16,3 +16,9 @@ variable "alb_sg_id" {
   type        = string
   description = "ALB에 붙일 보안그룹 ID"
 }
+
+variable "certificate_arn" {
+  description = "ACM 인증서 ARN. 비우면 HTTP only, 있으면 HTTPS + HTTP→HTTPS redirect"
+  type        = string
+  default     = ""
+}

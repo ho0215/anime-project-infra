@@ -7,6 +7,15 @@ output "alb_url" {
   value = module.alb.alb_url
 }
 
+output "app_url" {
+  description = "HTTPS 앱 URL (도메인)"
+  value       = module.acm.app_url
+}
+
+output "certificate_arn" {
+  value = module.acm.certificate_arn
+}
+
 output "rds_endpoint" {
   value = module.database.rds_endpoint
 }

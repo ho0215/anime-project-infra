@@ -3,8 +3,13 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
+output "alb_zone_id" {
+  description = "Route 53 Alias 용 ALB canonical hosted zone ID"
+  value       = aws_lb.main.zone_id
+}
+
 output "alb_url" {
-  value = "http://${aws_lb.main.dns_name}"
+  value = var.certificate_arn != "" ? "https://${aws_lb.main.dns_name}" : "http://${aws_lb.main.dns_name}"
 }
 
 output "alb_arn" {

@@ -40,6 +40,14 @@ resource "aws_launch_template" "app" {
     aws_region         = data.aws_region.current.name
     django_secret_key  = replace(var.django_secret_key, "'", "'\"'\"'")
     gemini_api_key     = replace(var.gemini_api_key, "'", "'\"'\"'")
+    use_https          = var.use_https ? "True" : "False"
+    domain_name        = var.domain_name
+    allowed_hosts      = var.domain_name != "" ? "${var.domain_name},www.${var.domain_name}" : "*"
+    csrf_trusted_origins = var.domain_name != "" ? (
+      var.use_https
+      ? "https://${var.domain_name},https://www.${var.domain_name}"
+      : "http://${var.domain_name},http://www.${var.domain_name},http://*.elb.amazonaws.com,https://*.elb.amazonaws.com"
+    ) : "http://*.elb.amazonaws.com,https://*.elb.amazonaws.com"
   }))
 
   tag_specifications {
