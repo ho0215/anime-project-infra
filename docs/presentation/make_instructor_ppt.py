@@ -98,7 +98,7 @@ def header(slide, title, subtitle=None):
         add_para(tf, subtitle, 12, False, RGBColor(147, 197, 253), 2)
 
 
-TOTAL = 17
+TOTAL = 18
 
 
 def footer(slide, n, total=TOTAL):
@@ -175,11 +175,12 @@ def agenda(prs):
         "04  GitHub Actions 자동화",
         "05  CI/CD · 고가용성 · 모니터링 · 보안",
         "06  HTTPS · WAF",
+        "07  사용한 AWS · GitHub 한 장 정리",
     ]
     for i, title in enumerate(items):
-        y = Inches(1.15) + i * Inches(0.88)
-        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.75), LIGHT, BLUE)
-        set_text(card.text_frame, title, 18, True, NAVY)
+        y = Inches(1.1) + i * Inches(0.78)
+        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.68), LIGHT, BLUE)
+        set_text(card.text_frame, title, 17, True, NAVY)
     footer(s, 2)
 
 
@@ -523,6 +524,13 @@ def https_waf_slides(prs):
     footer(s, 16)
 
 
+def stack_summary_slide(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "7. 사용한 AWS · GitHub", "인프라 서비스와 자동화 도구를 한 장으로")
+    put_img(s, "07_aws_github_stack.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
+    footer(s, 17)
+
+
 def closing(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     bg = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
@@ -549,6 +557,7 @@ def build():
     actions_slides(prs)
     ops_slides(prs)
     https_waf_slides(prs)
+    stack_summary_slide(prs)
     closing(prs)
     out = OUT / "Aniverse_발표_강사용.pptx"
     prs.save(out)
