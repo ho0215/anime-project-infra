@@ -1,25 +1,21 @@
 # Aniverse Infrastructure (Terraform)
 
-GitHub Secrets에 자격 증명만 등록하면 GitHub Actions로 **인프라 Apply/Destroy → 앱 CodeDeploy**까지 자동화하는 구성을 목표로 합니다.
+GitHub Secrets/Variables만 등록하면 GitHub Actions로 **인프라 Apply/Destroy → 앱 CodeDeploy**까지 자동화합니다.
 
 ## 구조
 
 ```
-bootstrap/           # 최초 1회: tfstate S3 + lock 테이블
-environments/dev/    # 루트 모듈 (network→security→nat→endpoints→database→storage→compute→cicd→monitoring)
+bootstrap/           # 최초 1회: tfstate S3 + lock + GitHub OIDC role
+environments/dev/    # 루트 모듈
 modules/
-  network, security, nat, endpoints, database, storage, compute, cicd, monitoring
+  network, security, nat, endpoints, database, storage,
+  acm, alb, waf, redis, secrets, compute, cicd, monitoring
 scripts/
-  ssm-connect.sh     # ASG 인스턴스에 SSM Session Manager로 접속
-  wait-for-ssm.sh    # Apply 후 SSM Online 대기 (CI)
+  ssm-connect.sh / wait-for-ssm.sh
 .github/workflows/
-  terraform-ci.yml   # PR + feature push: fmt / validate / plan
-  terraform-cd.yml   # main/feature push: apply / workflow_dispatch: apply|destroy
+  terraform-ci.yml   # PR: fmt(필수) / validate / plan
+  terraform-cd.yml   # main push + workflow_dispatch: apply|destroy
 ```
-
-> **주의:** `main`에 예전에 `.github/workflows/terraform-cd`(확장자 없음) 파일이 있으면 GitHub Actions가 **CD를 아예 인식하지 않습니다**. 이 PR에서 해당 파일을 삭제하고 `terraform-cd.yml`로 교체합니다.
->
-> S3 백엔드 `use_lockfile = true` 는 **Terraform ≥ 1.10** 이 필요합니다. 워크플로는 `1.10.5`를 사용합니다.
 
 ## 사전 준비 (1회)
 
@@ -28,97 +24,64 @@ cd bootstrap
 terraform init && terraform apply
 ```
 
-이후 `environments/dev` 는 S3 백엔드(`aniverse-tfstate-ho0215`)를 사용합니다.
+Outputs의 `github_actions_role_arn` 을 GitHub Actions **Variable** `AWS_ROLE_ARN` 에 등록하면
+워크플로가 OIDC로 인증합니다. (미설정 시 Access Key fallback)
 
 ## GitHub Secrets / Variables
 
-### Repository Secrets (필수)
+### Secrets (필수)
 
 | Name | 설명 |
 |------|------|
-| `AWS_ACCESS_KEY_ID` | Terraform/배포용 IAM 사용자 액세스 키 |
-| `AWS_SECRET_ACCESS_KEY` | 시크릿 키 |
-| `TF_VAR_DB_PASSWORD` | RDS master password (`TF_VAR_db_password`로 주입) |
-| `TF_VAR_DJANGO_SECRET_KEY` | Django `SECRET_KEY` |
+| `TF_VAR_DB_PASSWORD` | RDS master password |
+| `TF_VAR_DJANGO_SECRET_KEY` | Django SECRET_KEY |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | OIDC 미사용 시에만 필요 |
 
-### Repository Secrets (선택)
-
-| Name | 설명 |
-|------|------|
-| `TF_VAR_DB_SNAPSHOT_IDENTIFIER` | destroy 후 재apply 시 복원할 스냅샷 ID (CD가 database locals 에 주입) |
-
-### Repository Variables (선택)
+### Secrets (선택)
 
 | Name | 설명 |
 |------|------|
-| `ALERT_EMAIL` | CloudWatch 알람 SNS 구독 이메일 (비우면 monitoring 미생성) |
-| `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` — 최신 manual 스냅샷 자동 복원 (CD가 database locals 에 주입) |
+| `TF_VAR_DB_SNAPSHOT_IDENTIFIER` | destroy 후 재apply 복원 스냅샷 ID |
+| `TF_VAR_GEMINI_API_KEY` | Gemini 챗봇 |
 
-### IAM 권한 (최소 가이드)
+### Variables
 
-해당 IAM 사용자/롤에 VPC, EC2, ELB, ASG, RDS, S3, EFS, IAM(PassRole 포함), CodeDeploy, CloudWatch, SNS, **SSM (StartSession / DescribeInstanceInformation)** 권한이 필요합니다. 학습용으로는 `AdministratorAccess`로 시작해도 됩니다.
+| Name | 설명 |
+|------|------|
+| `AWS_ROLE_ARN` | bootstrap output `github_actions_role_arn` (OIDC용) |
+| `AWS_USE_OIDC` | `true` 일 때만 OIDC 사용. **비우면 Access Key로 apply** (권장: 일단 비움) |
+| `ALERT_EMAIL` | CloudWatch SNS 구독 이메일 |
+| `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` |
 
-## SSM으로 EC2 접속 (키페어/배스천 불필요)
+## RDS 스냅샷 복원
 
-Private 앱 인스턴스는 다음이 갖춰져 있어야 Session Manager에 붙습니다.
+CD가 **소스 파일을 패치하지 않습니다.** `TF_VAR_db_snapshot_identifier` /
+`TF_VAR_restore_from_latest_snapshot` 변수로만 전달합니다.
 
-1. IAM: `AmazonSSMManagedInstanceCore` (compute 모듈에 포함)
-2. Agent: user_data 가 `amazon-ssm-agent` 설치/기동
-3. 네트워크: VPC Interface Endpoints (`ssm`, `ssmmessages`, `ec2messages`) + NAT egress
+1. Destroy → Job Summary에 최신 manual 스냅샷 ID 출력
+2. Secret에 ID를 넣거나 workflow_dispatch에서 `restore_from_latest_snapshot=true`
+3. Apply
 
-로컬에서:
+## HTTPS / WAF / Secrets / Redis
 
-```bash
-# Session Manager plugin 필요
-# https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html
-
-ASG_NAME=aniverse-asg ./scripts/ssm-connect.sh
-# 또는
-./scripts/ssm-connect.sh i-0xxxxxxxxxxxx
-```
-
-Apply 워크플로는 `scripts/wait-for-ssm.sh` 로 Online 여부를 검증합니다.
-
-## EC2 라이브러리 / 부트 순서
-
-| 단계 | 설치 내용 |
-|------|-----------|
-| Launch Template user_data | nginx(임시 `/health/`), mysqlclient **빌드 의존성**, SSM agent, CodeDeploy agent, `.env` |
-| CodeDeploy `install_dependencies.sh` | 동일 apt 재확인 → venv → `pip install` (mysqlclient 선행) → migrate |
-| CodeDeploy `start_server.sh` | nginx + systemd `aniverse.service` |
-
-과거 실패 원인: `mysqlclient` pip 빌드 시 `default-libmysqlclient-dev` / `pkg-config` / `python3-dev` 가 없어 `mysql_config` not found.  
-지금은 **user_data + CodeDeploy 양쪽**에서 설치하고, CodeDeploy에서 `mysql_config` 존재 여부를 검사합니다.
-
-## RDS 영속성 (destroy → apply)
-
-1. RDS는 `skip_final_snapshot = false` 로 **최종 스냅샷을 남기고** 삭제됩니다.
-2. 자동 백업 보관: 7일 (`backup_retention_period`).
-3. Destroy 워크플로가 최신 manual 스냅샷 ID를 Job Summary에 출력합니다.
-4. 다시 Apply 할 때 CD가 `modules/database/main.tf` locals 를 덮어씁니다:
-   - Secret `TF_VAR_DB_SNAPSHOT_IDENTIFIER`에 스냅샷 ID를 넣거나
-   - `workflow_dispatch` Apply에서 `restore_from_latest_snapshot=true`
-5. 최초 배포(스냅샷 없음)에서는 복원 플래그를 **끄세요**. 스냅샷이 없으면 plan/apply가 실패합니다.
-
-> snapshot/restore 옵션은 `modules/database/main.tf` locals literal 로만 둡니다.
-> (root/module `var.*` 전달 시 Terraform LS 오탐이 반복됨)
+- 도메인 `aniverse.my` (Route 53 호스팅 영역 기존) + ACM + ALB 443
+- WAFv2 (Common / KnownBadInputs / SQLi / rate limit) → ALB
+- ALB access logs → S3
+- Secrets Manager → EC2 user_data가 `.env` 생성 (LT에 평문 시크릿 없음)
+- ElastiCache Redis → Django Channels (`REDIS_URL`)
 
 ## 앱 저장소 연동
 
-Apply 성공 후 Output을 **anime-project** 저장소에 등록:
-
-| anime-project Secret/Var | Terraform output |
-|--------------------------|------------------|
+| anime-project | Terraform output |
+|---------------|------------------|
 | `S3_BUCKET_NAME` | `deploy_bucket_name` |
-| (하드코딩 기본값) CodeDeploy app/group | `aniverse-app` / `aniverse-deployment-group` |
+| 접속 URL | `app_url` (`https://aniverse.my`) |
 
-## 로컬 실행 예
+## 로컬 실행
 
 ```bash
 cd environments/dev
 export TF_VAR_db_password='...'
 export TF_VAR_django_secret_key='...'
-terraform init
-terraform plan
-terraform apply
+terraform init && terraform apply
 ```

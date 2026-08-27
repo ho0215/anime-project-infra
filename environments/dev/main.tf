@@ -48,11 +48,13 @@ module "endpoints" {
 module "database" {
   source = "../../modules/database"
 
-  project_name          = var.project_name
-  vpc_id                = module.network.vpc_id
-  private_db_subnet_ids = module.network.private_db_subnet_ids
-  db_sg_id              = module.security.db_sg_id
-  db_password           = var.db_password
+  project_name                 = var.project_name
+  vpc_id                       = module.network.vpc_id
+  private_db_subnet_ids        = module.network.private_db_subnet_ids
+  db_sg_id                     = module.security.db_sg_id
+  db_password                  = var.db_password
+  db_snapshot_identifier       = var.db_snapshot_identifier
+  restore_from_latest_snapshot = var.restore_from_latest_snapshot
 }
 
 module "storage" {
@@ -66,15 +68,99 @@ module "storage" {
 }
 
 # ==========================================
-# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / 리스너)
+# ACM (기존 Route 53 호스팅 영역 + DNS 검증)
+# ==========================================
+module "acm" {
+  source = "../../modules/acm"
+
+  project_name              = var.project_name
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+}
+
+# ==========================================
+# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / HTTPS)
 # ==========================================
 module "alb" {
   source = "../../modules/alb"
 
-  project_name      = var.project_name
-  vpc_id            = module.network.vpc_id
-  public_subnet_ids = module.network.public_subnet_ids
-  alb_sg_id         = module.security.alb_sg_id
+  project_name       = var.project_name
+  vpc_id             = module.network.vpc_id
+  public_subnet_ids  = module.network.public_subnet_ids
+  alb_sg_id          = module.security.alb_sg_id
+  certificate_arn    = module.acm.certificate_arn
+  enable_https       = true
+  enable_access_logs = var.enable_alb_access_logs
+}
+
+# apex / www → ALB (ACM 과 ALB 순환 참조 방지를 위해 루트에 둠)
+resource "aws_route53_record" "apex" {
+  zone_id = module.acm.zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "www" {
+  count = contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
+
+  zone_id = module.acm.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+# ==========================================
+# WAF (ALB 연결)
+# ==========================================
+module "waf" {
+  count  = var.enable_waf ? 1 : 0
+  source = "../../modules/waf"
+
+  project_name = var.project_name
+  alb_arn      = module.alb.alb_arn
+  rate_limit   = var.waf_rate_limit
+}
+
+# ==========================================
+# Redis (Django Channels)
+# ==========================================
+module "redis" {
+  count  = var.enable_redis ? 1 : 0
+  source = "../../modules/redis"
+
+  project_name           = var.project_name
+  private_app_subnet_ids = module.network.private_app_subnet_ids
+  redis_sg_id            = module.security.redis_sg_id
+}
+
+# ==========================================
+# Secrets Manager (EC2 가 부팅 시 .env 로 로드)
+# ==========================================
+module "secrets" {
+  source = "../../modules/secrets"
+
+  project_name       = var.project_name
+  django_secret_key  = var.django_secret_key
+  db_password        = var.db_password
+  gemini_api_key     = var.gemini_api_key
+  db_host            = module.database.rds_address
+  db_port            = module.database.rds_port
+  static_bucket_name = module.storage.s3_bucket_name
+  aws_region         = var.aws_region
+  domain_name        = var.domain_name
+  use_https          = true
+  redis_url          = var.enable_redis ? module.redis[0].redis_url : ""
 }
 
 # ==========================================
@@ -88,22 +174,15 @@ module "compute" {
   app_sg_id              = module.security.app_sg_id
   target_group_arn       = module.alb.target_group_arn
   efs_dns_name           = module.storage.efs_dns_name
-  db_host                = module.database.rds_address
-  db_port                = module.database.rds_port
-  db_name                = "aniverse"
-  db_username            = "admin"
-  db_password            = var.db_password
-  static_bucket_name     = module.storage.s3_bucket_name
   static_bucket_arn      = module.storage.s3_bucket_arn
-  django_secret_key      = var.django_secret_key
-  gemini_api_key         = var.gemini_api_key
+  app_secret_arn         = module.secrets.secret_arn
   asg_desired_capacity   = var.asg_desired_capacity
   asg_min_size           = var.asg_min_size
   asg_max_size           = var.asg_max_size
 }
 
 # ==========================================
-# CI/CD (CodeDeploy + deploy S3) — 기존에 미연결
+# CI/CD (CodeDeploy + deploy S3)
 # ==========================================
 module "cicd" {
   source = "../../modules/cicd"
@@ -122,8 +201,9 @@ module "monitoring" {
   count  = var.alert_email != "" ? 1 : 0
   source = "../../modules/monitoring"
 
-  project_name   = var.project_name
-  alert_email    = var.alert_email
-  asg_name       = module.compute.asg_name
-  alb_arn_suffix = module.alb.alb_arn_suffix
+  project_name            = var.project_name
+  alert_email             = var.alert_email
+  asg_name                = module.compute.asg_name
+  alb_arn_suffix          = module.alb.alb_arn_suffix
+  target_group_arn_suffix = module.alb.target_group_arn_suffix
 }

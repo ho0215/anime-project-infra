@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 # Idempotent bootstrap on each EC2 launch (ASG Launch Template user_data).
-# Terraform templatefile() injects placeholders such as efs_dns_name / db_host below.
+# Secrets come from AWS Secrets Manager (app_secret_arn) — not embedded in LT.
+#
+# IMPORTANT: CodeDeploy agent must be installed BEFORE long steps (secrets/EFS).
+# Nginx /health/ makes the instance ALB-healthy early; if CodeDeploy runs before
+# the agent is up, ApplicationStop fails with:
+#   "CodeDeploy agent was not able to receive the lifecycle event"
 set -euxo pipefail
 
 sleep 5
 export DEBIAN_FRONTEND=noninteractive
 
-# Retry apt — NAT/VPC may not be ready on first boot
 for i in 1 2 3 4 5; do
   apt-get update -y && break
   sleep 5
 done
 
-# OS packages needed for:
-# - mysqlclient pip build (libmysqlclient-dev / pkg-config / python3-dev / build-essential)
-# - nginx (ALB health before CodeDeploy)
-# - CodeDeploy agent (ruby)
-# - EFS / AWS CLI
-# - SSM Session Manager agent (.deb)
 apt-get install -y \
   ruby-full wget curl unzip \
   awscli nfs-common \
@@ -29,13 +27,17 @@ PROJECT_DIR="/home/ubuntu/aniverse"
 MEDIA_DIR="$PROJECT_DIR/media"
 ENV_FILE="$PROJECT_DIR/.env"
 EFS_DNS="${efs_dns_name}"
-AWS_REGION="${aws_region}"
+export AWS_REGION="${aws_region}"
+export APP_SECRET_ARN="${app_secret_arn}"
+export ENV_FILE
 
 mkdir -p "$PROJECT_DIR" "$MEDIA_DIR" "$PROJECT_DIR/staticfiles"
 chown -R ubuntu:ubuntu "$PROJECT_DIR"
+# nginx(www-data) 가 /home/ubuntu/.../staticfiles 를 읽으려면 상위 디렉터리 +x 필요
+chmod 755 /home/ubuntu
+chmod 755 "$PROJECT_DIR" "$MEDIA_DIR" "$PROJECT_DIR/staticfiles"
 
-# ── SSM Agent (Ubuntu 22.04 does not ship it by default) ─
-# Prefer snap; fall back to official .deb from S3.
+# ── SSM Agent ───────────────────────────────────────────
 if ! systemctl is-active --quiet snap.amazon-ssm-agent.amazon-ssm-agent.service \
   && ! systemctl is-active --quiet amazon-ssm-agent; then
   if snap install amazon-ssm-agent --classic; then
@@ -49,13 +51,18 @@ if ! systemctl is-active --quiet snap.amazon-ssm-agent.amazon-ssm-agent.service 
   fi
 fi
 
-# ── Temporary nginx /health/ so ALB does not kill the instance
-#    before the first CodeDeploy finishes installing Django. ──
+# ── Temporary nginx /health/ ─────────────────────────────
 cat > /etc/nginx/sites-available/aniverse <<'NGINX'
 server {
     listen 80 default_server;
     server_name _;
     client_max_body_size 128M;
+
+    location = /favicon.ico {
+        alias /home/ubuntu/aniverse/staticfiles/img/favicon.ico;
+        access_log off;
+        log_not_found off;
+    }
 
     location /health/ {
         default_type text/plain;
@@ -81,7 +88,25 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-# ── EFS 마운트 (ASG 인스턴스 간 media 공유) ──────────────
+# ── CodeDeploy Agent (install EARLY — before secrets / EFS) ─
+cd /tmp
+wget -q "https://aws-codedeploy-${aws_region}.s3.${aws_region}.amazonaws.com/latest/install"
+chmod +x ./install
+./install auto
+systemctl enable codedeploy-agent
+systemctl restart codedeploy-agent
+# give the agent a moment to register with the service
+for i in 1 2 3 4 5 6; do
+  if systemctl is-active --quiet codedeploy-agent; then
+    break
+  fi
+  sleep 2
+  systemctl start codedeploy-agent || true
+done
+systemctl is-active --quiet codedeploy-agent
+echo "codedeploy-agent is active"
+
+# ── EFS 마운트 ───────────────────────────────────────────
 if ! mountpoint -q "$MEDIA_DIR"; then
   if mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 \
     "$EFS_DNS:/" "$MEDIA_DIR"; then
@@ -93,32 +118,54 @@ if ! mountpoint -q "$MEDIA_DIR"; then
 fi
 chown -R ubuntu:ubuntu "$MEDIA_DIR" || true
 
-# ── Django 런타임 환경파일 ───────────────────────────────
-# 값은 반드시 따옴표로 감싼다. (SECRET_KEY 에 ) 등이 있으면
-# bash source / 일부 파서가 깨진다. Django-environ · systemd 모두 인용 지원.)
-cat > "$ENV_FILE" <<EOF
-DJANGO_SECRET_KEY='${django_secret_key}'
-DJANGO_DEBUG=False
-DB_NAME='${db_name}'
-DB_USER='${db_username}'
-DB_PASSWORD='${db_password}'
-DB_HOST='${db_host}'
-DB_PORT='${db_port}'
-AWS_STORAGE_BUCKET_NAME='${static_bucket_name}'
-AWS_S3_REGION_NAME='${aws_region}'
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-USE_HTTPS=False
-GEMINI_API_KEY='${gemini_api_key}'
-GEMINI_MODEL='gemini-3.6-flash'
-DJANGO_CSRF_TRUSTED_ORIGINS='http://*.elb.amazonaws.com,https://*.elb.amazonaws.com'
-EOF
+# ── Secrets Manager → .env ───────────────────────────────
+python3 <<'PY'
+import json, os, subprocess, time, sys
+
+arn = os.environ["APP_SECRET_ARN"]
+region = os.environ["AWS_REGION"]
+path = os.environ["ENV_FILE"]
+raw = None
+for _ in range(12):
+    try:
+        raw = subprocess.check_output(
+            [
+                "aws", "secretsmanager", "get-secret-value",
+                "--secret-id", arn, "--region", region,
+                "--query", "SecretString", "--output", "text",
+            ],
+            text=True,
+        )
+        break
+    except subprocess.CalledProcessError:
+        time.sleep(5)
+if not raw:
+    sys.exit(f"failed to fetch secret {arn}")
+
+data = json.loads(raw)
+order = [
+    "DJANGO_SECRET_KEY", "DJANGO_DEBUG", "DJANGO_ALLOWED_HOSTS",
+    "DJANGO_CSRF_TRUSTED_ORIGINS", "USE_HTTPS",
+    "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT",
+    "AWS_STORAGE_BUCKET_NAME", "AWS_S3_REGION_NAME",
+    "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+    "GEMINI_API_KEY", "GEMINI_MODEL", "REDIS_URL",
+]
+lines = []
+for key in order:
+    if key not in data:
+        continue
+    val = "" if data[key] is None else str(data[key])
+    safe = val.replace("'", "'\"'\"'")
+    lines.append(f"{key}='{safe}'")
+open(path, "w").write("\n".join(lines) + "\n")
+PY
 chown ubuntu:ubuntu "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 cp "$ENV_FILE" /etc/aniverse.env
 chmod 600 /etc/aniverse.env
 
-# ── Daphne systemd unit (NOT enabled yet — venv appears after CodeDeploy)
+# ── Daphne systemd unit ──────────────────────────────────
 cat > /etc/systemd/system/aniverse.service <<'UNIT'
 [Unit]
 Description=Aniverse Django (Daphne ASGI)
@@ -143,14 +190,5 @@ RestartSec=5
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-# Do not enable/start here: venv/daphne do not exist until CodeDeploy.
 
-# ── CodeDeploy Agent ─────────────────────────────────────
-cd /tmp
-wget -q "https://aws-codedeploy-${aws_region}.s3.${aws_region}.amazonaws.com/latest/install"
-chmod +x ./install
-./install auto
-systemctl enable codedeploy-agent
-systemctl start codedeploy-agent
-
-echo "user_data bootstrap complete (ssm + nginx health + build deps + codedeploy)"
+echo "user_data bootstrap complete (nginx health + codedeploy-agent + secrets)"

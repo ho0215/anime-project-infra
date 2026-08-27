@@ -29,17 +29,9 @@ resource "aws_launch_template" "app" {
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    efs_dns_name = var.efs_dns_name
-    db_host      = var.db_host
-    db_port      = var.db_port
-    db_name      = var.db_name
-    db_username  = var.db_username
-    # .env 단일 인용부호 이스케이프
-    db_password        = replace(var.db_password, "'", "'\"'\"'")
-    static_bucket_name = var.static_bucket_name
-    aws_region         = data.aws_region.current.name
-    django_secret_key  = replace(var.django_secret_key, "'", "'\"'\"'")
-    gemini_api_key     = replace(var.gemini_api_key, "'", "'\"'\"'")
+    efs_dns_name   = var.efs_dns_name
+    aws_region     = data.aws_region.current.name
+    app_secret_arn = var.app_secret_arn
   }))
 
   tag_specifications {
@@ -90,6 +82,23 @@ resource "aws_iam_role_policy" "app_s3" {
           var.static_bucket_arn,
           "${var.static_bucket_arn}/*",
         ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "app_secrets" {
+  name = "${var.project_name}-app-secrets"
+  role = aws_iam_role.app_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ReadAppSecret"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+        Resource = [var.app_secret_arn]
       }
     ]
   })

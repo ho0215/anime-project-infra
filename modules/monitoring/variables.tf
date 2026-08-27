@@ -14,6 +14,11 @@ variable "asg_name" {
 }
 
 variable "alb_arn_suffix" {
-  description = "팀원 2가 생성할 ALB의 식별자(ARN Suffix)"
+  description = "ALB ARN Suffix"
+  type        = string
+}
+
+variable "target_group_arn_suffix" {
+  description = "Target Group ARN Suffix (UnHealthyHostCount)"
   type        = string
 }

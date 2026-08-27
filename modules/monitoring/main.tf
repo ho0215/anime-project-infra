@@ -37,9 +37,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   evaluation_periods  = "1"
   metric_name         = "HTTPCode_Target_5XX_Count"
   namespace           = "AWS/ApplicationELB"
-  period              = "60" # 60초(1분) 동안 검사
+  period              = "60"
   statistic           = "Sum"
-  threshold           = "10" # 1분 동안 5XX 에러가 10번 이상 발생하면 경보!
+  threshold           = "10"
 
   alarm_description = "ALB에서 5XX 서버 에러가 비정상적으로 많이 발생하고 있습니다."
   alarm_actions     = [aws_sns_topic.alerts.arn]
@@ -47,5 +47,26 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
 
   dimensions = {
     LoadBalancer = var.alb_arn_suffix
+  }
+}
+
+# 5. Unhealthy host (monitoring 모듈이 켜진 경우 항상 생성 — count 에 unknown suffix 쓰지 않음)
+resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
+  alarm_name          = "${var.project_name}-unhealthy-hosts"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "1"
+
+  alarm_description = "ALB 타겟 그룹에 unhealthy 호스트가 있습니다."
+  alarm_actions     = [aws_sns_topic.alerts.arn]
+  ok_actions        = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+    TargetGroup  = var.target_group_arn_suffix
   }
 }
