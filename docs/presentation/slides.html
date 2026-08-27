@@ -2,89 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>Aniverse 발표 표/구성도</title>
-  <style>
-    body { font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif; margin: 32px; color: #0f172a; background: #fff; }
-    h1 { font-size: 28px; margin-bottom: 8px; }
-    h2 { font-size: 20px; margin-top: 36px; border-left: 5px solid #2563eb; padding-left: 10px; }
-    p.sub { color: #64748b; margin-top: 0; }
-    table { border-collapse: collapse; width: 100%; margin: 12px 0 24px; font-size: 14px; }
-    th, td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; vertical-align: top; }
-    th { background: #eff6ff; }
-    tr:nth-child(even) td { background: #f8fafc; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; background: #f8fafc; }
-    .card h3 { margin: 0 0 8px; font-size: 16px; }
-    .tag { display: inline-block; background: #dbeafe; color: #1e40af; border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-right: 6px; }
-    .ok { background: #dcfce7; color: #166534; }
-    .warn { background: #fef3c7; color: #92400e; }
-    img { max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; margin: 8px 0 20px; }
-    .note { font-size: 13px; color: #64748b; }
-  </style>
+  <meta http-equiv="refresh" content="0; url=VIEW.html" />
+  <title>이동 중…</title>
+  <script>location.replace('VIEW.html');</script>
 </head>
 <body>
-  <h1>Aniverse 발표용 표 · 구성도</h1>
-  <p class="sub">브라우저에서 열어 스크린샷 / PDF로 저장해 슬라이드에 붙이면 됩니다.</p>
-
-  <h2>1. 아키텍처 이미지</h2>
-  <img src="images/aniverse-architecture-overview.png" alt="architecture" />
-  <img src="images/architecture-clean.svg" alt="architecture svg" />
-
-  <h2>2. CI/CD · 모듈 이미지</h2>
-  <img src="images/aniverse-cicd-pipeline.png" alt="cicd" />
-  <img src="images/aniverse-terraform-modules.png" alt="modules" />
-  <img src="images/aniverse-problems-solved.png" alt="problems" />
-
-  <h2>3. 저장소 역할</h2>
-  <table>
-    <tr><th>저장소</th><th>역할</th><th>주요 산출물</th></tr>
-    <tr><td><code>anime-project-infra</code></td><td>Terraform IaC</td><td>VPC, ALB, ASG, RDS, S3, CodeDeploy</td></tr>
-    <tr><td><code>anime-project</code></td><td>앱 CodeDeploy</td><td>Django + Daphne + nginx</td></tr>
-  </table>
-
-  <h2>4. 모듈 구성</h2>
-  <table>
-    <tr><th>계층</th><th>모듈</th><th>설명</th></tr>
-    <tr><td>기반</td><td>network, security, nat, endpoints</td><td>VPC/SG/NAT/SSM endpoint</td></tr>
-    <tr><td>데이터</td><td>database, storage</td><td>RDS, EFS, static S3</td></tr>
-    <tr><td>진입</td><td><b>alb</b></td><td>ALB + Target Group + Listener</td></tr>
-    <tr><td>컴퓨트</td><td><b>compute</b></td><td>Launch Template, ASG, IAM</td></tr>
-    <tr><td>운영</td><td>cicd, monitoring</td><td>CodeDeploy, CloudWatch</td></tr>
-  </table>
-
-  <h2>5. 런타임 스택</h2>
-  <table>
-    <tr><th>계층</th><th>구성</th></tr>
-    <tr><td>Edge</td><td>ALB HTTP:80 · health <code>/health/</code></td></tr>
-    <tr><td>Web/App</td><td>nginx → Daphne(ASGI) → Django</td></tr>
-    <tr><td>Data</td><td>RDS MariaDB · S3 · EFS</td></tr>
-    <tr><td>Ops</td><td>SSM · CodeDeploy · GitHub Actions</td></tr>
-  </table>
-
-  <h2>6. 문제 → 해결</h2>
-  <table>
-    <tr><th>문제</th><th>해결</th></tr>
-    <tr><td>GitHub Actions CD 미인식</td><td><code>terraform-cd.yml</code> + Terraform 1.10.5</td></tr>
-    <tr><td>ALB가 compute에 묶임</td><td><code>modules/alb</code> 분리 + <code>moved</code> (0 recreate)</td></tr>
-    <tr><td>챗봇/WebSocket 장애</td><td>CSRF · Gemini 주입 · Daphne</td></tr>
-    <tr><td>이미지 403</td><td>S3 public GetObject + media sync</td></tr>
-    <tr><td>RDS var IDE 오탐</td><td>database locals literal + CD 패치</td></tr>
-  </table>
-
-  <h2>7. 배포 한눈에</h2>
-  <div class="grid">
-    <div class="card">
-      <h3>Infra CD</h3>
-      <p><span class="tag">push</span><span class="tag">terraform apply</span><span class="tag ok">SSM ready</span></p>
-      <p>ALB / ASG / RDS / S3 / CodeDeploy 생성·갱신</p>
-    </div>
-    <div class="card">
-      <h3>App CD</h3>
-      <p><span class="tag">push</span><span class="tag">S3 zip</span><span class="tag ok">CodeDeploy</span></p>
-      <p>ASG 인스턴스에 Django 앱 배포</p>
-    </div>
-  </div>
-
-  <p class="note">출력 팁: 브라우저 인쇄 → PDF / 또는 영역 캡처로 PPT에 붙여넣기</p>
+  <p><a href="VIEW.html">통합 발표자료 VIEW.html 로 이동</a></p>
 </body>
 </html>
