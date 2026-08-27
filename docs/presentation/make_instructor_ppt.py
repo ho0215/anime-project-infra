@@ -89,7 +89,7 @@ def header(slide, title, subtitle=None):
         add_para(tf, subtitle, 12, False, RGBColor(147, 197, 253), 2)
 
 
-TOTAL = 15
+TOTAL = 17
 
 
 def footer(slide, n, total=TOTAL):
@@ -320,12 +320,74 @@ def terraform_slides(prs):
             tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
     footer(s, 9)
 
+    # S3 / EFS / RDS — 각각 무엇을 저장하는가
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "3. S3 · EFS · RDS — 저장 역할 정리", "같은 ‘데이터’라도 성격에 따라 저장소를 나눔")
+    store_cards = [
+        (
+            "RDS (MariaDB)",
+            GREEN,
+            "구조화된 DB 데이터",
+            [
+                "회원 · 로그인 계정",
+                "커뮤니티 글 · 댓글 · 좋아요",
+                "거래 상품 정보 · 채팅 메타",
+                "창작물 제목·본문·상태",
+                "관계·검색·트랜잭션이 필요한 값",
+            ],
+        ),
+        (
+            "EFS",
+            TEAL,
+            "ASG가 공유하는 파일 공간",
+            [
+                "EC2 media/ 경로에 NFS 마운트",
+                "인스턴스 교체돼도 파일 유지",
+                "여러 대 EC2가 같은 media 공유",
+                "온프렘 NFS 역할을 AWS에서 대체",
+                "Nginx /media 로컬·fallback 서빙",
+            ],
+        ),
+        (
+            "S3",
+            ORANGE,
+            "객체 스토리지 (파일·배포)",
+            [
+                "업로드 이미지 원본",
+                "community/ · goods_images/",
+                "works_images/",
+                "공개 URL로 브라우저 제공",
+                "배포 zip · (별도) tfstate 버킷",
+            ],
+        ),
+    ]
+    for i, (title, color, subtitle, bullets) in enumerate(store_cards):
+        x = Inches(0.35) + i * Inches(4.25)
+        card = rect(s, x, Inches(1.15), Inches(4.05), Inches(5.15), LIGHT, color)
+        tf = card.text_frame
+        set_text(tf, title, 18, True, color, PP_ALIGN.CENTER)
+        add_para(tf, subtitle, 13, True, SLATE, 8)
+        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
+        for b in bullets:
+            add_para(tf, "• " + b, 13, False, NAVY, 8)
+            tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
+    one = s.shapes.add_textbox(Inches(0.4), Inches(6.4), Inches(12.5), Inches(0.45))
+    set_text(
+        one.text_frame,
+        "한 줄:  RDS = ‘무슨 글인지’  ·  S3 = ‘사진 파일’  ·  EFS = ‘여러 EC2가 같이 쓰는 폴더’",
+        14,
+        True,
+        TEAL,
+        PP_ALIGN.CENTER,
+    )
+    footer(s, 10)
+
 
 def actions_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "4. GitHub Actions (1)", "인프라 저장소 / 앱 저장소를 나눠 자동화")
     put_img(s, "04_github_actions.png", Inches(0.3), Inches(1.05), w=Inches(12.7))
-    footer(s, 10)
+    footer(s, 11)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "4. GitHub Actions (2)", "실제로 돌아가는 파이프라인")
@@ -352,14 +414,14 @@ def actions_slides(prs):
         "hooks: install → migrate → Daphne 기동",
     ]:
         add_para(tf, "• " + line, 13, False, NAVY, 8)
-    footer(s, 11)
+    footer(s, 12)
 
 
 def ops_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "5. CI/CD · HA · 모니터링 · 보안", "배포·가용성·관측·보안을 한 장으로")
     put_img(s, "05_ops_security.png", Inches(0.45), Inches(1.15), w=Inches(12.4))
-    footer(s, 12)
+    footer(s, 13)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "5. 적용 내용 상세", "서비스가 실제로 어떻게 버티는지")
@@ -377,14 +439,14 @@ def ops_slides(prs):
         set_text(tf, title, 17, True, color)
         for b in bullets:
             add_para(tf, "• " + b, 13, False, NAVY, 7)
-    footer(s, 13)
+    footer(s, 14)
 
 
 def https_waf_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "6. HTTPS · WAF (1)", "도메인부터 ALB까지 암호화·필터링 경로")
     put_img(s, "06_https_waf.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
-    footer(s, 14)
+    footer(s, 15)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "6. HTTPS · WAF (2)", "Terraform으로 고정한 보안 엣지")
@@ -427,7 +489,7 @@ def https_waf_slides(prs):
         "• CloudWatch metrics / sampled req",
     ]:
         add_para(tf, line, 13, False, NAVY, 4)
-    footer(s, 15)
+    footer(s, 16)
 
 
 def closing(prs):
