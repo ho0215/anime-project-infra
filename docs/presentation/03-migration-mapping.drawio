@@ -1,0 +1,89 @@
+<mxfile host="app.diagrams.net" agent="Cursor" version="22.1.0">
+  <diagram id="map" name="Migration Mapping">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-group" connectable="0" style="group;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry height="83" width="1400" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="title-text" style="text;html=1;align=left;verticalAlign=top;fontSize=30;fontStyle=1;fontFamily=Helvetica;" value="On-Prem → AWS Migration Mapping" vertex="1" parent="title-group">
+          <mxGeometry height="42" width="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-text" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontFamily=Helvetica;" value="4 servers → managed cloud services + automation (Terraform · GitHub Actions · CodeDeploy)" vertex="1" parent="title-group">
+          <mxGeometry height="25" width="1200" x="5" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="title-separator" style="line;strokeWidth=2;html=1;strokeColor=#FF9900;fontFamily=Helvetica;" value="" vertex="1" parent="title-group">
+          <mxGeometry height="10" width="1390" x="5" y="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h1" style="rounded=1;fillColor=#232F3E;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;align=center;" value="On-Premises (Before)" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" style="rounded=1;fillColor=#FF9900;fontColor=#232F3E;fontStyle=1;fontSize=16;fontFamily=Helvetica;align=center;" value="AWS (After)" vertex="1" parent="1">
+          <mxGeometry x="700" y="140" width="520" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Row 1 Nginx -->
+        <mxCell id="r1a" style="rounded=1;fillColor=#FFF2E8;strokeColor=#ED7100;fontColor=#ED7100;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="Nginx Server (DMZ)&#xa;정적/미디어 + Reverse Proxy" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="shape=mxgraph.arrows2.arrow;fillColor=#007CBD;strokeColor=none;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry x="530" y="240" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r1b" style="rounded=1;fillColor=#EDE7F6;strokeColor=#8C4FFF;fontColor=#8C4FFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="ALB + ACM HTTPS + WAF&#xa;+ EC2 내 Nginx (프록시)" vertex="1" parent="1">
+          <mxGeometry x="700" y="220" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2 Django -->
+        <mxCell id="r2a" style="rounded=1;fillColor=#FFF2E8;strokeColor=#ED7100;fontColor=#ED7100;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="Django Server (App)&#xa;Gunicorn / Daphne · Channels" vertex="1" parent="1">
+          <mxGeometry x="80" y="330" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="shape=mxgraph.arrows2.arrow;fillColor=#007CBD;strokeColor=none;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry x="530" y="350" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r2b" style="rounded=1;fillColor=#FFF2E8;strokeColor=#ED7100;fontColor=#ED7100;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="ASG EC2 (Daphne ASGI)&#xa;+ ElastiCache Redis (채팅)" vertex="1" parent="1">
+          <mxGeometry x="700" y="330" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3 NFS -->
+        <mxCell id="r3a" style="rounded=1;fillColor=#E8F5E9;strokeColor=#3F8624;fontColor=#3F8624;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="NFS Server&#xa;미디어 공유 스토리지" vertex="1" parent="1">
+          <mxGeometry x="80" y="440" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="shape=mxgraph.arrows2.arrow;fillColor=#007CBD;strokeColor=none;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry x="530" y="460" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r3b" style="rounded=1;fillColor=#E8F5E9;strokeColor=#3F8624;fontColor=#3F8624;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="EFS (공유 마운트)&#xa;+ S3 (공개 미디어 URL)" vertex="1" parent="1">
+          <mxGeometry x="700" y="440" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 4 DB -->
+        <mxCell id="r4a" style="rounded=1;fillColor=#F5E6F7;strokeColor=#C925D1;fontColor=#C925D1;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="MariaDB Server&#xa;수동 설치·백업" vertex="1" parent="1">
+          <mxGeometry x="80" y="550" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="shape=mxgraph.arrows2.arrow;fillColor=#007CBD;strokeColor=none;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry x="530" y="570" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r4b" style="rounded=1;fillColor=#F5E6F7;strokeColor=#C925D1;fontColor=#C925D1;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="Amazon RDS (MariaDB)&#xa;스냅샷 · Secrets 연동" vertex="1" parent="1">
+          <mxGeometry x="700" y="550" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Row 5 Ops -->
+        <mxCell id="r5a" style="rounded=1;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="수동 배포·설정&#xa;SSH / 서버별 작업" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" style="shape=mxgraph.arrows2.arrow;fillColor=#007CBD;strokeColor=none;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry x="530" y="680" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r5b" style="rounded=1;fillColor=#FFEBEE;strokeColor=#DD344C;fontColor=#DD344C;fontStyle=1;fontSize=14;fontFamily=Helvetica;align=center;shadow=1;" value="Terraform IaC + GitHub Actions&#xa;+ CodeDeploy + Secrets Manager + SSM" vertex="1" parent="1">
+          <mxGeometry x="700" y="660" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="footer" style="rounded=1;fillColor=light-dark(#EDF3FF,#305363);strokeColor=#6c8ebf;align=left;verticalAlign=top;spacing=12;fontSize=14;fontFamily=Helvetica;whiteSpace=wrap;" value="&lt;b&gt;핵심 변화&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;① 물리/VM 4대 → 관리형 서비스로 역할 분리&amp;nbsp;&amp;nbsp;② HTTPS·WAF·시크릿을 기본 보안으로 내재화&amp;nbsp;&amp;nbsp;③ push만 하면 배포되는 CI/CD&amp;nbsp;&amp;nbsp;④ 인프라 재현 가능 (Terraform)&lt;/span&gt;" vertex="1" parent="1">
+          <mxGeometry x="80" y="780" width="1140" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
