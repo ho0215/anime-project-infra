@@ -45,9 +45,17 @@ def font(run, size=16, bold=False, color=NAVY):
         el.set("typeface", FONT_NAME)
 
 
+def pad_tf(tf, left=0.12, top=0.08, right=0.12, bottom=0.08):
+    tf.word_wrap = True
+    tf.margin_left = Inches(left)
+    tf.margin_right = Inches(right)
+    tf.margin_top = Inches(top)
+    tf.margin_bottom = Inches(bottom)
+
+
 def set_text(tf, text, size=16, bold=False, color=NAVY, align=None):
     tf.clear()
-    tf.word_wrap = True
+    pad_tf(tf)
     p = tf.paragraphs[0]
     r = p.add_run()
     r.text = text
@@ -74,6 +82,7 @@ def rect(slide, x, y, w, h, fill, line=None):
         sh.line.width = Pt(1.5)
     else:
         sh.line.fill.background()
+    pad_tf(sh.text_frame)
     return sh
 
 
@@ -101,12 +110,45 @@ def footer(slide, n, total=TOTAL):
     p.alignment = PP_ALIGN.RIGHT
 
 
-def put_img(slide, name, x, y, w=None, h=None):
+def put_img(slide, name, x, y, w=None, h=None, max_bottom=Inches(6.95)):
+    """이미지를 넣되 footer 위로 잘리지 않게 max_bottom 안에 맞춤."""
     path = IMG / name
-    if path.exists():
-        slide.shapes.add_picture(str(path), x, y, width=w, height=h)
-        return True
-    return False
+    if not path.exists():
+        return False
+    from PIL import Image
+
+    iw, ih = Image.open(path).size
+    aspect = ih / float(iw)
+    x_in = x.inches
+    y_in = y.inches
+    max_h_in = max_bottom.inches - y_in
+    if max_h_in <= 0.5:
+        return False
+
+    if w is not None and h is not None:
+        w_in, h_in = w.inches, h.inches
+    elif w is not None:
+        w_in = w.inches
+        h_in = w_in * aspect
+    elif h is not None:
+        h_in = h.inches
+        w_in = h_in / aspect
+    else:
+        w_in = 12.4
+        h_in = w_in * aspect
+
+    if h_in > max_h_in:
+        h_in = max_h_in
+        w_in = h_in / aspect
+        # 가로로 줄어든 만큼 가운데 정렬
+        box_w = w.inches if w is not None else 12.4
+        if w_in < box_w:
+            x_in = x_in + (box_w - w_in) / 2.0
+
+    slide.shapes.add_picture(
+        str(path), Inches(x_in), Inches(y_in), width=Inches(w_in), height=Inches(h_in)
+    )
+    return True
 
 
 def cover(prs):
@@ -151,17 +193,17 @@ def roles(prs):
         ("김현우", "DevOps & CI/CD", "environments/dev\ncicd · Actions", "모듈 조립·Apply\nCodeDeploy / SSM\nHTTPS · WAF · Secrets", RED),
     ]
     for i, (name, role, mods, work, color) in enumerate(roles):
-        x = Inches(0.3) + i * Inches(3.2)
-        card = rect(s, x, Inches(1.2), Inches(3.05), Inches(5.3), LIGHT, color)
+        x = Inches(0.35) + i * Inches(3.2)
+        card = rect(s, x, Inches(1.15), Inches(3.05), Inches(5.55), LIGHT, color)
         tf = card.text_frame
-        set_text(tf, name, 18, True, color, PP_ALIGN.CENTER)
-        add_para(tf, role, 13, True, NAVY, 8)
+        set_text(tf, name, 17, True, color, PP_ALIGN.CENTER)
+        add_para(tf, role, 12, True, NAVY, 6)
         tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, mods, 12, False, SLATE, 12)
+        add_para(tf, mods, 11, False, SLATE, 10)
         tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, "────────", 11, False, RGBColor(203, 213, 225), 8)
+        add_para(tf, "────────", 10, False, RGBColor(203, 213, 225), 6)
         tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, work, 13, False, NAVY, 6)
+        add_para(tf, work, 12, False, NAVY, 6)
         tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
     footer(s, 3)
 
@@ -211,12 +253,12 @@ def pain_detail(prs):
     ]
     for i, (title, bullets) in enumerate(pains):
         x = Inches(0.35) + (i % 2) * Inches(6.45)
-        y = Inches(1.15) + (i // 2) * Inches(2.75)
-        card = rect(s, x, y, Inches(6.2), Inches(2.55), LIGHT, RED)
+        y = Inches(1.15) + (i // 2) * Inches(2.8)
+        card = rect(s, x, y, Inches(6.2), Inches(2.6), LIGHT, RED)
         tf = card.text_frame
-        set_text(tf, title, 16, True, RED)
+        set_text(tf, title, 15, True, RED)
         for b in bullets:
-            add_para(tf, "• " + b, 13, False, NAVY, 6)
+            add_para(tf, "• " + b, 12, False, NAVY, 5)
     footer(s, 5)
 
 
@@ -233,22 +275,23 @@ def terraform_slides(prs):
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "3. Terraform 인프라 구성 (3)", "주요 리소스와 연결 관계")
-    left = rect(s, Inches(0.4), Inches(1.2), Inches(6.2), Inches(5.3), SOFT, BLUE)
+    left = rect(s, Inches(0.35), Inches(1.15), Inches(6.25), Inches(5.55), SOFT, BLUE)
     tf = left.text_frame
-    set_text(tf, "계층별 구성", 17, True, BLUE)
-    for line in [
-        "Network: VPC · Public/Private Subnet · IGW · NAT",
-        "Security: ALB/App/NAT/DB/EFS/Redis/endpoints 용 Security Group",
-        "Traffic: ALB · Target Group · HTTPS Listener",
-        "Compute: Launch Template · ASG · IAM Role",
-        "Data: RDS MariaDB · EFS · S3",
-        "Ops: Secrets Manager · WAF · Redis · CodeDeploy",
+    set_text(tf, "계층별 구성", 16, True, BLUE)
+    for prefix, line in [
+        ("• ", "Network: VPC · Public/Private Subnet · IGW · NAT"),
+        ("• ", "Security: ALB / App / NAT / DB / EFS"),
+        ("    ", "Redis / endpoints 용 Security Group"),
+        ("• ", "Traffic: ALB · Target Group · HTTPS Listener"),
+        ("• ", "Compute: Launch Template · ASG · IAM Role"),
+        ("• ", "Data: RDS MariaDB · EFS · S3"),
+        ("• ", "Ops: Secrets Manager · WAF · Redis · CodeDeploy"),
     ]:
-        add_para(tf, "• " + line, 13, False, NAVY, 8)
+        add_para(tf, prefix + line, 12, False, NAVY, 7)
 
-    right = rect(s, Inches(6.9), Inches(1.2), Inches(5.9), Inches(5.3), LIGHT, TEAL)
+    right = rect(s, Inches(6.85), Inches(1.15), Inches(6.1), Inches(5.55), LIGHT, TEAL)
     tf = right.text_frame
-    set_text(tf, "조립 방식", 17, True, TEAL)
+    set_text(tf, "조립 방식", 16, True, TEAL)
     for line in [
         "1) S3 + DynamoDB로 Remote State 환경 선구축",
         "2) 팀원이 모듈 PR로 기능 단위 작성",
@@ -310,13 +353,13 @@ def terraform_slides(prs):
         ),
     ]
     for i, (title, color, bullets) in enumerate(cards):
-        x = Inches(0.3) + (i % 4) * Inches(3.2)
-        y = Inches(1.2)
-        card = rect(s, x, y, Inches(3.05), Inches(5.3), LIGHT, color)
+        x = Inches(0.35) + i * Inches(3.2)
+        y = Inches(1.15)
+        card = rect(s, x, y, Inches(3.05), Inches(5.55), LIGHT, color)
         tf = card.text_frame
-        set_text(tf, title, 16, True, color, PP_ALIGN.CENTER)
+        set_text(tf, title, 15, True, color, PP_ALIGN.CENTER)
         for b in bullets:
-            add_para(tf, "• " + b, 13, False, NAVY, 10)
+            add_para(tf, "• " + b, 12, False, NAVY, 10)
             tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
     footer(s, 9)
 
@@ -362,20 +405,21 @@ def terraform_slides(prs):
         ),
     ]
     for i, (title, color, subtitle, bullets) in enumerate(store_cards):
-        x = Inches(0.35) + i * Inches(4.25)
-        card = rect(s, x, Inches(1.15), Inches(4.05), Inches(5.15), LIGHT, color)
+        x = Inches(0.4) + i * Inches(4.2)
+        card = rect(s, x, Inches(1.15), Inches(4.0), Inches(4.95), LIGHT, color)
         tf = card.text_frame
-        set_text(tf, title, 18, True, color, PP_ALIGN.CENTER)
-        add_para(tf, subtitle, 13, True, SLATE, 8)
+        set_text(tf, title, 17, True, color, PP_ALIGN.CENTER)
+        add_para(tf, subtitle, 12, True, SLATE, 6)
         tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
         for b in bullets:
-            add_para(tf, "• " + b, 13, False, NAVY, 8)
+            add_para(tf, "• " + b, 12, False, NAVY, 7)
             tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-    one = s.shapes.add_textbox(Inches(0.4), Inches(6.4), Inches(12.5), Inches(0.45))
+    one = s.shapes.add_textbox(Inches(0.4), Inches(6.25), Inches(12.5), Inches(0.5))
+    pad_tf(one.text_frame)
     set_text(
         one.text_frame,
         "한 줄:  RDS = ‘무슨 글인지’  ·  S3 = ‘사진 파일’  ·  EFS = ‘여러 EC2가 같이 쓰는 폴더’",
-        14,
+        13,
         True,
         TEAL,
         PP_ALIGN.CENTER,
@@ -391,9 +435,9 @@ def actions_slides(prs):
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "4. GitHub Actions (2)", "실제로 돌아가는 파이프라인")
-    left = rect(s, Inches(0.4), Inches(1.2), Inches(6.2), Inches(5.3), SOFT, BLUE)
+    left = rect(s, Inches(0.35), Inches(1.15), Inches(6.25), Inches(5.55), SOFT, BLUE)
     tf = left.text_frame
-    set_text(tf, "anime-project-infra", 16, True, BLUE)
+    set_text(tf, "anime-project-infra", 15, True, BLUE)
     for line in [
         "trigger: main push / workflow_dispatch",
         "steps: checkout → setup TF → fmt",
@@ -401,11 +445,11 @@ def actions_slides(prs):
         "결과: VPC/ALB/ASG/RDS/S3/WAF 갱신",
         "Secrets: AWS 자격증명, TF_VAR_*",
     ]:
-        add_para(tf, "• " + line, 13, False, NAVY, 8)
+        add_para(tf, "• " + line, 12, False, NAVY, 8)
 
-    right = rect(s, Inches(6.9), Inches(1.2), Inches(5.9), Inches(5.3), RGBColor(255, 247, 237), ORANGE)
+    right = rect(s, Inches(6.85), Inches(1.15), Inches(6.1), Inches(5.55), RGBColor(255, 247, 237), ORANGE)
     tf = right.text_frame
-    set_text(tf, "anime-project", 16, True, ORANGE)
+    set_text(tf, "anime-project", 15, True, ORANGE)
     for line in [
         "trigger: main push / workflow_dispatch",
         "steps: media → S3 sync",
@@ -413,7 +457,7 @@ def actions_slides(prs):
         "        CodeDeploy → ASG 배포",
         "hooks: install → migrate → Daphne 기동",
     ]:
-        add_para(tf, "• " + line, 13, False, NAVY, 8)
+        add_para(tf, "• " + line, 12, False, NAVY, 8)
     footer(s, 12)
 
 
@@ -432,13 +476,13 @@ def ops_slides(prs):
         ("보안", RED, ["SG 최소 포트 개방", "DB subnet NACL 설정", "Secrets Manager로 키 주입", "ACM HTTPS + WAF(SQLi/Rate)"]),
     ]
     for i, (title, color, bullets) in enumerate(items):
-        x = Inches(0.3) + (i % 2) * Inches(6.45)
-        y = Inches(1.15) + (i // 2) * Inches(2.75)
-        card = rect(s, x, y, Inches(6.2), Inches(2.55), LIGHT, color)
+        x = Inches(0.35) + (i % 2) * Inches(6.45)
+        y = Inches(1.15) + (i // 2) * Inches(2.85)
+        card = rect(s, x, y, Inches(6.2), Inches(2.7), LIGHT, color)
         tf = card.text_frame
-        set_text(tf, title, 17, True, color)
+        set_text(tf, title, 16, True, color)
         for b in bullets:
-            add_para(tf, "• " + b, 13, False, NAVY, 7)
+            add_para(tf, "• " + b, 12, False, NAVY, 5)
     footer(s, 14)
 
 
@@ -450,9 +494,9 @@ def https_waf_slides(prs):
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
     header(s, "6. HTTPS · WAF (2)", "Terraform으로 고정한 보안 엣지")
-    left = rect(s, Inches(0.35), Inches(1.15), Inches(6.2), Inches(5.5), SOFT, TEAL)
+    left = rect(s, Inches(0.35), Inches(1.15), Inches(6.2), Inches(5.55), SOFT, TEAL)
     tf = left.text_frame
-    set_text(tf, "HTTPS — ACM + ALB", 18, True, TEAL)
+    set_text(tf, "HTTPS — ACM + ALB", 16, True, TEAL)
     for line in [
         "modules/acm",
         "• aniverse.my DNS 검증 인증서",
@@ -467,11 +511,11 @@ def https_waf_slides(prs):
         "• Secrets: USE_HTTPS=True",
         "• CSRF / ALLOWED_HOSTS https 허용",
     ]:
-        add_para(tf, line, 13, False, NAVY, 5)
+        add_para(tf, line, 12, False, NAVY, 3)
 
-    right = rect(s, Inches(6.8), Inches(1.15), Inches(6.15), Inches(5.5), RGBColor(254, 242, 242), RED)
+    right = rect(s, Inches(6.8), Inches(1.15), Inches(6.15), Inches(5.55), RGBColor(254, 242, 242), RED)
     tf = right.text_frame
-    set_text(tf, "WAF — ALB Web ACL", 18, True, RED)
+    set_text(tf, "WAF — ALB Web ACL", 16, True, RED)
     for line in [
         "modules/waf → aniverse-alb-waf",
         "• scope: REGIONAL (ALB 전용)",
@@ -488,7 +532,7 @@ def https_waf_slides(prs):
         "• web_acl_association → ALB ARN",
         "• CloudWatch metrics / sampled req",
     ]:
-        add_para(tf, line, 13, False, NAVY, 4)
+        add_para(tf, line, 12, False, NAVY, 3)
     footer(s, 16)
 
 
