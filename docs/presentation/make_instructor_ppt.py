@@ -6,7 +6,11 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
+
+# 한국어 Windows 기본 글꼴. latin + ea(동아시아) 둘 다 지정해야 한글이 깨지지 않음.
+FONT_NAME = "맑은 고딕"
 
 BASE = Path(__file__).resolve().parent
 IMG = BASE / "images" / "instructor"
@@ -30,7 +34,15 @@ def font(run, size=16, bold=False, color=NAVY):
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
-    run.font.name = "Malgun Gothic"
+    run.font.name = FONT_NAME
+    # python-pptx는 font.name이 latin만 설정함 → 한글은 a:ea typeface 필요
+    rPr = run._r.get_or_add_rPr()
+    for tag in ("latin", "ea", "cs"):
+        el = rPr.find(qn(f"a:{tag}"))
+        if el is None:
+            el = rPr.makeelement(qn(f"a:{tag}"), {})
+            rPr.append(el)
+        el.set("typeface", FONT_NAME)
 
 
 def set_text(tf, text, size=16, bold=False, color=NAVY, align=None):
@@ -77,7 +89,10 @@ def header(slide, title, subtitle=None):
         add_para(tf, subtitle, 12, False, RGBColor(147, 197, 253), 2)
 
 
-def footer(slide, n, total=12):
+TOTAL = 14
+
+
+def footer(slide, n, total=TOTAL):
     tx = slide.shapes.add_textbox(Inches(0.45), Inches(7.05), Inches(12.4), Inches(0.3))
     p = tx.text_frame.paragraphs[0]
     r = p.add_run()
@@ -104,7 +119,7 @@ def cover(prs):
     tf = t.text_frame
     set_text(tf, "Aniverse", 40, True, WHITE)
     add_para(tf, "온프레미스 3-Tier 서비스 → AWS 이전", 24, False, RGBColor(191, 219, 254), 14)
-    add_para(tf, "Terraform 모듈 구성 · GitHub Actions · CI/CD · HA · 보안", 16, False, RGBColor(147, 197, 253), 16)
+    add_para(tf, "Terraform · Actions · CI/CD · HA · HTTPS · WAF", 16, False, RGBColor(147, 197, 253), 16)
     add_para(tf, "https://aniverse.my", 15, False, RGBColor(125, 211, 252), 20)
 
 
@@ -117,11 +132,12 @@ def agenda(prs):
         "03  Terraform으로 구성한 인프라",
         "04  GitHub Actions 자동화",
         "05  CI/CD · 고가용성 · 모니터링 · 보안",
+        "06  HTTPS · WAF",
     ]
     for i, title in enumerate(items):
-        y = Inches(1.2) + i * Inches(1.0)
-        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.85), LIGHT, BLUE)
-        set_text(card.text_frame, title, 20, True, NAVY)
+        y = Inches(1.15) + i * Inches(0.88)
+        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.75), LIGHT, BLUE)
+        set_text(card.text_frame, title, 18, True, NAVY)
     footer(s, 2)
 
 
@@ -306,6 +322,56 @@ def ops_slides(prs):
     footer(s, 12)
 
 
+def https_waf_slides(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "6. HTTPS · WAF (1)", "도메인부터 ALB까지 암호화·필터링 경로")
+    put_img(s, "06_https_waf.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
+    footer(s, 13)
+
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "6. HTTPS · WAF (2)", "Terraform으로 고정한 보안 엣지")
+    left = rect(s, Inches(0.35), Inches(1.15), Inches(6.2), Inches(5.5), SOFT, TEAL)
+    tf = left.text_frame
+    set_text(tf, "HTTPS — ACM + ALB", 18, True, TEAL)
+    for line in [
+        "modules/acm",
+        "• aniverse.my DNS 검증 인증서",
+        "• www SAN 포함 · Route53 검증 레코드",
+        "",
+        "modules/alb",
+        "• 443 HTTPS Listener (TLS 1.3)",
+        "• 80 → 443 HTTP 301 redirect",
+        "• Target Group → ASG/EC2",
+        "",
+        "앱 연동",
+        "• Secrets: USE_HTTPS=True",
+        "• CSRF / ALLOWED_HOSTS https 허용",
+    ]:
+        add_para(tf, line, 13, False, NAVY, 5)
+
+    right = rect(s, Inches(6.8), Inches(1.15), Inches(6.15), Inches(5.5), RGBColor(254, 242, 242), RED)
+    tf = right.text_frame
+    set_text(tf, "WAF — ALB Web ACL", 18, True, RED)
+    for line in [
+        "modules/waf → aniverse-alb-waf",
+        "• scope: REGIONAL (ALB 전용)",
+        "",
+        "관리형 규칙",
+        "• CommonRuleSet (일반 웹 공격)",
+        "• KnownBadInputs",
+        "• SQLi RuleSet",
+        "",
+        "커스텀",
+        "• RateLimitPerIP → Block",
+        "",
+        "연결",
+        "• web_acl_association → ALB ARN",
+        "• CloudWatch metrics / sampled req",
+    ]:
+        add_para(tf, line, 13, False, NAVY, 4)
+    footer(s, 14)
+
+
 def closing(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     bg = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
@@ -316,7 +382,7 @@ def closing(prs):
     tf = t.text_frame
     set_text(tf, "정리", 20, True, RGBColor(147, 197, 253))
     add_para(tf, "3-Tier 수동 서버 → AWS 모듈형 인프라 + 자동 배포", 22, True, WHITE, 14)
-    add_para(tf, "서이(망) · 유민(트래픽) · 윤주(데이터) · 현우(자동화)", 16, False, RGBColor(191, 219, 254), 16)
+    add_para(tf, "서이(망) · 유민(트래픽) · 윤주(데이터) · 현우(자동화·HTTPS·WAF)", 16, False, RGBColor(191, 219, 254), 16)
     add_para(tf, "https://aniverse.my", 16, False, RGBColor(125, 211, 252), 14)
 
 
@@ -331,6 +397,7 @@ def build():
     terraform_slides(prs)
     actions_slides(prs)
     ops_slides(prs)
+    https_waf_slides(prs)
     closing(prs)
     out = OUT / "Aniverse_발표_강사용.pptx"
     prs.save(out)
