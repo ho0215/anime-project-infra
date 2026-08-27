@@ -51,3 +51,15 @@ python3 generate_ppt.py
 | `*.drawio` | 선택(상세 편집용). **기본은 VIEW.html/PPT** |
 
 자세한 대본은 `PRESENTATION.md` 참고.
+
+## 강사 평가용 발표 (5~7분) — 최신
+
+| 파일 | 용도 |
+|------|------|
+| **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (목차 고정) |
+| **`VIEW_강사발표.html`** | 브라우저 요약본 |
+| **`SPEAKER_NOTES_강사.md`** | 슬라이드별 멘트·시간 배분 |
+
+주제: 온프레미스 3-tier → AWS  
+기준: 청중이 **왜 중요한지** 바로 이해
+

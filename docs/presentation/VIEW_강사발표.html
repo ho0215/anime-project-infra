@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aniverse 발표 (강사용 · 5~7분)</title>
+  <style>
+    body { margin:0; font-family:"Noto Sans KR",system-ui,sans-serif; background:#0f172a; color:#e2e8f0; }
+    .wrap { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+    h1 { font-size:1.8rem; margin:0 0 8px; }
+    .sub { color:#93c5fd; margin-bottom:20px; }
+    .tip { background:#1e3a8a; border-radius:12px; padding:12px 14px; margin-bottom:20px; font-size:.92rem; }
+    section { background:#111827; border:1px solid #334155; border-radius:16px; padding:18px; margin:0 0 16px; }
+    h2 { margin:0 0 8px; font-size:1.15rem; color:#93c5fd; }
+    .why { color:#fde68a; font-size:.92rem; margin-bottom:10px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+    .card { background:#0b1220; border-radius:12px; padding:12px; border:1px solid #334155; }
+    .card b { display:block; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    th,td { border:1px solid #334155; padding:8px; text-align:left; vertical-align:top; }
+    th { background:#1e293b; }
+    ul { margin:6px 0 0; padding-left:18px; }
+    .nav a { color:#93c5fd; margin-right:10px; font-size:.88rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>온프레미스 3-tier → AWS</h1>
+    <p class="sub">발표 5~7분 · 청중 기준: “왜 중요한가” · PPT: ppt/Aniverse_발표_강사용.pptx</p>
+    <div class="tip">강사(청중)가 듣고 싶은 것: 도구 나열이 아니라 <b>배포·장애·보안이 어떻게 나아졌는지</b></div>
+    <div class="nav">
+      <a href="#r">역할</a><a href="#p">어려움</a><a href="#t">Terraform</a><a href="#g">Actions</a><a href="#c">CI/CD·보안</a>
+    </div>
+
+    <section id="r">
+      <h2>1. 맡은 역할 한눈에</h2>
+      <p class="why">왜 중요? 장애·배포 시 “누구 것?”이 바로 정해짐</p>
+      <div class="grid">
+        <div class="card"><b style="color:#c4b5fd">박서이</b>Network &amp; Security<div>VPC·SG·NAT → 사고 범위 축소</div></div>
+        <div class="card"><b style="color:#fdba74">강유민</b>Compute &amp; Traffic<div>ALB·ASG → 트래픽 안정 전달</div></div>
+        <div class="card"><b style="color:#86efac">김윤주</b>Data &amp; Storage<div>RDS·EFS·S3 → 데이터 보존</div></div>
+        <div class="card"><b style="color:#fca5a5">김현우</b>DevOps &amp; CI/CD<div>조립·Actions → 자동·안전한 반영</div></div>
+      </div>
+    </section>
+
+    <section id="p">
+      <h2>2. 온프레미스에서 어려웠던 점</h2>
+      <p class="why">왜 중요? “왜 클라우드/자동화로 갔는지” 설득의 출발점</p>
+      <table>
+        <tr><th>어려움</th><th>현장</th><th>청중 피해</th></tr>
+        <tr><td>수동 배포</td><td>서버 4대 SSH</td><td>실수=전체 영향</td></tr>
+        <tr><td>환경 불일치</td><td>내 PC OK / 서버 NG</td><td>원인 찾기에 시간 소모</td></tr>
+        <tr><td>확장·복구</td><td>손으로 서버 증설</td><td>장애 시 장시간 다운</td></tr>
+        <tr><td>비밀키 관리</td><td>.env 서버 방치</td><td>유출 리스크</td></tr>
+      </table>
+    </section>
+
+    <section id="t">
+      <h2>3. Terraform 인프라</h2>
+      <p class="why">왜 중요? 인프라가 ‘기억’이 아니라 재실행 가능한 설계도가 됨</p>
+      <ul>
+        <li>Network → ALB/Traffic → ASG Compute → RDS/EFS/S3</li>
+        <li>모듈 분담 후 <code>environments/dev</code>에서 조립</li>
+        <li>+ Secrets · WAF · HTTPS · Redis · CodeDeploy</li>
+      </ul>
+    </section>
+
+    <section id="g">
+      <h2>4. GitHub Actions</h2>
+      <p class="why">왜 중요? 배포 방법이 사람마다 다르지 않고 로그가 남음</p>
+      <ul>
+        <li>infra 저장소 → Terraform apply</li>
+        <li>app 저장소 → S3 zip → CodeDeploy</li>
+        <li>흐름: push → 검증 → 배포 → aniverse.my</li>
+      </ul>
+    </section>
+
+    <section id="c">
+      <h2>5. CI/CD · HA · 모니터링 · 보안</h2>
+      <p class="why">왜 중요? 배포해도 안 죽고, 사고는 빨리 보이고, 노출은 줄어듦</p>
+      <div class="grid">
+        <div class="card"><b>CI/CD</b>헬스체크로 배포 판정, 실패 시 로그 추적</div>
+        <div class="card"><b>HA</b>ALB+ASG — 서버 1대 장애 ≠ 전체 다운</div>
+        <div class="card"><b>모니터링</b>CloudWatch·SSM — 항의보다 지표가 먼저</div>
+        <div class="card"><b>보안</b>SG·Secrets·HTTPS·WAF·Private Subnet</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>마무리</h2>
+      <p>손으로 지키던 서버 → 코드·파이프라인으로 운영. 지금 <b>https://aniverse.my</b></p>
+    </section>
+  </div>
+</body>
+</html>
