@@ -17,6 +17,8 @@ HTML: `VIEW_강사발표.html`
 ## 말할 때 포인트 (PPT에는 안 적음)
 - 구조 그림은 **손가락으로 흐름을 따라가며** 설명
 - 슬라이드 8: Remote State 선구축 → State Lock으로 **동시 작업**
+- 슬라이드 8 계층별: Security = ALB/App/NAT/DB/EFS/Redis/endpoints SG
 - 슬라이드 9: 구성 요소 네 칸
 - 슬라이드 10: **RDS=글/회원 데이터, EFS=공유 파일, S3=이미지·배포 객체** 한 문장씩
+- 슬라이드 14 보안: SG + **DB subnet NACL** + Secrets + HTTPS/WAF
 - 6번: **HTTPS=암호화**, **WAF=차단·Rate limit**
