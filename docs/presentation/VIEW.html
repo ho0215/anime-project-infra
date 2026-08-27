@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aniverse 발표 — 온프레미스 → AWS</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --line: #243047;
+      --text: #e8eefc;
+      --muted: #93a4c3;
+      --accent: #60a5fa;
+      --orange: #fb923c;
+      --green: #4ade80;
+      --purple: #a78bfa;
+      --pink: #f472b6;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans KR", Pretendard, system-ui, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+    h1 { font-size: 1.9rem; margin: 0 0 8px; }
+    h2 {
+      font-size: 1.25rem;
+      margin: 40px 0 14px;
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+    }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .nav {
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 28px;
+      position: sticky; top: 0; z-index: 5;
+      background: rgba(11,18,32,.92); backdrop-filter: blur(8px);
+      padding: 12px 0;
+    }
+    .nav a {
+      text-decoration: none; color: var(--text);
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 999px; padding: 8px 14px; font-size: .9rem;
+    }
+    .nav a:hover { border-color: var(--accent); color: var(--accent); }
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 18px 18px 8px; margin-bottom: 16px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+    .role {
+      background: #0f172a; border: 1px solid var(--line);
+      border-radius: 14px; padding: 16px; min-height: 280px;
+    }
+    .role h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .role .who { font-size: .85rem; color: var(--muted); margin-bottom: 10px; }
+    .role ul { margin: 8px 0 0; padding-left: 18px; color: #dbe4f5; font-size: .92rem; }
+    .tag {
+      display: inline-block; font-size: .75rem; font-weight: 700;
+      border-radius: 999px; padding: 3px 10px; margin-bottom: 8px;
+    }
+    .t-purple { background: #2e1065; color: #ddd6fe; }
+    .t-orange { background: #7c2d12; color: #fed7aa; }
+    .t-green { background: #14532d; color: #bbf7d0; }
+    .t-red { background: #7f1d1d; color: #fecaca; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #1a2438; }
+    tr:nth-child(even) td { background: #0f172a; }
+    .mermaid { background: #fff; border-radius: 12px; padding: 12px; margin: 8px 0 4px; overflow-x: auto; }
+    .tip {
+      background: #172554; border: 1px solid #1e3a8a; color: #bfdbfe;
+      border-radius: 12px; padding: 12px 14px; margin: 12px 0 24px; font-size: .92rem;
+    }
+    .quote {
+      border-left: 4px solid var(--orange); padding: 8px 14px; color: #fde68a;
+      background: #1c1917; border-radius: 0 12px 12px 0; margin: 12px 0;
+    }
+    @media print {
+      body { background: #fff; color: #111; }
+      .nav { display: none; }
+      .card, .role { break-inside: avoid; background: #fff; border-color: #ddd; color: #111; }
+      .mermaid { border: 1px solid #ddd; }
+      th { background: #eee; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Aniverse — 온프레미스 → AWS + 자동화</h1>
+    <p class="sub">이 파일만 더블클릭해서 브라우저로 보면 됩니다. (draw.io 불필요)</p>
+
+    <div class="tip">
+      <b>보는 방법:</b> 이 HTML을 Chrome/Edge로 열기 → 아래 메뉴로 이동 → 필요하면 <b>Ctrl+P → PDF 저장</b> 또는 화면 캡처해서 PPT에 붙이기
+    </div>
+
+    <div class="nav">
+      <a href="#s1">1. 한줄 스토리</a>
+      <a href="#s2">2. Before→After</a>
+      <a href="#s3">3. 팀 역할</a>
+      <a href="#s4">4. 아키텍처</a>
+      <a href="#s5">5. CI/CD</a>
+      <a href="#s6">6. 발표 멘트</a>
+    </div>
+
+    <h2 id="s1">1. 한 줄 스토리</h2>
+    <div class="card">
+      <p>온프레미스에서 <b>Nginx · Django · NFS · MariaDB</b> 4대 서버로 돌리던 Aniverse를<br>
+      AWS 관리형 서비스로 옮기고, <b>Terraform + GitHub Actions + CodeDeploy</b>로 자동화했다.</p>
+      <p class="sub">도메인: https://aniverse.my</p>
+    </div>
+
+    <h2 id="s2">2. Before → After 매핑</h2>
+    <div class="card">
+      <table>
+        <tr><th>온프레미스</th><th>AWS 이후</th></tr>
+        <tr><td>Nginx 서버 (DMZ)</td><td>ALB + ACM(HTTPS) + WAF + EC2 Nginx</td></tr>
+        <tr><td>Django 서버</td><td>ASG EC2 (Daphne) + Redis (채팅)</td></tr>
+        <tr><td>NFS 서버</td><td>EFS + S3 미디어</td></tr>
+        <tr><td>MariaDB 서버</td><td>RDS MariaDB + Secrets Manager</td></tr>
+        <tr><td>수동 배포 / SSH</td><td>GitHub Actions → CodeDeploy / SSM</td></tr>
+      </table>
+      <div class="mermaid">
+flowchart LR
+  A[Nginx] --> A2[ALB + WAF + Nginx]
+  B[Django] --> B2[ASG EC2 + Redis]
+  C[NFS] --> C2[EFS + S3]
+  D[MariaDB] --> D2[RDS]
+  E[수동 배포] --> E2[Actions + CodeDeploy]
+      </div>
+    </div>
+
+    <h2 id="s3">3. AWS 자동화 팀 역할</h2>
+    <p class="sub">앱 기능 담당과 다름 — 클라우드 이전 때 인프라로 재분담</p>
+    <div class="grid">
+      <div class="role">
+        <span class="tag t-purple">Network &amp; Security</span>
+        <h3>박서이</h3>
+        <div class="who">modules/network · security · nat</div>
+        <ul>
+          <li>VPC / Subnet / IGW</li>
+          <li>NAT Instance (t3.micro)</li>
+          <li>Security Group 룰</li>
+          <li>outputs로 타 모듈 연결</li>
+        </ul>
+      </div>
+      <div class="role">
+        <span class="tag t-orange">Compute &amp; Traffic</span>
+        <h3>강유민</h3>
+        <div class="who">modules/compute · alb</div>
+        <ul>
+          <li>ALB / Target Group</li>
+          <li>Launch Template · ASG</li>
+          <li>user_data (EFS·Nginx)</li>
+          <li>proxy_pass → :8000</li>
+        </ul>
+      </div>
+      <div class="role">
+        <span class="tag t-green">Data &amp; Storage</span>
+        <h3>김윤주</h3>
+        <div class="who">modules/database · storage</div>
+        <ul>
+          <li>RDS MariaDB</li>
+          <li>EFS 마운트 타겟</li>
+          <li>S3 static/media</li>
+          <li>Remote State 초기화</li>
+        </ul>
+      </div>
+      <div class="role">
+        <span class="tag t-red">DevOps &amp; CI/CD</span>
+        <h3>김현우</h3>
+        <div class="who">environments/dev · Actions · cicd</div>
+        <ul>
+          <li>모듈 조립·통합 배포</li>
+          <li>infra / app CI/CD</li>
+          <li>CodeDeploy · SSM</li>
+          <li>CloudWatch 알람</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="s4">4. 현재 AWS 아키텍처</h2>
+    <div class="card">
+      <div class="mermaid">
+flowchart TB
+  U[Users] -->|HTTPS| R53[Route 53]
+  R53 --> WAF[WAF]
+  WAF --> ALB[ALB]
+  ALB --> ASG["ASG EC2\nNginx + Daphne"]
+  ASG --> RDS[(RDS MariaDB)]
+  ASG --> EFS[(EFS)]
+  ASG --> S3[(S3 Media)]
+  ASG --> REDIS[(Redis)]
+  ASG --> SEC[Secrets Manager]
+  GH[GitHub Actions] --> DEP[Deploy S3]
+  GH --> CD[CodeDeploy]
+  CD --> ASG
+      </div>
+    </div>
+
+    <h2 id="s5">5. CI/CD</h2>
+    <div class="card">
+      <div class="mermaid">
+flowchart LR
+  subgraph Infra
+    P1[infra push] --> TF[Terraform Apply]
+  end
+  subgraph App
+    P2[app push] --> ZIP[S3 deploy.zip]
+    ZIP --> COD[CodeDeploy]
+    COD --> EC2[ASG]
+  end
+  TF --> EC2
+  EC2 --> WEB[aniverse.my]
+      </div>
+      <table>
+        <tr><th>저장소</th><th>역할</th></tr>
+        <tr><td><code>anime-project-infra</code></td><td>Terraform IaC</td></tr>
+        <tr><td><code>anime-project</code></td><td>Django 앱 CodeDeploy</td></tr>
+      </table>
+    </div>
+
+    <h2 id="s6">6. 발표 멘트 (30초)</h2>
+    <div class="quote">
+      “앱은 그대로 두고, 인프라는 네 명이 나눠 맡았습니다.<br>
+      서이가 네트워크·보안, 유민이 ALB·ASG, 윤주가 RDS·EFS·S3,<br>
+      저는 모듈을 조립하고 Terraform·GitHub Actions로 자동화했습니다.<br>
+      그 결과 aniverse.my 에서 HTTPS와 자동 배포로 서비스 중입니다.”
+    </div>
+
+    <p class="sub">PDF로 저장: Ctrl+P → 대상 PDF · 배경 그래픽 켜기</p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'loose',
+      flowchart: { curve: 'basis', htmlLabels: true }
+    });
+  </script>
+</body>
+</html>
