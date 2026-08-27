@@ -38,7 +38,7 @@ module "endpoints" {
 
   project_name           = var.project_name
   vpc_id                 = module.network.vpc_id
-  vpc_cidr               = var.vpc_cidr
+  vpce_sg_id             = module.security.vpce_sg_id
   private_app_subnet_ids = module.network.private_app_subnet_ids
 }
 

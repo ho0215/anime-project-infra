@@ -7,8 +7,9 @@ variable "vpc_id" {
   type = string
 }
 
-variable "vpc_cidr" {
-  type = string
+variable "vpce_sg_id" {
+  description = "security 모듈에서 만든 VPC endpoint(interface) SG"
+  type        = string
 }
 
 variable "private_app_subnet_ids" {

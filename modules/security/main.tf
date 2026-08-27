@@ -167,6 +167,30 @@ resource "aws_security_group" "nat" {
   tags = { Name = "${var.project_name}-nat-sg" }
 }
 
+# ── VPC Endpoint(Interface) SG: VPC 내부에서만 HTTPS(443) 허용 ─
+resource "aws_security_group" "vpce" {
+  name        = "${var.project_name}-vpce-sg"
+  description = "Allow HTTPS from VPC to interface VPC endpoints (SSM)"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "HTTPS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "${var.project_name}-vpce-sg" }
+}
+
 # ── Bastion Host SG: 관리자 PC에서만 SSH 허용 ────────────
 resource "aws_security_group" "bastion" {
   name        = "${var.project_name}-bastion-sg"
