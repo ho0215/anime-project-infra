@@ -473,7 +473,7 @@ def ops_slides(prs):
         ("CI/CD", BLUE, ["Actions + CodeDeploy로 배포 경로 고정", "ALB /health/ 로 배포 성공 판정", "실패 시 Actions·배포 로그로 추적"]),
         ("고가용성", ORANGE, ["ALB로 트래픽 분산", "ASG로 인스턴스 교체·확장", "App/DB 서브넷 분리 배치"]),
         ("모니터링", TEAL, ["CloudWatch 알람", "Target Group health 확인", "SSM으로 서버 점검"]),
-        ("보안", RED, ["SG 최소 포트 개방", "DB subnet NACL 설정", "Secrets Manager로 키 주입", "ACM HTTPS + WAF(SQLi/Rate)"]),
+        ("보안", RED, ["SG 최소 포트 개방", "DB subnet NACL 설정", "Secrets Manager로 키 주입", "HTTPS(암호화) + WAF(공격 차단)"]),
     ]
     for i, (title, color, bullets) in enumerate(items):
         x = Inches(0.35) + (i % 2) * Inches(6.45)
@@ -488,51 +488,38 @@ def ops_slides(prs):
 
 def https_waf_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "6. HTTPS · WAF (1)", "도메인부터 ALB까지 암호화·필터링 경로")
+    header(s, "6. HTTPS · WAF (1)", "한 줄: 암호화로 보호하고, 앞에서 공격을 걸러낸다")
     put_img(s, "06_https_waf.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
     footer(s, 15)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "6. HTTPS · WAF (2)", "Terraform으로 고정한 보안 엣지")
+    header(s, "6. HTTPS · WAF (2)", "용어 말고 ‘무엇을 했는지’만")
+
     left = rect(s, Inches(0.35), Inches(1.15), Inches(6.2), Inches(5.55), SOFT, TEAL)
     tf = left.text_frame
-    set_text(tf, "HTTPS — ACM + ALB", 16, True, TEAL)
+    set_text(tf, "HTTPS — 통신 암호화", 17, True, TEAL)
+    add_para(tf, "쉽게: 사이트와 사용자 사이 내용을 남이 못 보게 잠근다", 12, True, SLATE, 8)
     for line in [
-        "modules/acm",
-        "• aniverse.my DNS 검증 인증서",
-        "• www SAN 포함 · Route53 검증 레코드",
-        "",
-        "modules/alb",
-        "• 443 HTTPS Listener (TLS 1.3)",
-        "• 80 → 443 HTTP 301 redirect",
-        "• Target Group → ASG/EC2",
-        "",
-        "앱 연동",
-        "• Secrets: USE_HTTPS=True",
-        "• CSRF / ALLOWED_HOSTS https 허용",
+        "• ACM = 인증서(자물쇠) 발급 서비스",
+        "• aniverse.my 용 인증서를 ALB에 붙임",
+        "• https(443)로 접속 받기",
+        "• http로 들어오면 https로 자동 이동",
+        "• 결과: https://aniverse.my + 자물쇠",
     ]:
-        add_para(tf, line, 12, False, NAVY, 3)
+        add_para(tf, line, 14, False, NAVY, 10)
 
     right = rect(s, Inches(6.8), Inches(1.15), Inches(6.15), Inches(5.55), RGBColor(254, 242, 242), RED)
     tf = right.text_frame
-    set_text(tf, "WAF — ALB Web ACL", 16, True, RED)
+    set_text(tf, "WAF — 앞단 문지기", 17, True, RED)
+    add_para(tf, "쉽게: 서버 들어가기 전에 나쁜 요청을 막는다", 12, True, SLATE, 8)
     for line in [
-        "modules/waf → aniverse-alb-waf",
-        "• scope: REGIONAL (ALB 전용)",
-        "",
-        "관리형 규칙",
-        "• CommonRuleSet (일반 웹 공격)",
-        "• KnownBadInputs",
-        "• SQLi RuleSet",
-        "",
-        "커스텀",
-        "• RateLimitPerIP → Block",
-        "",
-        "연결",
-        "• web_acl_association → ALB ARN",
-        "• CloudWatch metrics / sampled req",
+        "• WAF = 웹 방화벽 (ALB 앞)",
+        "• SQL 삽입·이상한 입력 차단",
+        "• 한 IP가 너무 자주 치면 차단",
+        "• 통과한 요청만 EC2로 전달",
+        "• 결과: 공격성 트래픽을 입구에서 감소",
     ]:
-        add_para(tf, line, 12, False, NAVY, 3)
+        add_para(tf, line, 14, False, NAVY, 10)
     footer(s, 16)
 
 
