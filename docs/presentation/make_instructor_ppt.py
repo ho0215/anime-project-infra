@@ -6,7 +6,11 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
+
+# 한국어 Windows 기본 글꼴. latin + ea(동아시아) 둘 다 지정해야 한글이 깨지지 않음.
+FONT_NAME = "맑은 고딕"
 
 BASE = Path(__file__).resolve().parent
 IMG = BASE / "images" / "instructor"
@@ -30,7 +34,15 @@ def font(run, size=16, bold=False, color=NAVY):
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
-    run.font.name = "Malgun Gothic"
+    run.font.name = FONT_NAME
+    # python-pptx는 font.name이 latin만 설정함 → 한글은 a:ea typeface 필요
+    rPr = run._r.get_or_add_rPr()
+    for tag in ("latin", "ea", "cs"):
+        el = rPr.find(qn(f"a:{tag}"))
+        if el is None:
+            el = rPr.makeelement(qn(f"a:{tag}"), {})
+            rPr.append(el)
+        el.set("typeface", FONT_NAME)
 
 
 def set_text(tf, text, size=16, bold=False, color=NAVY, align=None):
