@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" agent="Cursor" version="22.1.0">
+  <diagram id="roles" name="AWS Team Roles">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-group" connectable="0" style="group;fontFamily=Helvetica;" value="" vertex="1" parent="1">
+          <mxGeometry height="83" width="1500" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="title-text" style="text;html=1;align=left;verticalAlign=top;fontSize=30;fontStyle=1;fontFamily=Helvetica;" value="Aniverse AWS Automation — Team Role Split" vertex="1" parent="title-group">
+          <mxGeometry height="42" width="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-text" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontFamily=Helvetica;" value="앱 기능 담당과 분리: Network · Compute/Traffic · Data/Storage · DevOps/CI-CD" vertex="1" parent="title-group">
+          <mxGeometry height="25" width="1300" x="5" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="title-separator" style="line;strokeWidth=2;html=1;strokeColor=#FF9900;fontFamily=Helvetica;" value="" vertex="1" parent="title-group">
+          <mxGeometry height="10" width="1490" x="5" y="70" as="geometry" />
+        </mxCell>
+
+        <!-- 서이 -->
+        <mxCell id="c1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#EDE7F6;strokeColor=#8C4FFF;fontFamily=Helvetica;shadow=1;strokeWidth=2;" value="&lt;b&gt;&lt;font style=&quot;font-size:18px&quot; color=&quot;#8C4FFF&quot;&gt;박서이&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Network &amp;amp; Security&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Modules&lt;/b&gt;&lt;br&gt;network · security · nat&lt;br&gt;&lt;br&gt;&lt;b&gt;AWS&lt;/b&gt;&lt;br&gt;VPC · Subnet · IGW&lt;br&gt;NAT Instance (t3.micro)&lt;br&gt;Security Groups&lt;br&gt;&lt;br&gt;&lt;b&gt;업무&lt;/b&gt;&lt;br&gt;퍼블릭/프라이빗 분리&lt;br&gt;라우팅 · SG 룰&lt;br&gt;outputs로 타 모듈 연결" vertex="1" parent="1">
+          <mxGeometry x="50" y="140" width="280" height="420" as="geometry" />
+        </mxCell>
+
+        <!-- 유민 -->
+        <mxCell id="c2" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#FFF2E8;strokeColor=#ED7100;fontFamily=Helvetica;shadow=1;strokeWidth=2;" value="&lt;b&gt;&lt;font style=&quot;font-size:18px&quot; color=&quot;#ED7100&quot;&gt;강유민&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Compute &amp;amp; Traffic&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Modules&lt;/b&gt;&lt;br&gt;compute · alb&lt;br&gt;&lt;br&gt;&lt;b&gt;AWS&lt;/b&gt;&lt;br&gt;ALB · Target Group&lt;br&gt;Launch Template · ASG&lt;br&gt;EC2 (Nginx + App)&lt;br&gt;&lt;br&gt;&lt;b&gt;업무&lt;/b&gt;&lt;br&gt;ALB/TG 구성&lt;br&gt;user_data (EFS·Nginx)&lt;br&gt;proxy_pass → :8000" vertex="1" parent="1">
+          <mxGeometry x="370" y="140" width="280" height="420" as="geometry" />
+        </mxCell>
+
+        <!-- 윤주 -->
+        <mxCell id="c3" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#E8F5E9;strokeColor=#3F8624;fontFamily=Helvetica;shadow=1;strokeWidth=2;" value="&lt;b&gt;&lt;font style=&quot;font-size:18px&quot; color=&quot;#3F8624&quot;&gt;김윤주&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Data &amp;amp; Storage&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Modules&lt;/b&gt;&lt;br&gt;database · storage&lt;br&gt;&lt;br&gt;&lt;b&gt;AWS&lt;/b&gt;&lt;br&gt;RDS MariaDB&lt;br&gt;EFS · Mount Targets&lt;br&gt;S3 (static/media)&lt;br&gt;&lt;br&gt;&lt;b&gt;업무&lt;/b&gt;&lt;br&gt;Remote State 초기화&lt;br&gt;RDS 구성&lt;br&gt;EFS 공유 스토리지" vertex="1" parent="1">
+          <mxGeometry x="690" y="140" width="280" height="420" as="geometry" />
+        </mxCell>
+
+        <!-- 현우 -->
+        <mxCell id="c4" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#FFEBEE;strokeColor=#DD344C;fontFamily=Helvetica;shadow=1;strokeWidth=2;" value="&lt;b&gt;&lt;font style=&quot;font-size:18px&quot; color=&quot;#DD344C&quot;&gt;김현우&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;DevOps &amp;amp; CI/CD&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Modules&lt;/b&gt;&lt;br&gt;environments/dev · cicd&lt;br&gt;&lt;br&gt;&lt;b&gt;AWS / Tooling&lt;/b&gt;&lt;br&gt;GitHub Actions&lt;br&gt;CodeDeploy · SSM&lt;br&gt;CloudWatch&lt;br&gt;&lt;br&gt;&lt;b&gt;업무&lt;/b&gt;&lt;br&gt;모듈 조립·통합 배포&lt;br&gt;infra/app CI/CD&lt;br&gt;알람·운영 연동" vertex="1" parent="1">
+          <mxGeometry x="1010" y="140" width="280" height="420" as="geometry" />
+        </mxCell>
+
+        <!-- flow -->
+        <mxCell id="flow" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=light-dark(#EDF3FF,#305363);strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=15;shadow=1;" value="&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;통합 흐름&lt;/b&gt; &amp;nbsp; 서이(망) → 유민(컴퓨트/트래픽) → 윤주(데이터) → &lt;font color=&quot;#DD344C&quot;&gt;&lt;b&gt;현우(조립 + CI/CD)&lt;/b&gt;&lt;/font&gt; → &lt;b&gt;aniverse.my&lt;/b&gt;&lt;/span&gt;" vertex="1" parent="1">
+          <mxGeometry x="50" y="600" width="1240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=12;fillColor=#F5F5F5;strokeColor=#666666;fontFamily=Helvetica;fontSize=13;" value="&lt;b&gt;앱 담당 (온프레미스) ↔ AWS 담당 (클라우드)&lt;/b&gt;&lt;br&gt;현우: auth/anime/챗봇/서버 → DevOps·파이프라인&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;서이: deal/채팅 → Network&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;유민: works → Compute&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;윤주: community → Data" vertex="1" parent="1">
+          <mxGeometry x="50" y="700" width="1240" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
