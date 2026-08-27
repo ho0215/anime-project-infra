@@ -1,34 +1,53 @@
-# 발표 자료 — 보는 방법 (쉬운 버전)
+# Aniverse 발표자료 — 통합본
 
-draw.io는 쓰지 마세요. 아래 둘 중 하나로 보면 됩니다.
+## 바로 보기 (이것만)
 
-## 1) 브라우저 HTML (추천)
-
-파일: **`VIEW.html`**
-
-1. 탐색기에서 `docs/presentation/VIEW.html` 더블클릭  
-2. Chrome / Edge 로 열림  
-3. 위에서 아래로 스크롤만 하면 됨  
-4. PPT용으로 쓰려면 `Ctrl+P` → **PDF로 저장** 또는 화면 캡처
-
-포함 내용: 한줄 스토리 · Before/After · 팀 역할 4칸 · 아키텍처 · CI/CD · 발표 멘트
-
-## 2) PowerPoint 파일
+| 파일 | 용도 |
+|------|------|
+| **`VIEW.html`** | 브라우저 더블클릭 (추천) |
+| **`ppt/Aniverse_발표_통합.pptx`** | PowerPoint |
 
 ```bash
+# PPT 다시 만들기
 cd docs/presentation
-python3 make_easy_ppt.py
+python3 generate_ppt.py
 ```
 
-생성 위치: **`ppt/Aniverse_발표.pptx`**  
-이 파일을 PowerPoint / Google 슬라이드에서 열면 됩니다.
+`slides.html` 은 `VIEW.html` 로 자동 이동합니다.
 
 ---
 
-## (참고) 예전 파일
+## 발표 흐름 (9장)
 
-| 파일 | 비고 |
+1. 한 줄 스토리  
+2. Before → After 매핑  
+3. AWS 팀 역할 (서이/유민/윤주/현우)  
+4. 앱 담당 ↔ 클라우드 담당  
+5. 전체 아키텍처 이미지  
+6. Terraform 모듈  
+7. CI/CD  
+8. 트러블슈팅 (기존+최근 개선)  
+9. 마무리 멘트  
+
+---
+
+## AWS 역할 요약
+
+| 담당 | 역할 | 모듈 |
+|------|------|------|
+| 박서이 | Network & Security | network / security / nat |
+| 강유민 | Compute & Traffic | compute / alb |
+| 김윤주 | Data & Storage | database / storage |
+| 김현우 | DevOps & CI/CD | environments/dev · cicd · Actions |
+
+---
+
+## 참고 파일
+
+| 경로 | 설명 |
 |------|------|
-| `*.drawio` | 보기 어려움 → `VIEW.html` / PPT 사용 권장 |
-| `images/*.png` | 기존 아키텍처 그림 (있으면 PPT에 추가 삽입 가능) |
-| `PRESENTATION.md` | 대본 텍스트 |
+| `PRESENTATION.md` | 대본·표 상세 |
+| `images/*.png` | 기존 아키텍처·CI/CD·모듈·트러블 이미지 |
+| `*.drawio` | 선택(상세 편집용). **기본은 VIEW.html/PPT** |
+
+자세한 대본은 `PRESENTATION.md` 참고.

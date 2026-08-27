@@ -3,149 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Aniverse 발표 — 온프레미스 → AWS</title>
+  <title>Aniverse 발표자료 (통합)</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     :root {
-      --bg: #0b1220;
-      --card: #121a2b;
-      --line: #243047;
-      --text: #e8eefc;
-      --muted: #93a4c3;
-      --accent: #60a5fa;
-      --orange: #fb923c;
-      --green: #4ade80;
-      --purple: #a78bfa;
-      --pink: #f472b6;
-      --red: #f87171;
+      --bg: #f8fafc; --card: #fff; --text: #0f172a; --muted: #64748b;
+      --line: #e2e8f0; --blue: #2563eb; --purple: #7c3aed; --orange: #ea580c;
+      --green: #16a34a; --red: #dc2626; --navy: #0f172a;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: "Noto Sans KR", Pretendard, system-ui, sans-serif;
-      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
-      color: var(--text);
-      line-height: 1.55;
+      margin: 0; font-family: "Noto Sans KR", Pretendard, system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.55;
     }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
-    h1 { font-size: 1.9rem; margin: 0 0 8px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 80px; }
+    h1 { font-size: 1.85rem; margin: 0 0 6px; }
     h2 {
-      font-size: 1.25rem;
-      margin: 40px 0 14px;
-      padding-left: 12px;
-      border-left: 4px solid var(--accent);
+      font-size: 1.2rem; margin: 42px 0 12px; padding-left: 12px;
+      border-left: 5px solid var(--blue);
     }
-    .sub { color: var(--muted); margin: 0 0 24px; }
+    h3 { margin: 0 0 8px; font-size: 1rem; }
+    .sub { color: var(--muted); margin: 0 0 18px; }
     .nav {
-      display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 28px;
-      position: sticky; top: 0; z-index: 5;
-      background: rgba(11,18,32,.92); backdrop-filter: blur(8px);
-      padding: 12px 0;
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px;
+      position: sticky; top: 0; z-index: 20; padding: 10px 0;
+      background: rgba(248,250,252,.95); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
     }
     .nav a {
-      text-decoration: none; color: var(--text);
-      background: var(--card); border: 1px solid var(--line);
-      border-radius: 999px; padding: 8px 14px; font-size: .9rem;
+      text-decoration: none; color: var(--text); font-size: .88rem;
+      background: #fff; border: 1px solid var(--line); border-radius: 999px;
+      padding: 7px 12px;
     }
-    .nav a:hover { border-color: var(--accent); color: var(--accent); }
+    .nav a:hover { border-color: var(--blue); color: var(--blue); }
+    .tip {
+      background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+      border-radius: 12px; padding: 12px 14px; margin: 14px 0 22px; font-size: .92rem;
+    }
     .card {
       background: var(--card); border: 1px solid var(--line);
-      border-radius: 16px; padding: 18px 18px 8px; margin-bottom: 16px;
+      border-radius: 14px; padding: 16px; margin-bottom: 14px;
     }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .role {
-      background: #0f172a; border: 1px solid var(--line);
-      border-radius: 14px; padding: 16px; min-height: 280px;
+      border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+      background: #fff; min-height: 250px;
     }
-    .role h3 { margin: 0 0 6px; font-size: 1.05rem; }
-    .role .who { font-size: .85rem; color: var(--muted); margin-bottom: 10px; }
-    .role ul { margin: 8px 0 0; padding-left: 18px; color: #dbe4f5; font-size: .92rem; }
+    .role ul { margin: 8px 0 0; padding-left: 18px; font-size: .9rem; }
+    .who { color: var(--muted); font-size: .82rem; margin-bottom: 6px; }
     .tag {
-      display: inline-block; font-size: .75rem; font-weight: 700;
-      border-radius: 999px; padding: 3px 10px; margin-bottom: 8px;
+      display: inline-block; font-size: .72rem; font-weight: 700;
+      border-radius: 999px; padding: 3px 9px; margin: 0 4px 8px 0;
     }
-    .t-purple { background: #2e1065; color: #ddd6fe; }
-    .t-orange { background: #7c2d12; color: #fed7aa; }
-    .t-green { background: #14532d; color: #bbf7d0; }
-    .t-red { background: #7f1d1d; color: #fecaca; }
-    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-    th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
-    th { background: #1a2438; }
-    tr:nth-child(even) td { background: #0f172a; }
-    .mermaid { background: #fff; border-radius: 12px; padding: 12px; margin: 8px 0 4px; overflow-x: auto; }
-    .tip {
-      background: #172554; border: 1px solid #1e3a8a; color: #bfdbfe;
-      border-radius: 12px; padding: 12px 14px; margin: 12px 0 24px; font-size: .92rem;
+    .t-blue { background: #dbeafe; color: #1e40af; }
+    .t-purple { background: #ede9fe; color: #5b21b6; }
+    .t-orange { background: #ffedd5; color: #9a3412; }
+    .t-green { background: #dcfce7; color: #166534; }
+    .t-red { background: #fee2e2; color: #991b1b; }
+    .ok { background: #dcfce7; color: #166534; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: 8px 0 4px; }
+    th, td { border: 1px solid var(--line); padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #eff6ff; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    img {
+      max-width: 100%; border: 1px solid var(--line); border-radius: 10px;
+      margin: 8px 0 6px; background: #fff;
+    }
+    .mermaid {
+      background: #fff; border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px; margin: 8px 0; overflow-x: auto;
     }
     .quote {
-      border-left: 4px solid var(--orange); padding: 8px 14px; color: #fde68a;
-      background: #1c1917; border-radius: 0 12px 12px 0; margin: 12px 0;
+      border-left: 4px solid var(--orange); background: #fff7ed;
+      padding: 12px 14px; border-radius: 0 12px 12px 0; color: #9a3412;
     }
+    .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .92rem; }
+    .flow .box {
+      background: #fff; border: 1px solid var(--line); border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .flow .arrow { color: var(--muted); }
     @media print {
-      body { background: #fff; color: #111; }
-      .nav { display: none; }
-      .card, .role { break-inside: avoid; background: #fff; border-color: #ddd; color: #111; }
-      .mermaid { border: 1px solid #ddd; }
-      th { background: #eee; }
+      .nav, .tip { display: none; }
+      .card, .role, img { break-inside: avoid; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Aniverse — 온프레미스 → AWS + 자동화</h1>
-    <p class="sub">이 파일만 더블클릭해서 브라우저로 보면 됩니다. (draw.io 불필요)</p>
+    <h1>Aniverse 발표자료 (통합본)</h1>
+    <p class="sub">온프레미스 4서버 → AWS 이전 · Terraform · CI/CD · 팀 역할 · 트러블슈팅</p>
 
     <div class="tip">
-      <b>보는 방법:</b> 이 HTML을 Chrome/Edge로 열기 → 아래 메뉴로 이동 → 필요하면 <b>Ctrl+P → PDF 저장</b> 또는 화면 캡처해서 PPT에 붙이기
+      <b>보는 방법:</b> 이 파일만 더블클릭 → 브라우저에서 스크롤.<br>
+      PDF: <b>Ctrl+P → PDF 저장</b> &nbsp;|&nbsp; PPT: <code>ppt/Aniverse_발표_통합.pptx</code>
     </div>
 
     <div class="nav">
-      <a href="#s1">1. 한줄 스토리</a>
-      <a href="#s2">2. Before→After</a>
-      <a href="#s3">3. 팀 역할</a>
-      <a href="#s4">4. 아키텍처</a>
-      <a href="#s5">5. CI/CD</a>
-      <a href="#s6">6. 발표 멘트</a>
+      <a href="#s1">스토리</a>
+      <a href="#s2">Before→After</a>
+      <a href="#s3">팀 역할</a>
+      <a href="#s4">아키텍처</a>
+      <a href="#s5">모듈</a>
+      <a href="#s6">CI/CD</a>
+      <a href="#s7">트러블슈팅</a>
+      <a href="#s8">멘트</a>
     </div>
 
+    <!-- 1 -->
     <h2 id="s1">1. 한 줄 스토리</h2>
     <div class="card">
-      <p>온프레미스에서 <b>Nginx · Django · NFS · MariaDB</b> 4대 서버로 돌리던 Aniverse를<br>
+      <p>온프레미스에서 <b>Nginx · Django · NFS · MariaDB</b> 4대 서버로 운영하던 Aniverse를<br>
       AWS 관리형 서비스로 옮기고, <b>Terraform + GitHub Actions + CodeDeploy</b>로 자동화했다.</p>
-      <p class="sub">도메인: https://aniverse.my</p>
-    </div>
-
-    <h2 id="s2">2. Before → After 매핑</h2>
-    <div class="card">
-      <table>
-        <tr><th>온프레미스</th><th>AWS 이후</th></tr>
-        <tr><td>Nginx 서버 (DMZ)</td><td>ALB + ACM(HTTPS) + WAF + EC2 Nginx</td></tr>
-        <tr><td>Django 서버</td><td>ASG EC2 (Daphne) + Redis (채팅)</td></tr>
-        <tr><td>NFS 서버</td><td>EFS + S3 미디어</td></tr>
-        <tr><td>MariaDB 서버</td><td>RDS MariaDB + Secrets Manager</td></tr>
-        <tr><td>수동 배포 / SSH</td><td>GitHub Actions → CodeDeploy / SSM</td></tr>
-      </table>
-      <div class="mermaid">
-flowchart LR
-  A[Nginx] --> A2[ALB + WAF + Nginx]
-  B[Django] --> B2[ASG EC2 + Redis]
-  C[NFS] --> C2[EFS + S3]
-  D[MariaDB] --> D2[RDS]
-  E[수동 배포] --> E2[Actions + CodeDeploy]
+      <p class="sub" style="margin:0">도메인: <a href="https://aniverse.my">https://aniverse.my</a> (HTTPS · WAF · 자동 배포)</p>
+      <div class="flow" style="margin-top:12px">
+        <span class="box">앱 기능 개발 (4인)</span>
+        <span class="arrow">→</span>
+        <span class="box">온프렘 4서버</span>
+        <span class="arrow">→</span>
+        <span class="box">AWS 모듈 분담</span>
+        <span class="arrow">→</span>
+        <span class="box">CI/CD 자동화</span>
       </div>
     </div>
 
-    <h2 id="s3">3. AWS 자동화 팀 역할</h2>
-    <p class="sub">앱 기능 담당과 다름 — 클라우드 이전 때 인프라로 재분담</p>
+    <!-- 2 -->
+    <h2 id="s2">2. Before → After</h2>
+    <div class="card">
+      <table>
+        <tr><th>온프레미스</th><th>AWS 이후</th><th>담당(인프라)</th></tr>
+        <tr><td>Nginx (DMZ)</td><td>ALB + ACM HTTPS + WAF + EC2 Nginx</td><td>유민 / 현우(보안·파이프라인)</td></tr>
+        <tr><td>Django WAS</td><td>ASG EC2 (Daphne) + Redis Channels</td><td>유민</td></tr>
+        <tr><td>NFS</td><td>EFS + S3 미디어</td><td>윤주</td></tr>
+        <tr><td>MariaDB</td><td>RDS MariaDB + Secrets Manager</td><td>윤주 / 현우</td></tr>
+        <tr><td>수동 배포·SSH</td><td>Actions → CodeDeploy / SSM</td><td>현우</td></tr>
+        <tr><td>방화벽·망 분리</td><td>VPC · SG · NAT Instance</td><td>서이</td></tr>
+      </table>
+      <div class="mermaid">
+flowchart LR
+  A[Nginx] --> A2[ALB+WAF+Nginx]
+  B[Django] --> B2[ASG+Redis]
+  C[NFS] --> C2[EFS+S3]
+  D[MariaDB] --> D2[RDS]
+  E[수동배포] --> E2[Actions+CodeDeploy]
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <h2 id="s3">3. 팀 역할 (앱 vs AWS)</h2>
+    <div class="card">
+      <table>
+        <tr><th>이름</th><th>앱 기능 (온프레미스)</th><th>AWS 자동화 역할</th></tr>
+        <tr><td><b>김현우</b></td><td>auth · anime · 챗봇 · 서버</td><td>DevOps &amp; CI/CD</td></tr>
+        <tr><td><b>박서이</b></td><td>deal · 1:1 채팅</td><td>Network &amp; Security</td></tr>
+        <tr><td><b>강유민</b></td><td>works 창작</td><td>Compute &amp; Traffic</td></tr>
+        <tr><td><b>김윤주</b></td><td>community</td><td>Data &amp; Storage</td></tr>
+      </table>
+    </div>
     <div class="grid">
       <div class="role">
         <span class="tag t-purple">Network &amp; Security</span>
         <h3>박서이</h3>
         <div class="who">modules/network · security · nat</div>
         <ul>
-          <li>VPC / Subnet / IGW</li>
-          <li>NAT Instance (t3.micro)</li>
-          <li>Security Group 룰</li>
+          <li>VPC / Subnet / IGW 분리</li>
+          <li>NAT Instance (t3.micro) 비용 절감</li>
+          <li>ALB–EC2–RDS–EFS SG 룰</li>
           <li>outputs로 타 모듈 연결</li>
         </ul>
       </div>
@@ -156,8 +179,8 @@ flowchart LR
         <ul>
           <li>ALB / Target Group</li>
           <li>Launch Template · ASG</li>
-          <li>user_data (EFS·Nginx)</li>
-          <li>proxy_pass → :8000</li>
+          <li>user_data: EFS·Nginx 자동 설정</li>
+          <li>proxy_pass → Daphne :8000</li>
         </ul>
       </div>
       <div class="role">
@@ -165,10 +188,10 @@ flowchart LR
         <h3>김윤주</h3>
         <div class="who">modules/database · storage</div>
         <ul>
+          <li>S3+DynamoDB Remote State</li>
           <li>RDS MariaDB</li>
           <li>EFS 마운트 타겟</li>
           <li>S3 static/media</li>
-          <li>Remote State 초기화</li>
         </ul>
       </div>
       <div class="role">
@@ -176,73 +199,114 @@ flowchart LR
         <h3>김현우</h3>
         <div class="who">environments/dev · Actions · cicd</div>
         <ul>
-          <li>모듈 조립·통합 배포</li>
-          <li>infra / app CI/CD</li>
-          <li>CodeDeploy · SSM</li>
-          <li>CloudWatch 알람</li>
+          <li>모듈 조립·통합 apply</li>
+          <li>infra / app 이중 파이프라인</li>
+          <li>CodeDeploy · SSM · CloudWatch</li>
+          <li>HTTPS·WAF·Secrets 연동</li>
         </ul>
       </div>
     </div>
 
+    <!-- 4 -->
     <h2 id="s4">4. 현재 AWS 아키텍처</h2>
     <div class="card">
+      <img src="images/aniverse-architecture-overview.png" alt="architecture overview" />
       <div class="mermaid">
 flowchart TB
   U[Users] -->|HTTPS| R53[Route 53]
   R53 --> WAF[WAF]
   WAF --> ALB[ALB]
   ALB --> ASG["ASG EC2\nNginx + Daphne"]
-  ASG --> RDS[(RDS MariaDB)]
+  ASG --> RDS[(RDS)]
   ASG --> EFS[(EFS)]
   ASG --> S3[(S3 Media)]
   ASG --> REDIS[(Redis)]
   ASG --> SEC[Secrets Manager]
-  GH[GitHub Actions] --> DEP[Deploy S3]
+  GH[GitHub Actions] --> DEPLOY[Deploy S3]
   GH --> CD[CodeDeploy]
   CD --> ASG
       </div>
-    </div>
-
-    <h2 id="s5">5. CI/CD</h2>
-    <div class="card">
-      <div class="mermaid">
-flowchart LR
-  subgraph Infra
-    P1[infra push] --> TF[Terraform Apply]
-  end
-  subgraph App
-    P2[app push] --> ZIP[S3 deploy.zip]
-    ZIP --> COD[CodeDeploy]
-    COD --> EC2[ASG]
-  end
-  TF --> EC2
-  EC2 --> WEB[aniverse.my]
-      </div>
       <table>
-        <tr><th>저장소</th><th>역할</th></tr>
-        <tr><td><code>anime-project-infra</code></td><td>Terraform IaC</td></tr>
-        <tr><td><code>anime-project</code></td><td>Django 앱 CodeDeploy</td></tr>
+        <tr><th>계층</th><th>구성</th></tr>
+        <tr><td>Edge</td><td>Route53 · ACM · WAF · ALB (HTTPS)</td></tr>
+        <tr><td>Web/App</td><td>nginx → Daphne(ASGI) → Django · Channels/Redis</td></tr>
+        <tr><td>Data</td><td>RDS MariaDB · EFS · S3</td></tr>
+        <tr><td>Ops</td><td>Secrets · SSM · CodeDeploy · Actions · CloudWatch</td></tr>
       </table>
     </div>
 
-    <h2 id="s6">6. 발표 멘트 (30초)</h2>
-    <div class="quote">
-      “앱은 그대로 두고, 인프라는 네 명이 나눠 맡았습니다.<br>
-      서이가 네트워크·보안, 유민이 ALB·ASG, 윤주가 RDS·EFS·S3,<br>
-      저는 모듈을 조립하고 Terraform·GitHub Actions로 자동화했습니다.<br>
-      그 결과 aniverse.my 에서 HTTPS와 자동 배포로 서비스 중입니다.”
+    <!-- 5 -->
+    <h2 id="s5">5. Terraform 모듈</h2>
+    <div class="card">
+      <img src="images/aniverse-terraform-modules.png" alt="terraform modules" />
+      <table>
+        <tr><th>담당</th><th>모듈</th><th>설명</th></tr>
+        <tr><td>서이</td><td>network · security · nat · endpoints</td><td>VPC/SG/NAT/SSM endpoint</td></tr>
+        <tr><td>윤주</td><td>database · storage</td><td>RDS · EFS · S3</td></tr>
+        <tr><td>유민</td><td>alb · compute</td><td>ALB/TG · LT/ASG/IAM · user_data</td></tr>
+        <tr><td>현우</td><td>environments/dev · cicd · acm · waf · secrets · redis · monitoring</td><td>조립 · 파이프라인 · HTTPS/WAF/시크릿</td></tr>
+      </table>
+      <p class="sub">포인트: ALB를 compute에서 분리(<code>modules/alb</code>)하고 Terraform <code>moved</code>로 재생성 없이 state 이전.</p>
     </div>
 
-    <p class="sub">PDF로 저장: Ctrl+P → 대상 PDF · 배경 그래픽 켜기</p>
+    <!-- 6 -->
+    <h2 id="s6">6. CI/CD</h2>
+    <div class="card">
+      <img src="images/aniverse-cicd-pipeline.png" alt="cicd pipeline" />
+      <div class="grid">
+        <div class="role" style="min-height:auto">
+          <h3>Infra CD <span class="tag t-blue">anime-project-infra</span></h3>
+          <p><span class="tag t-blue">push</span><span class="tag ok">terraform apply</span></p>
+          <p class="who">ALB / ASG / RDS / S3 / WAF / CodeDeploy 생성·갱신</p>
+        </div>
+        <div class="role" style="min-height:auto">
+          <h3>App CD <span class="tag t-orange">anime-project</span></h3>
+          <p><span class="tag t-orange">push</span><span class="tag ok">CodeDeploy</span></p>
+          <p class="who">deploy.zip → ASG EC2 (migrate · collectstatic · Daphne)</p>
+        </div>
+      </div>
+      <div class="mermaid">
+flowchart LR
+  P1[infra push] --> TF[Terraform Apply]
+  P2[app push] --> ZIP[S3 deploy.zip]
+  ZIP --> COD[CodeDeploy]
+  COD --> EC2[ASG]
+  TF --> EC2
+  EC2 --> WEB[aniverse.my]
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <h2 id="s7">7. 트러블슈팅 · 개선</h2>
+    <div class="card">
+      <img src="images/aniverse-problems-solved.png" alt="problems solved" />
+      <table>
+        <tr><th>문제</th><th>해결</th></tr>
+        <tr><td>Actions CD 미동작 / TF 버전</td><td><code>terraform-cd.yml</code> + TF 1.10.5</td></tr>
+        <tr><td>ALB가 compute에 혼재</td><td><code>modules/alb</code> 분리 + <code>moved</code> (0 recreate)</td></tr>
+        <tr><td>챗봇 / WebSocket 장애</td><td>CSRF · Gemini 주입 · Daphne ASGI</td></tr>
+        <tr><td>이미지 403 / 미디어 미표시</td><td>S3 public + sync · <code>AWS_STORAGE_BUCKET_NAME</code> env</td></tr>
+        <tr><td>CodeDeploy agent / health</td><td>조기 설치 · Host 헤더 · nginx /health/</td></tr>
+        <tr><td>DB restore env 누락</td><td>Secrets Manager fallback</td></tr>
+        <tr><td>static/favicon 403</td><td><code>/home/ubuntu</code> 권한 (www-data traverse)</td></tr>
+        <tr><td>도메인 / HTTPS</td><td>Route53 + ACM + ALB 443 + WAF</td></tr>
+      </table>
+    </div>
+
+    <!-- 8 -->
+    <h2 id="s8">8. 발표 멘트</h2>
+    <div class="quote">
+      “앱은 기능 담당으로 만들었고, 클라우드 이전에서는 역할을 다시 나눴습니다.<br>
+      서이 네트워크·보안, 유민 ALB·ASG, 윤주 RDS·EFS·S3,<br>
+      저는 모듈을 조립하고 Terraform·GitHub Actions로 자동화했습니다.<br>
+      HTTPS·WAF·Secrets까지 넣었고, 지금은 aniverse.my 로 서비스 중입니다.”
+    </div>
+
+    <p class="sub" style="margin-top:28px">통합본 · draw.io 불필요 · 이미지+표+역할+CI/CD+트러블슈팅 포함</p>
   </div>
 
   <script>
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'neutral',
-      securityLevel: 'loose',
-      flowchart: { curve: 'basis', htmlLabels: true }
-    });
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
   </script>
 </body>
 </html>
