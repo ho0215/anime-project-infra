@@ -238,7 +238,7 @@ def terraform_slides(prs):
     set_text(tf, "계층별 구성", 17, True, BLUE)
     for line in [
         "Network: VPC · Public/Private Subnet · IGW · NAT",
-        "Security: ALB/App/DB/EFS용 Security Group",
+        "Security: ALB/App/NAT/DB/EFS/Redis/endpoints 용 Security Group",
         "Traffic: ALB · Target Group · HTTPS Listener",
         "Compute: Launch Template · ASG · IAM Role",
         "Data: RDS MariaDB · EFS · S3",
@@ -429,7 +429,7 @@ def ops_slides(prs):
         ("CI/CD", BLUE, ["Actions + CodeDeploy로 배포 경로 고정", "ALB /health/ 로 배포 성공 판정", "실패 시 Actions·배포 로그로 추적"]),
         ("고가용성", ORANGE, ["ALB로 트래픽 분산", "ASG로 인스턴스 교체·확장", "App/DB 서브넷 분리 배치"]),
         ("모니터링", TEAL, ["CloudWatch 알람", "Target Group health 확인", "SSM으로 서버 점검"]),
-        ("보안", RED, ["SG 최소 포트 개방", "Secrets Manager로 키 주입", "ACM HTTPS + WAF(SQLi/Rate)"]),
+        ("보안", RED, ["SG 최소 포트 개방", "DB subnet NACL 설정", "Secrets Manager로 키 주입", "ACM HTTPS + WAF(SQLi/Rate)"]),
     ]
     for i, (title, color, bullets) in enumerate(items):
         x = Inches(0.3) + (i % 2) * Inches(6.45)
