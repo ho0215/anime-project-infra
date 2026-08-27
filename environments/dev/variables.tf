@@ -49,7 +49,7 @@ variable "nat_ami" {
 variable "static_bucket_name" {
   description = "정적/미디어 S3 버킷 base 이름 (뒤에 account-region 이 붙음)"
   type        = string
-  default     = "aniverse-static-younju-dev"
+  default     = "aniverse-static-ho0215-dev-2026"
 }
 
 # ── Secrets 로만 주입 (기본값 없음) ─────────────────────
