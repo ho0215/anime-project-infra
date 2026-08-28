@@ -63,3 +63,27 @@ python3 generate_ppt.py
 주제: 온프레미스 3-tier → AWS  
 기준: 청중이 **왜 중요한지** 바로 이해
 
+### 강사용 다이어그램 다시 만들기
+
+구성도는 **AWS Architecture Icons**(PlantUML 배포본)과 **GitHub / Actions / Terraform** 공식 마크를 사용합니다.
+
+```bash
+cd docs/presentation
+python3 make_instructor_diagrams.py        # 01, 05~09 (AWS/GitHub 아이콘)
+python3 make_terraform_modules_diagram.py  # 03 계층형 모듈 맵 (NAT Instance)
+python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
+python3 make_instructor_view.py            # VIEW_강사발표.html
+```
+
+| 이미지 | 내용 |
+|--------|------|
+| `01_onprem_3tier.png` | 온프렘 3-Tier (Nginx/Django/RDS 아이콘) |
+| `02_aws_overview.png` | AWS 아키텍처 개요 |
+| `03_terraform_modules.png` | Terraform 모듈 맵 |
+| `04_github_actions.png` | CI/CD Pipeline (GitHub + AWS 아이콘) |
+| `05_ops_security.png` | CI/CD·HA·모니터링·보안 |
+| `06_https_waf.png` | Route53 → WAF → ACM/ALB → EC2 |
+| `07_aws_github_stack.png` | AWS·GitHub 한 장 정리 |
+| `08_storage_roles.png` | S3·EFS·RDS 역할 |
+| `09_team_roles.png` | 팀 역할 + 담당 AWS 서비스 |
+
