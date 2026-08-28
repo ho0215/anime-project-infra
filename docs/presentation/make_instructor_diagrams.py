@@ -495,26 +495,15 @@ def make_08_storage_roles():
         ),
     ]
     for x, color, bg, icon, title, sub, bullets in cards:
-        soft_card(img, (x, 140, x + 460, 760), fill=bg)
+        # cards fill more vertical space (no bottom one-line banner)
+        soft_card(img, (x, 140, x + 460, 820), fill=bg)
         d = ImageDraw.Draw(img)
-        d.rounded_rectangle((x, 140, x + 460, 760), radius=20, outline=color, width=3)
-        paste_icon(img, icon, x + 230, 240, 88)
-        center_text(d, title, x + 230, 330, fnt(24, True), color)
-        center_text(d, sub, x + 230, 370, fnt(16, True), SLATE)
+        d.rounded_rectangle((x, 140, x + 460, 820), radius=20, outline=color, width=3)
+        paste_icon(img, icon, x + 230, 250, 88)
+        center_text(d, title, x + 230, 350, fnt(24, True), color)
+        center_text(d, sub, x + 230, 395, fnt(16, True), SLATE)
         for i, b in enumerate(bullets):
-            d.text((x + 50, 420 + i * 48), f"•  {b}", font=fnt(17), fill=NAVY)
-
-    soft_card(img, (60, 790, 1540, 870), fill=SOFT_BLUE, shadow=False)
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle((60, 790, 1540, 870), radius=14, outline=BLUE, width=2)
-    center_text(
-        d,
-        "한 줄:  RDS = ‘무슨 글인지’  ·  S3 = ‘사진 파일’  ·  EFS = ‘여러 EC2가 같이 쓰는 폴더’",
-        800,
-        830,
-        fnt(18, True),
-        TEAL,
-    )
+            d.text((x + 50, 450 + i * 52), f"•  {b}", font=fnt(17), fill=NAVY)
 
     out = OUT / "08_storage_roles.png"
     img.convert("RGB").save(out, "PNG", optimize=True)
