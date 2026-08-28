@@ -171,11 +171,11 @@ def agenda(prs):
     items = [
         "01  AWS 이전하면서 맡은 역할",
         "02  온프레미스 운영에서 어려웠던 점",
-        "03  Terraform으로 구성한 인프라",
-        "04  GitHub Actions 자동화",
-        "05  CI/CD · 고가용성 · 모니터링 · 보안",
-        "06  HTTPS · WAF",
-        "07  사용한 AWS · GitHub 한 장 정리",
+        "03  기술 스택 (AWS · GitHub)",
+        "04  Terraform으로 구성한 인프라",
+        "05  GitHub Actions 자동화",
+        "06  CI/CD · 고가용성 · 모니터링 · 보안",
+        "07  HTTPS · WAF",
     ]
     for i, title in enumerate(items):
         y = Inches(1.1) + i * Inches(0.78)
@@ -245,19 +245,27 @@ def pain_detail(prs):
     footer(s, 5)
 
 
-def terraform_slides(prs):
+def tech_stack_slide(prs):
+    """Terraform 전에 보여줄 AWS · GitHub 기술 스택 지도."""
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. Terraform 인프라 구성 (1)", "온프레미스 3-Tier를 AWS 서비스로 대응")
-    put_img(s, "02_aws_overview.png", Inches(0.35), Inches(1.05), w=Inches(12.6))
+    header(s, "3. 기술 스택", "이제부터 쓸 AWS · GitHub 도구를 한 장으로 먼저 보기")
+    put_img(s, "07_aws_github_stack.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 6)
 
+
+def terraform_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. Terraform 인프라 구성 (2)", "모듈을 나눠 만들고 environments/dev 에서 조립")
-    put_img(s, "03_terraform_modules.png", Inches(0.25), Inches(1.0), w=Inches(12.8))
+    header(s, "4. Terraform 인프라 구성 (1)", "온프레미스 3-Tier를 AWS 서비스로 대응")
+    put_img(s, "02_aws_overview.png", Inches(0.35), Inches(1.05), w=Inches(12.6))
     footer(s, 7)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. Terraform 인프라 구성 (3)", "주요 리소스와 연결 관계")
+    header(s, "4. Terraform 인프라 구성 (2)", "모듈을 나눠 만들고 environments/dev 에서 조립")
+    put_img(s, "03_terraform_modules.png", Inches(0.25), Inches(1.0), w=Inches(12.8))
+    footer(s, 8)
+
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "4. Terraform 인프라 구성 (3)", "주요 리소스와 연결 관계")
     left = rect(s, Inches(0.35), Inches(1.15), Inches(6.25), Inches(5.55), SOFT, BLUE)
     tf = left.text_frame
     set_text(tf, "계층별 구성", 16, True, BLUE)
@@ -288,18 +296,18 @@ def terraform_slides(prs):
         "• 팀 전체가 충돌 없이 동시 작업 가능 (State Lock)",
     ]:
         add_para(tf, line, 12, False, NAVY, 5)
-    footer(s, 8)
+    footer(s, 9)
 
     # 데이터베이스·스토리지 구성 요소 (AWS 아이콘)
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. 데이터베이스·스토리지 구성", "김윤주 Data & Storage — RDS · EFS · S3 (AWS 공식 아이콘)")
+    header(s, "4. 데이터베이스·스토리지 구성", "김윤주 Data & Storage — RDS · EFS · S3 (AWS 공식 아이콘)")
     # reuse storage roles visual for this slide as overview cards appear in image
     put_img(s, "08_storage_roles.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
-    footer(s, 9)
+    footer(s, 10)
 
     # S3 / EFS / RDS — 저장 역할 (같은 이미지 확대 설명용 텍스트 보조 슬라이드)
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. S3 · EFS · RDS — 저장 역할 정리", "RDS=구조화 데이터 · EFS=공유 파일 · S3=객체/배포")
+    header(s, "4. S3 · EFS · RDS — 저장 역할 정리", "RDS=구조화 데이터 · EFS=공유 파일 · S3=객체/배포")
     left = rect(s, Inches(0.35), Inches(1.15), Inches(4.0), Inches(5.55), LIGHT, GREEN)
     tf = left.text_frame
     set_text(tf, "RDS (MariaDB)", 16, True, GREEN)
@@ -344,17 +352,17 @@ def terraform_slides(prs):
         "DynamoDB State Lock",
     ]:
         add_para(tf, line, 13, False, NAVY, 6)
-    footer(s, 10)
+    footer(s, 11)
 
 
 def actions_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "4. GitHub Actions (1)", "GitHub · AWS 공식 아이콘으로 본 CI/CD Pipeline")
+    header(s, "5. GitHub Actions (1)", "GitHub · AWS 공식 아이콘으로 본 CI/CD Pipeline")
     put_img(s, "04_github_actions.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
-    footer(s, 11)
+    footer(s, 12)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "4. GitHub Actions (2)", "실제로 돌아가는 파이프라인")
+    header(s, "5. GitHub Actions (2)", "실제로 돌아가는 파이프라인")
     left = rect(s, Inches(0.35), Inches(1.15), Inches(6.25), Inches(5.55), SOFT, BLUE)
     tf = left.text_frame
     set_text(tf, "anime-project-infra", 15, True, BLUE)
@@ -378,17 +386,17 @@ def actions_slides(prs):
         "hooks: install → migrate → Daphne 기동",
     ]:
         add_para(tf, "• " + line, 12, False, NAVY, 8)
-    footer(s, 12)
+    footer(s, 13)
 
 
 def ops_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "5. CI/CD · HA · 모니터링 · 보안", "AWS·GitHub 공식 아이콘으로 한 장 요약")
+    header(s, "6. CI/CD · HA · 모니터링 · 보안", "AWS·GitHub 공식 아이콘으로 한 장 요약")
     put_img(s, "05_ops_security.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
-    footer(s, 13)
+    footer(s, 14)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "5. 적용 내용 상세", "서비스가 실제로 어떻게 버티는지")
+    header(s, "6. 적용 내용 상세", "서비스가 실제로 어떻게 버티는지")
     items = [
         ("CI/CD", BLUE, ["Actions + CodeDeploy로 배포 경로 고정", "ALB /health/ 로 배포 성공 판정", "실패 시 Actions·배포 로그로 추적"]),
         ("고가용성", ORANGE, ["ALB로 트래픽 분산", "ASG로 인스턴스 교체·확장", "EFS로 media 파일 유지 (교체 후에도)"]),
@@ -403,17 +411,17 @@ def ops_slides(prs):
         set_text(tf, title, 16, True, color)
         for b in bullets:
             add_para(tf, "• " + b, 12, False, NAVY, 5)
-    footer(s, 14)
+    footer(s, 15)
 
 
 def https_waf_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "6. HTTPS · WAF (1)", "Route 53 · WAF · ACM · ALB · EC2 (AWS 공식 아이콘)")
+    header(s, "7. HTTPS · WAF (1)", "Route 53 · WAF · ACM · ALB · EC2 (AWS 공식 아이콘)")
     put_img(s, "06_https_waf.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
-    footer(s, 15)
+    footer(s, 16)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "6. HTTPS · WAF (2)", "용어 말고 ‘무엇을 했는지’만")
+    header(s, "7. HTTPS · WAF (2)", "용어 말고 ‘무엇을 했는지’만")
 
     left = rect(s, Inches(0.35), Inches(1.15), Inches(6.2), Inches(5.55), SOFT, TEAL)
     tf = left.text_frame
@@ -440,13 +448,6 @@ def https_waf_slides(prs):
         "• 결과: 공격성 트래픽을 입구에서 감소",
     ]:
         add_para(tf, line, 14, False, NAVY, 10)
-    footer(s, 16)
-
-
-def stack_summary_slide(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "7. 사용한 AWS · GitHub", "인프라 서비스와 자동화 도구를 한 장으로")
-    put_img(s, "07_aws_github_stack.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
     footer(s, 17)
 
 
@@ -472,11 +473,11 @@ def build():
     agenda(prs)
     roles(prs)
     pain_detail(prs)
+    tech_stack_slide(prs)
     terraform_slides(prs)
     actions_slides(prs)
     ops_slides(prs)
     https_waf_slides(prs)
-    stack_summary_slide(prs)
     closing(prs)
     out = OUT / "Aniverse_발표_강사용.pptx"
     prs.save(out)
