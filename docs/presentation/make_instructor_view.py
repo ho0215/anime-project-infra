@@ -1,4 +1,13 @@
-<!DOCTYPE html>
+#!/usr/bin/env python3
+"""강사용 VIEW HTML — instructor 이미지를 상대 경로로 참조."""
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+OUT = BASE / "VIEW_강사발표.html"
+
+
+def main():
+    html = """<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Aniverse 발표 (강사용)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -66,3 +75,10 @@ ul{margin:6px 0 0;padding-left:18px}
 </section>
 
 </div></body></html>
+"""
+    OUT.write_text(html, encoding="utf-8")
+    print("Wrote", OUT, "bytes", OUT.stat().st_size)
+
+
+if __name__ == "__main__":
+    main()

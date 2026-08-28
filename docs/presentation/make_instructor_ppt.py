@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""강사용 5~7분 발표 PPT — 구성도 이미지 포함, 청중라벨 없음."""
+"""강사용 5~7분 발표 PPT — AWS/GitHub 공식 아이콘 구성도 포함."""
 from pathlib import Path
 
 from pptx import Presentation
@@ -186,26 +186,8 @@ def agenda(prs):
 
 def roles(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "1. AWS 이전 — 맡은 역할", "앱 기능 담당과 별도로, 인프라 모듈을 나눠 담당")
-    roles = [
-        ("박서이", "Network & Security", "modules/network\nsecurity · nat", "VPC / Subnet / IGW\nNAT Instance\nSecurity Group", PURPLE),
-        ("강유민", "Compute & Traffic", "modules/alb\nmodules/compute", "ALB / Target Group\nLaunch Template / ASG\nuser_data (Nginx·EFS)", ORANGE),
-        ("김윤주", "Data & Storage", "modules/database\nmodules/storage", "RDS MariaDB\nEFS · S3\nRemote State", GREEN),
-        ("김현우", "DevOps & CI/CD", "environments/dev\ncicd · Actions", "모듈 조립·Apply\nCodeDeploy / SSM\nHTTPS · WAF · Secrets", RED),
-    ]
-    for i, (name, role, mods, work, color) in enumerate(roles):
-        x = Inches(0.35) + i * Inches(3.2)
-        card = rect(s, x, Inches(1.15), Inches(3.05), Inches(5.55), LIGHT, color)
-        tf = card.text_frame
-        set_text(tf, name, 17, True, color, PP_ALIGN.CENTER)
-        add_para(tf, role, 12, True, NAVY, 6)
-        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, mods, 11, False, SLATE, 10)
-        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, "────────", 10, False, RGBColor(203, 213, 225), 6)
-        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        add_para(tf, work, 12, False, NAVY, 6)
-        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
+    header(s, "1. AWS 이전 — 맡은 역할", "AWS 공식 아이콘으로 담당 서비스만 빠르게 보기")
+    put_img(s, "09_team_roles.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 3)
 
 
@@ -308,130 +290,67 @@ def terraform_slides(prs):
         add_para(tf, line, 12, False, NAVY, 5)
     footer(s, 8)
 
-    # 데이터베이스·스토리지 구성 요소
+    # 데이터베이스·스토리지 구성 요소 (AWS 아이콘)
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. 데이터베이스·스토리지 구성", "김윤주 Data & Storage — RDS · EFS · S3 · Remote State")
-    cards = [
-        (
-            "RDS (MariaDB)",
-            GREEN,
-            [
-                "modules/database",
-                "앱 DB를 관리형으로 이전",
-                "Private subnet 배치",
-                "스냅샷 · Secrets 연동",
-            ],
-        ),
-        (
-            "EFS",
-            TEAL,
-            [
-                "modules/storage",
-                "온프렘 NFS 대체",
-                "ASG EC2 간 공유 마운트",
-                "미디어·업로드 파일 공유",
-            ],
-        ),
-        (
-            "S3 + DynamoDB",
-            BLUE,
-            [
-                "Remote State 선구축",
-                "S3: tfstate 저장",
-                "DynamoDB: State Lock",
-                "팀 동시 apply 충돌 방지",
-            ],
-        ),
-        (
-            "S3 CORS + Lifecycle",
-            ORANGE,
-            [
-                "정적/미디어 버킷 정책",
-                "CORS: 브라우저 GET 허용",
-                "Lifecycle: 오래된 객체 정리",
-                "비용·운영 부담 감소",
-            ],
-        ),
-    ]
-    for i, (title, color, bullets) in enumerate(cards):
-        x = Inches(0.35) + i * Inches(3.2)
-        y = Inches(1.15)
-        card = rect(s, x, y, Inches(3.05), Inches(5.55), LIGHT, color)
-        tf = card.text_frame
-        set_text(tf, title, 15, True, color, PP_ALIGN.CENTER)
-        for b in bullets:
-            add_para(tf, "• " + b, 12, False, NAVY, 10)
-            tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
+    header(s, "3. 데이터베이스·스토리지 구성", "김윤주 Data & Storage — RDS · EFS · S3 (AWS 공식 아이콘)")
+    # reuse storage roles visual for this slide as overview cards appear in image
+    put_img(s, "08_storage_roles.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 9)
 
-    # S3 / EFS / RDS — 각각 무엇을 저장하는가
+    # S3 / EFS / RDS — 저장 역할 (같은 이미지 확대 설명용 텍스트 보조 슬라이드)
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "3. S3 · EFS · RDS — 저장 역할 정리", "같은 ‘데이터’라도 성격에 따라 저장소를 나눔")
-    store_cards = [
-        (
-            "RDS (MariaDB)",
-            GREEN,
-            "구조화된 DB 데이터",
-            [
-                "회원 · 로그인 계정",
-                "커뮤니티 글 · 댓글 · 좋아요",
-                "거래 상품 정보 · 채팅 메타",
-                "창작물 제목·본문·상태",
-                "관계·검색·트랜잭션이 필요한 값",
-            ],
-        ),
-        (
-            "EFS",
-            TEAL,
-            "ASG가 공유하는 파일 공간",
-            [
-                "EC2 media/ 경로에 NFS 마운트",
-                "인스턴스 교체돼도 파일 유지",
-                "여러 대 EC2가 같은 media 공유",
-                "온프렘 NFS 역할을 AWS에서 대체",
-                "Nginx /media 로컬·fallback 서빙",
-            ],
-        ),
-        (
-            "S3",
-            ORANGE,
-            "객체 스토리지 (파일·배포)",
-            [
-                "업로드 이미지 원본",
-                "community/ · goods_images/",
-                "works_images/",
-                "공개 URL로 브라우저 제공",
-                "배포 zip · (별도) tfstate 버킷",
-            ],
-        ),
-    ]
-    for i, (title, color, subtitle, bullets) in enumerate(store_cards):
-        x = Inches(0.4) + i * Inches(4.2)
-        card = rect(s, x, Inches(1.15), Inches(4.0), Inches(4.95), LIGHT, color)
-        tf = card.text_frame
-        set_text(tf, title, 17, True, color, PP_ALIGN.CENTER)
-        add_para(tf, subtitle, 12, True, SLATE, 6)
-        tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-        for b in bullets:
-            add_para(tf, "• " + b, 12, False, NAVY, 7)
-            tf.paragraphs[-1].alignment = PP_ALIGN.CENTER
-    one = s.shapes.add_textbox(Inches(0.4), Inches(6.25), Inches(12.5), Inches(0.5))
-    pad_tf(one.text_frame)
-    set_text(
-        one.text_frame,
-        "한 줄:  RDS = ‘무슨 글인지’  ·  S3 = ‘사진 파일’  ·  EFS = ‘여러 EC2가 같이 쓰는 폴더’",
-        13,
-        True,
-        TEAL,
-        PP_ALIGN.CENTER,
-    )
+    header(s, "3. S3 · EFS · RDS — 저장 역할 정리", "RDS=구조화 데이터 · EFS=공유 파일 · S3=객체/배포")
+    left = rect(s, Inches(0.35), Inches(1.15), Inches(4.0), Inches(5.55), LIGHT, GREEN)
+    tf = left.text_frame
+    set_text(tf, "RDS (MariaDB)", 16, True, GREEN)
+    for line in [
+        "• 회원 · 로그인 계정",
+        "• 커뮤니티 글 · 댓글",
+        "• 거래 · 채팅 메타",
+        "• 창작물 제목·본문",
+        "• 관계·트랜잭션 필요 값",
+        "",
+        "modules/database",
+        "Private subnet · Secrets",
+    ]:
+        add_para(tf, line, 13, False, NAVY, 6)
+
+    mid = rect(s, Inches(4.65), Inches(1.15), Inches(4.0), Inches(5.55), LIGHT, TEAL)
+    tf = mid.text_frame
+    set_text(tf, "EFS", 16, True, TEAL)
+    for line in [
+        "• EC2 media/ NFS 마운트",
+        "• 인스턴스 교체돼도 유지",
+        "• 여러 EC2가 같은 media",
+        "• 온프렘 NFS 대체",
+        "• Nginx /media 서빙",
+        "",
+        "modules/storage",
+        "ASG 공유 파일 공간",
+    ]:
+        add_para(tf, line, 13, False, NAVY, 6)
+
+    right = rect(s, Inches(8.95), Inches(1.15), Inches(4.0), Inches(5.55), LIGHT, ORANGE)
+    tf = right.text_frame
+    set_text(tf, "S3", 16, True, ORANGE)
+    for line in [
+        "• 업로드 이미지 원본",
+        "• community / goods / works",
+        "• 공개 URL 제공",
+        "• 배포 zip 패키지",
+        "• tfstate 버킷 (별도)",
+        "",
+        "CORS · Lifecycle",
+        "DynamoDB State Lock",
+    ]:
+        add_para(tf, line, 13, False, NAVY, 6)
     footer(s, 10)
 
 
 def actions_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "4. GitHub Actions (1)", "인프라 저장소 / 앱 저장소를 나눠 자동화")
-    put_img(s, "04_github_actions.png", Inches(0.3), Inches(1.05), w=Inches(12.7))
+    header(s, "4. GitHub Actions (1)", "GitHub · AWS 공식 아이콘으로 본 CI/CD Pipeline")
+    put_img(s, "04_github_actions.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 11)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -464,8 +383,8 @@ def actions_slides(prs):
 
 def ops_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "5. CI/CD · HA · 모니터링 · 보안", "배포·가용성·관측·보안을 한 장으로")
-    put_img(s, "05_ops_security.png", Inches(0.45), Inches(1.15), w=Inches(12.4))
+    header(s, "5. CI/CD · HA · 모니터링 · 보안", "AWS·GitHub 공식 아이콘으로 한 장 요약")
+    put_img(s, "05_ops_security.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 13)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -489,8 +408,8 @@ def ops_slides(prs):
 
 def https_waf_slides(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "6. HTTPS · WAF (1)", "한 줄: 암호화로 보호하고, 앞에서 공격을 걸러낸다")
-    put_img(s, "06_https_waf.png", Inches(0.35), Inches(1.0), w=Inches(12.6))
+    header(s, "6. HTTPS · WAF (1)", "Route 53 · WAF · ACM · ALB · EC2 (AWS 공식 아이콘)")
+    put_img(s, "06_https_waf.png", Inches(0.25), Inches(0.95), w=Inches(12.8))
     footer(s, 15)
 
     s = prs.slides.add_slide(prs.slide_layouts[6])
