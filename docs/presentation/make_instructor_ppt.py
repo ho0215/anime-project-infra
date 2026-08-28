@@ -98,7 +98,7 @@ def header(slide, title, subtitle=None):
         add_para(tf, subtitle, 12, False, RGBColor(147, 197, 253), 2)
 
 
-TOTAL = 18
+TOTAL = 19
 
 
 def footer(slide, n, total=TOTAL):
@@ -176,11 +176,12 @@ def agenda(prs):
         "05  GitHub Actions 자동화",
         "06  CI/CD · 고가용성 · 모니터링 · 보안",
         "07  HTTPS · WAF",
+        "08  트러블슈팅",
     ]
     for i, title in enumerate(items):
-        y = Inches(1.1) + i * Inches(0.78)
-        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.68), LIGHT, BLUE)
-        set_text(card.text_frame, title, 17, True, NAVY)
+        y = Inches(1.05) + i * Inches(0.72)
+        card = rect(s, Inches(0.7), y, Inches(11.9), Inches(0.64), LIGHT, BLUE)
+        set_text(card.text_frame, title, 16, True, NAVY)
     footer(s, 2)
 
 
@@ -451,6 +452,50 @@ def https_waf_slides(prs):
     footer(s, 17)
 
 
+def troubleshooting_slide(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    header(s, "8. 트러블슈팅", "설계 · 보안 · 협업 — 실제로 겪고 해결한 것")
+
+    items = [
+        (
+            "① NAT 모듈 분리",
+            PURPLE,
+            [
+                "network에 NAT까지 두면 security와 순환 의존",
+                "network→nat-sg, security→vpc-id",
+                "network→security→nat 로 분리 후 테스트 완료",
+            ],
+        ),
+        (
+            "② IAM 키 노출 대응",
+            RED,
+            [
+                "GitHub .env에 iac-admin 액세스 키 노출",
+                "AWSCompromisedKeyQuarantineV3 자동 격리",
+                "새 키 교체 · 노출 키 비활성화·삭제",
+            ],
+        ),
+        (
+            "③ DynamoDB — State Lock",
+            TEAL,
+            [
+                "tfstate를 S3에 두면 동시 apply 시 덮어쓰기",
+                "bootstrap: S3(state) + DynamoDB(lock)",
+                "RDS=앱 데이터 / DynamoDB=팀 작업 자물쇠",
+            ],
+        ),
+    ]
+    for i, (title, color, bullets) in enumerate(items):
+        x = Inches(0.35) + i * Inches(4.25)
+        card = rect(s, x, Inches(1.1), Inches(4.05), Inches(5.65), LIGHT, color)
+        tf = card.text_frame
+        tf.vertical_anchor = MSO_ANCHOR.TOP
+        set_text(tf, title, 15, True, color)
+        for b in bullets:
+            add_para(tf, "• " + b, 11, False, NAVY, 6)
+    footer(s, 18)
+
+
 def closing(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     bg = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
@@ -463,6 +508,7 @@ def closing(prs):
     add_para(tf, "3-Tier 수동 서버 → AWS 모듈형 인프라 + 자동 배포", 22, True, WHITE, 14)
     add_para(tf, "서이(망) · 유민(트래픽) · 윤주(데이터) · 현우(자동화·HTTPS·WAF)", 16, False, RGBColor(191, 219, 254), 16)
     add_para(tf, "https://aniverse.my", 16, False, RGBColor(125, 211, 252), 14)
+    footer(s, 19)
 
 
 def build():
@@ -478,6 +524,7 @@ def build():
     actions_slides(prs)
     ops_slides(prs)
     https_waf_slides(prs)
+    troubleshooting_slide(prs)
     closing(prs)
     out = OUT / "Aniverse_발표_강사용.pptx"
     prs.save(out)
