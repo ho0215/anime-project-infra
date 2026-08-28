@@ -28,9 +28,9 @@ HTML: `VIEW_강사발표.html`
 - 슬라이드 15 보안: SG + **DB subnet NACL** + Secrets + HTTPS/WAF
 - 7번: **HTTPS=자물쇠(암호화)**, **WAF=문지기(공격·과도한 요청 차단)**
 - 슬라이드 17: 모듈명/규칙명 대신 “무엇을 했는지”만 말하기
-- **슬라이드 18 트러블슈팅**
-  - ① NAT: network+security **순환 의존** → **nat 모듈 분리** (책임 분리 유지)
-  - ② 키 노출: `.env`에 IAM 키 → AWS **자동 격리** → 새 키 교체·노출 키 삭제  
+- **슬라이드 18 트러블슈팅** — 각 항목 **상황→문제→선택→역할→결과** 순서로 말하기
+  - ① NAT: network+NAT 통합 → security **순환 의존** → **3모듈 분리**
+  - ② 키 노출: `.env` 노출 → AWS **자동 격리** → 키 교체·삭제  
     → **멘트만:** 장기 액세스 키 대신 **GitHub OIDC 연동은 진행 중** (완료 아님)
-  - ③ DynamoDB: **앱 DB 아님** — S3 tfstate **동시 apply** 막는 **State Lock**  
-    → “팀 공용 설계도에 **자물쇠** 하나 달았다” (스토리 A)
+  - ③ DynamoDB: 팀 **S3 tfstate 공유** → 동시 apply 위험 → **State Lock**  
+    → “앱 DB가 아니라 **Terraform 자물쇠**” (스토리 A)

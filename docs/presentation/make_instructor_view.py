@@ -21,8 +21,11 @@ h1{font-size:1.7rem;margin:0 0 6px} .sub{color:#64748b;margin-bottom:16px}
 section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin-bottom:14px}
 h2{margin:0 0 10px;font-size:1.15rem;border-left:4px solid #2563eb;padding-left:10px}
 img{max-width:100%;border:1px solid #e2e8f0;border-radius:10px;margin:8px 0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .card{border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc}
+.card dt{font-weight:700;color:#2563eb;margin-top:6px}
+.card dd{margin:2px 0 0;padding:0;color:#334155}
+.card .sub{font-size:.85rem;color:#64748b;margin:4px 0 8px}
 ul{margin:6px 0 0;padding-left:18px}
 </style></head><body><div class="wrap">
 <h1>온프레미스 3-Tier → AWS</h1>
@@ -77,20 +80,27 @@ ul{margin:6px 0 0;padding-left:18px}
 </section>
 
 <section><h2>8. 트러블슈팅</h2>
+<p class="sub">상황 → 문제 → 선택 → 역할 → 결과</p>
 <div class="grid">
-<div class="card"><b>① NAT 모듈 분리</b><ul>
-<li>network+NAT ↔ security 순환 의존</li>
-<li>network→security→nat 분리</li>
-<li>통합 테스트 완료</li>
-</ul></div>
-<div class="card"><b>② IAM 키 노출</b><ul>
-<li>GitHub .env 키 노출 → AWS 자동 격리</li>
-<li>새 키 교체 · 노출 키 삭제</li>
-</ul></div>
-<div class="card"><b>③ DynamoDB State Lock</b><ul>
-<li>S3 tfstate 동시 apply 방지</li>
-<li>RDS=앱 데이터 / DynamoDB=자물쇠</li>
-</ul></div>
+<div class="card"><b>① NAT 모듈 분리</b>
+<dl><dt>상황</dt><dd>network 모듈에 NAT까지 함께 설정</dd>
+<dt>문제</dt><dd>security와 순환 의존 → Terraform 구성 불가</dd>
+<dt>선택</dt><dd>network → security → nat 3모듈 분리</dd>
+<dt>역할</dt><dd>network=망 · security=SG · nat=Instance</dd>
+<dt>결과</dt><dd>순환 해소, 통합 테스트 완료</dd></dl></div>
+<div class="card"><b>② IAM 키 노출 대응</b>
+<dl><dt>상황</dt><dd>GitHub .env에 iac-admin 액세스 키 노출</dd>
+<dt>문제</dt><dd>AWSCompromisedKeyQuarantineV3 자동 격리</dd>
+<dt>선택</dt><dd>새 키 생성·교체, 노출 키 비활성화·삭제</dd>
+<dt>역할</dt><dd>IaC용 IAM / 앱용 키 분리 운영</dd>
+<dt>결과</dt><dd>CI/CD·Terraform 배포 복구</dd></dl></div>
+<div class="card"><b>③ Remote State &amp; DynamoDB</b>
+<p class="sub">앱 DB가 아니라, Terraform 자물쇠</p>
+<dl><dt>상황</dt><dd>팀 4명이 같은 tfstate를 S3에 공유</dd>
+<dt>문제</dt><dd>동시 apply → state 덮어쓰기·불일치</dd>
+<dt>선택</dt><dd>bootstrap: S3(state) + DynamoDB(lock)</dd>
+<dt>역할</dt><dd>RDS=앱 데이터 / DynamoDB=State Lock만</dd>
+<dt>결과</dt><dd>충돌 없이 병렬 인프라 작업 가능</dd></dl></div>
 </div>
 </section>
 

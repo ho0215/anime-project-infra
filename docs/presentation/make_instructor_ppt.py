@@ -452,47 +452,69 @@ def https_waf_slides(prs):
     footer(s, 17)
 
 
+def add_labeled_row(tf, label, text, label_color, size=10, space_before=5):
+    p = tf.add_paragraph()
+    p.space_before = Pt(space_before)
+    r1 = p.add_run()
+    r1.text = label + "  "
+    font(r1, size, True, label_color)
+    r2 = p.add_run()
+    r2.text = text
+    font(r2, size, False, NAVY)
+
+
 def troubleshooting_slide(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header(s, "8. 트러블슈팅", "설계 · 보안 · 협업 — 실제로 겪고 해결한 것")
+    header(s, "8. 트러블슈팅", "상황 → 문제 → 선택 → 역할 → 결과")
 
     items = [
         (
             "① NAT 모듈 분리",
+            None,
             PURPLE,
             [
-                "network에 NAT까지 두면 security와 순환 의존",
-                "network→nat-sg, security→vpc-id",
-                "network→security→nat 로 분리 후 테스트 완료",
+                ("상황", "network 모듈에 NAT까지 함께 설정"),
+                ("문제", "security와 순환 의존 → Terraform 구성 불가"),
+                ("선택", "network → security → nat 3모듈 분리"),
+                ("역할", "network=망 · security=SG · nat=Instance"),
+                ("결과", "순환 해소, 통합 테스트 완료"),
             ],
         ),
         (
             "② IAM 키 노출 대응",
+            None,
             RED,
             [
-                "GitHub .env에 iac-admin 액세스 키 노출",
-                "AWSCompromisedKeyQuarantineV3 자동 격리",
-                "새 키 교체 · 노출 키 비활성화·삭제",
+                ("상황", "GitHub .env에 iac-admin 액세스 키 노출"),
+                ("문제", "AWSCompromisedKeyQuarantineV3 자동 격리"),
+                ("선택", "새 키 생성·교체, 노출 키 비활성화·삭제"),
+                ("역할", "IaC용 IAM / 앱용 키 분리 운영"),
+                ("결과", "CI/CD·Terraform 배포 복구"),
             ],
         ),
         (
-            "③ DynamoDB — State Lock",
+            "③ Remote State & DynamoDB",
+            "앱 DB가 아니라, Terraform 자물쇠",
             TEAL,
             [
-                "tfstate를 S3에 두면 동시 apply 시 덮어쓰기",
-                "bootstrap: S3(state) + DynamoDB(lock)",
-                "RDS=앱 데이터 / DynamoDB=팀 작업 자물쇠",
+                ("상황", "팀 4명이 같은 tfstate를 S3에 공유"),
+                ("문제", "동시 apply → state 덮어쓰기·불일치"),
+                ("선택", "bootstrap: S3(state) + DynamoDB(lock)"),
+                ("역할", "RDS=앱 데이터 / DynamoDB=State Lock만"),
+                ("결과", "충돌 없이 병렬 인프라 작업 가능"),
             ],
         ),
     ]
-    for i, (title, color, bullets) in enumerate(items):
+    for i, (title, subtitle, color, rows) in enumerate(items):
         x = Inches(0.35) + i * Inches(4.25)
-        card = rect(s, x, Inches(1.1), Inches(4.05), Inches(5.65), LIGHT, color)
+        card = rect(s, x, Inches(1.05), Inches(4.05), Inches(5.75), LIGHT, color)
         tf = card.text_frame
         tf.vertical_anchor = MSO_ANCHOR.TOP
-        set_text(tf, title, 15, True, color)
-        for b in bullets:
-            add_para(tf, "• " + b, 11, False, NAVY, 6)
+        set_text(tf, title, 14, True, color)
+        if subtitle:
+            add_para(tf, subtitle, 10, False, SLATE, 3)
+        for j, (label, text) in enumerate(rows):
+            add_labeled_row(tf, label, text, color, size=10, space_before=8 if j == 0 else 5)
     footer(s, 18)
 
 
