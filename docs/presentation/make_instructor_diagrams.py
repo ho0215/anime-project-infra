@@ -587,7 +587,7 @@ def main():
     make_07_stack()
     make_08_storage_roles()
     make_09_team_roles()
-    # AWS VPC architecture + layered terraform module map (NAT Instance)
+    # AWS VPC architecture + layered terraform module map
     import subprocess
     import sys
 
