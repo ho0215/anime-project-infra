@@ -82,7 +82,7 @@ python3 make_instructor_view.py       # VIEW_강사발표.html
 | `04_github_actions.png` | CI/CD Pipeline (GitHub + AWS 아이콘) |
 | `05_ops_security.png` | CI/CD·HA·모니터링·보안 |
 | `06_https_waf.png` | Route53 → WAF → ACM/ALB → EC2 |
-| `07_aws_github_stack.png` | AWS·GitHub 한 장 정리 |
+| `07_aws_github_stack.png` | 기술 스택 (AWS·GitHub, Terraform 전에 배치) |
 | `08_storage_roles.png` | S3·EFS·RDS 역할 |
 | `09_team_roles.png` | 팀 역할 + 담당 AWS 서비스 |
 

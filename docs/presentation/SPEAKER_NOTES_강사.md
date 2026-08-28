@@ -8,22 +8,22 @@ HTML: `VIEW_강사발표.html`
 |------|------|----------|
 | 표지·목차·역할 | 1분 | 1–3 |
 | 온프렘 어려움 | 50초 | 4–5 |
-| Terraform + Data | 1분 40초 | 6–10 |
-| Actions | 50초 | 11–12 |
-| CI/CD·HA·보안 | 40초 | 13–14 |
-| HTTPS · WAF | 35초 | 15–16 |
-| AWS·GitHub 한 장 | 25초 | 17 |
+| 기술 스택 | 25초 | 6 |
+| Terraform + Data | 1분 40초 | 7–11 |
+| Actions | 50초 | 12–13 |
+| CI/CD·HA·보안 | 40초 | 14–15 |
+| HTTPS · WAF | 35초 | 16–17 |
 | 마무리 | 20초 | 18 |
 
 구성도 슬라이드는 AWS Architecture Icons + GitHub 공식 마크를 사용합니다.
 
 ## 말할 때 포인트 (PPT에는 안 적음)
 - 구조 그림은 **손가락으로 흐름을 따라가며** 설명
-- 슬라이드 8: Remote State 선구축 → State Lock으로 **동시 작업**
-- 슬라이드 8 계층별: Security = ALB/App/NAT/DB/EFS/Redis/endpoints SG
-- 슬라이드 9: 구성 요소 네 칸
-- 슬라이드 10: **RDS=글/회원 데이터, EFS=공유 파일, S3=이미지·배포 객체** 한 문장씩
-- 슬라이드 14 보안: SG + **DB subnet NACL** + Secrets + HTTPS/WAF
-- 6번: **HTTPS=자물쇠(암호화)**, **WAF=문지기(공격·과도한 요청 차단)**
-- 슬라이드 16: 모듈명/규칙명 대신 “무엇을 했는지”만 말하기
-- 슬라이드 17: **왼쪽 AWS / 오른쪽 GitHub**만 가리키며 한 바퀴
+- 슬라이드 6 (기술 스택): **왼쪽 AWS / 오른쪽 GitHub**만 가리키며 “이제 이 도구들로 옮긴다”고 한 바퀴
+- 슬라이드 9: Remote State 선구축 → State Lock으로 **동시 작업**
+- 슬라이드 9 계층별: Security = ALB/App/NAT/DB/EFS/Redis/endpoints SG
+- 슬라이드 10: 구성 요소(저장) — RDS / EFS / S3
+- 슬라이드 11: **RDS=글/회원 데이터, EFS=공유 파일, S3=이미지·배포 객체** 한 문장씩
+- 슬라이드 15 보안: SG + **DB subnet NACL** + Secrets + HTTPS/WAF
+- 7번(HTTPS·WAF): **HTTPS=자물쇠(암호화)**, **WAF=문지기(공격·과도한 요청 차단)**
+- 슬라이드 17: 모듈명/규칙명 대신 “무엇을 했는지”만 말하기

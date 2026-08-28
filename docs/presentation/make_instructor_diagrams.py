@@ -327,8 +327,8 @@ def make_06_https_waf():
 def make_07_stack():
     img = Image.new("RGBA", (W, H), BG + (255,))
     d = ImageDraw.Draw(img)
-    d.text((48, 24), "사용한 AWS · GitHub 한 장 정리", font=fnt(32, True), fill=NAVY)
-    d.text((48, 68), "왼쪽 AWS(인프라) · 오른쪽 GitHub(자동화) — 공식 아이콘으로 역할만 빠르게 보기", font=fnt(16), fill=SLATE)
+    d.text((48, 24), "기술 스택 — AWS · GitHub", font=fnt(32, True), fill=NAVY)
+    d.text((48, 68), "왼쪽 AWS(인프라) · 오른쪽 GitHub(자동화) — Terraform 전에 쓸 도구를 먼저 보기", font=fnt(16), fill=SLATE)
 
     # Left AWS panel header
     soft_card(img, (30, 110, 780, 870), fill=SOFT_BLUE, shadow=True)

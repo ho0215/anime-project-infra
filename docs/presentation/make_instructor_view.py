@@ -33,11 +33,11 @@ ul{margin:6px 0 0;padding-left:18px}
 <ol>
 <li>AWS 이전하면서 맡은 역할</li>
 <li>온프레미스 운영에서 어려웠던 점</li>
+<li>기술 스택 (AWS · GitHub)</li>
 <li>Terraform으로 구성한 인프라 (데이터·스토리지 포함)</li>
 <li>GitHub Actions 자동화</li>
 <li>CI/CD · 고가용성 · 모니터링 · 보안</li>
 <li>HTTPS · WAF</li>
-<li>사용한 AWS · GitHub 한 장 정리</li>
 </ol>
 </section>
 
@@ -49,29 +49,30 @@ ul{margin:6px 0 0;padding-left:18px}
 <img src="images/instructor/01_onprem_3tier.png" alt="onprem"/>
 </section>
 
-<section><h2>3. Terraform 구성</h2>
+<section><h2>3. 기술 스택 (AWS · GitHub)</h2>
+<p style="color:#64748b;margin:0 0 10px">Terraform 소개 전에 쓸 도구 지도를 먼저 보여줍니다.</p>
+<img src="images/instructor/07_aws_github_stack.png" alt="tech-stack"/>
+</section>
+
+<section><h2>4. Terraform 구성</h2>
 <img src="images/instructor/02_aws_overview.png" alt="aws"/>
 <img src="images/instructor/03_terraform_modules.png" alt="modules"/>
 </section>
 
-<section><h2>3+. S3 · EFS · RDS 저장 역할</h2>
+<section><h2>4+. S3 · EFS · RDS 저장 역할</h2>
 <img src="images/instructor/08_storage_roles.png" alt="storage"/>
 </section>
 
-<section><h2>4. GitHub Actions / CI/CD Pipeline</h2>
+<section><h2>5. GitHub Actions / CI/CD Pipeline</h2>
 <img src="images/instructor/04_github_actions.png" alt="cicd"/>
 </section>
 
-<section><h2>5. CI/CD · HA · 모니터링 · 보안</h2>
+<section><h2>6. CI/CD · HA · 모니터링 · 보안</h2>
 <img src="images/instructor/05_ops_security.png" alt="ops"/>
 </section>
 
-<section><h2>6. HTTPS · WAF</h2>
+<section><h2>7. HTTPS · WAF</h2>
 <img src="images/instructor/06_https_waf.png" alt="https-waf"/>
-</section>
-
-<section><h2>7. 사용한 AWS · GitHub</h2>
-<img src="images/instructor/07_aws_github_stack.png" alt="aws-github-stack"/>
 </section>
 
 </div></body></html>
