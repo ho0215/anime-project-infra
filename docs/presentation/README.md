@@ -69,9 +69,10 @@ python3 generate_ppt.py
 
 ```bash
 cd docs/presentation
-python3 make_instructor_diagrams.py   # images/instructor/*.png
-python3 make_instructor_ppt.py        # ppt/Aniverse_발표_강사용.pptx
-python3 make_instructor_view.py       # VIEW_강사발표.html
+python3 make_instructor_diagrams.py        # 01, 05~09 (AWS/GitHub 아이콘)
+python3 make_terraform_modules_diagram.py  # 03 계층형 모듈 맵 (NAT Instance)
+python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
+python3 make_instructor_view.py            # VIEW_강사발표.html
 ```
 
 | 이미지 | 내용 |
