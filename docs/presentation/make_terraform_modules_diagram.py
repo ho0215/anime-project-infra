@@ -14,6 +14,7 @@ MUTED = (100, 116, 139)
 # nat 모듈 카드 영역 (1536×1024 원본)
 NAT_CARD_X = (720, 955)
 NAT_TITLE_Y = (318, 345)  # "nat" 제목 — 패치에서 제외
+NAT_TEXT_X_OFFSET = 14  # 카드 중앙 대비 오른쪽 보정
 
 _FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -67,7 +68,7 @@ def patch_nat_gateway_to_instance(img: Image.Image) -> Image.Image:
     text = "NAT Instance"
     fn = font(13)
     bb = d.textbbox((0, 0), text, font=fn)
-    cx = (x0 + x1) / 2
+    cx = (NAT_CARD_X[0] + NAT_CARD_X[1]) / 2 + NAT_TEXT_X_OFFSET
     cy = (y0 + y1) / 2
     tx = cx - (bb[0] + bb[2]) / 2
     ty = cy - (bb[1] + bb[3]) / 2
