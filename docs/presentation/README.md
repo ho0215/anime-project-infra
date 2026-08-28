@@ -65,12 +65,14 @@ python3 generate_ppt.py
 
 ### 강사용 다이어그램 다시 만들기
 
-구성도는 **AWS Architecture Icons**(PlantUML 배포본)과 **GitHub / Actions / Terraform** 공식 마크를 사용합니다.
+구성도는 **AWS Architecture Icons**(PlantUML 배포본)과 **GitHub / Actions / Terraform** 공식 마크를 사용합니다.  
+`02`·`03`은 `images/sources/` 원본을 기반으로 생성합니다 (`03`은 NAT Instance로 패치).
 
 ```bash
 cd docs/presentation
-python3 make_instructor_diagrams.py        # 01, 05~09 (AWS/GitHub 아이콘)
+python3 make_aws_overview_diagram.py       # 02 VPC 아키텍처 (원본 기반)
 python3 make_terraform_modules_diagram.py  # 03 계층형 모듈 맵 (NAT Instance)
+python3 make_instructor_diagrams.py        # 01, 02, 03, 05~09 일괄
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
 ```
@@ -78,8 +80,8 @@ python3 make_instructor_view.py            # VIEW_강사발표.html
 | 이미지 | 내용 |
 |--------|------|
 | `01_onprem_3tier.png` | 온프렘 3-Tier (Nginx/Django/RDS 아이콘) |
-| `02_aws_overview.png` | AWS 아키텍처 개요 |
-| `03_terraform_modules.png` | Terraform 모듈 맵 |
+| `02_aws_overview.png` | AWS VPC 아키텍처 (Aniverse AWS Architecture — VPC View) |
+| `03_terraform_modules.png` | Terraform 모듈 계층 맵 (NAT Instance) |
 | `04_github_actions.png` | CI/CD Pipeline (GitHub + AWS 아이콘) |
 | `05_ops_security.png` | CI/CD·HA·모니터링·보안 |
 | `06_https_waf.png` | Route53 → WAF → ACM/ALB → EC2 |

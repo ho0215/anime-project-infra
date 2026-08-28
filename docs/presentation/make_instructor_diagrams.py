@@ -587,11 +587,12 @@ def main():
     make_07_stack()
     make_08_storage_roles()
     make_09_team_roles()
-    # Layered terraform module map (NAT Instance) — separate script
+    # AWS VPC architecture + layered terraform module map (NAT Instance)
     import subprocess
     import sys
 
-    subprocess.run([sys.executable, str(BASE / "make_terraform_modules_diagram.py")], check=True)
+    for script in ("make_aws_overview_diagram.py", "make_terraform_modules_diagram.py"):
+        subprocess.run([sys.executable, str(BASE / script)], check=True)
     print("All instructor diagrams regenerated with AWS/GitHub icons.")
 
 
