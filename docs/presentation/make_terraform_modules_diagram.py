@@ -56,23 +56,17 @@ def find_nat_gateway_bbox(img: Image.Image) -> tuple[int, int, int, int]:
 
 def _card_background(img: Image.Image) -> tuple[int, int, int]:
     cx = (NAT_CARD_X[0] + NAT_CARD_X[1]) // 2
-    return img.getpixel((cx, NAT_TITLE_Y[1] + 22))
-
-
-def _erase_subtitle_pixels(img: Image.Image, bbox: tuple[int, int, int, int]) -> None:
-    x0, y0, x1, y1 = bbox
-    bg = _card_background(img)
-    for y in range(y0, y1 + 1):
-        for x in range(x0, x1 + 1):
-            if _is_subtitle_pixel(img.getpixel((x, y))):
-                img.putpixel((x, y), bg)
+    samples = [img.getpixel((cx, y)) for y in range(NAT_TITLE_Y[1] + 18, NAT_TITLE_Y[1] + 36, 2)]
+    return tuple(sum(channel[i] for channel in samples) // len(samples) for i in range(3))
 
 
 def patch_nat_gateway_to_instance(img: Image.Image) -> Image.Image:
     out = img.copy()
+    orig = img.copy()
     d = ImageDraw.Draw(out)
     patch = find_nat_gateway_bbox(out)
     x0, y0, x1, y1 = patch
+    label_bg = _card_background(out)
 
     text = "NAT Instance"
     fn = font(13)
@@ -83,10 +77,15 @@ def patch_nat_gateway_to_instance(img: Image.Image) -> Image.Image:
     tx = cx - (bb[0] + bb[2]) / 2
     ty = cy - (bb[1] + bb[3]) / 2
 
-    _erase_subtitle_pixels(out, patch)
+    # 기존 NAT Gateway 자막 제거 후, 텍스트가 없던 좌우는 원본 카드 배경 복원
+    d.rectangle(patch, fill=label_bg)
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            r, g, b = orig.getpixel((x, y))
+            if (r + g + b) >= 680 or max(r, g, b) - min(r, g, b) >= 80:
+                out.putpixel((x, y), orig.getpixel((x, y)))
 
-    pad_x, pad_y = 3, 2
-    label_bg = _card_background(out)
+    pad_x, pad_y = 2, 1
     d.rectangle(
         (int(tx - pad_x), int(ty - pad_y), int(tx + tw + pad_x), int(ty + th + pad_y)),
         fill=label_bg,
