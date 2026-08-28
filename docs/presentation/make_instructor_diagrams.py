@@ -201,7 +201,7 @@ def make_05_ops():
                 ("alb", "ALB"),
                 ("asg", "Auto Scaling"),
                 ("ec2", "EC2 교체"),
-                ("rds", "RDS Private"),
+                ("efs", "EFS 공유"),
             ],
             "트래픽 분산 · 인스턴스 자동 교체",
         ),
