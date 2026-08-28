@@ -15,6 +15,8 @@ HTML: `VIEW_강사발표.html`
 | AWS·GitHub 한 장 | 25초 | 17 |
 | 마무리 | 20초 | 18 |
 
+구성도 슬라이드는 AWS Architecture Icons + GitHub 공식 마크를 사용합니다.
+
 ## 말할 때 포인트 (PPT에는 안 적음)
 - 구조 그림은 **손가락으로 흐름을 따라가며** 설명
 - 슬라이드 8: Remote State 선구축 → State Lock으로 **동시 작업**
