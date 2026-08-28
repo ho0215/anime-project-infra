@@ -29,6 +29,7 @@ ul{margin:6px 0 0;padding-left:18px}
 <li>GitHub Actions 자동화</li>
 <li>CI/CD · 고가용성 · 모니터링 · 보안</li>
 <li>HTTPS · WAF</li>
+<li>트러블슈팅</li>
 </ol>
 </section>
 
@@ -64,6 +65,24 @@ ul{margin:6px 0 0;padding-left:18px}
 
 <section><h2>7. HTTPS · WAF</h2>
 <img src="images/instructor/06_https_waf.png" alt="https-waf"/>
+</section>
+
+<section><h2>8. 트러블슈팅</h2>
+<div class="grid">
+<div class="card"><b>① NAT 모듈 분리</b><ul>
+<li>network+NAT ↔ security 순환 의존</li>
+<li>network→security→nat 분리</li>
+<li>통합 테스트 완료</li>
+</ul></div>
+<div class="card"><b>② IAM 키 노출</b><ul>
+<li>GitHub .env 키 노출 → AWS 자동 격리</li>
+<li>새 키 교체 · 노출 키 삭제</li>
+</ul></div>
+<div class="card"><b>③ DynamoDB State Lock</b><ul>
+<li>S3 tfstate 동시 apply 방지</li>
+<li>RDS=앱 데이터 / DynamoDB=자물쇠</li>
+</ul></div>
+</div>
 </section>
 
 </div></body></html>
