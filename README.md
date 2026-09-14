@@ -53,11 +53,12 @@ OIDC는 각 레포에서 Variable `AWS_USE_OIDC=true` 일 때만 사용합니다
 | Name | 설명 |
 |------|------|
 | `AWS_ROLE_ARN` | bootstrap `github_actions_role_arn` (infra OIDC) |
-| `AWS_USE_OIDC` | `true` 일 때만 OIDC. **비우면 Access Key** (infra는 당분간 비움 권장) |
+| `AWS_USE_OIDC` | `true` 이면 OIDC. 먼저 [docs/infra-oidc.md](./docs/infra-oidc.md) 스모크 권장 |
 | `ALERT_EMAIL` | CloudWatch SNS 구독 이메일 |
 | `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` |
 
-앱 레포(`anime-project`) Variables: `AWS_ROLE_ARN` = `github_actions_app_ecr_role_arn`, `AWS_USE_OIDC=true`
+앱 레포(`anime-project`) Variables: `AWS_ROLE_ARN` = `github_actions_app_ecr_role_arn`, `AWS_USE_OIDC=true`  
+(앱·infra 역할 ARN이 **다름** — 섞지 말 것)
 
 
 ## RDS 스냅샷 복원
