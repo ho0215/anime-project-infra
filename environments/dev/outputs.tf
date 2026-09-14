@@ -75,3 +75,13 @@ output "ssm_connect_hint" {
   description = "Local command to open an SSM shell on an ASG instance"
   value       = "ASG_NAME=${module.compute.asg_name} ./scripts/ssm-connect.sh"
 }
+
+output "ecr_repository_url" {
+  description = "docker tag/push 대상 (예: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/aniverse)"
+  value       = module.ecr.repository_url
+}
+
+output "ecr_repository_name" {
+  value = module.ecr.repository_name
+}
+
