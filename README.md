@@ -12,11 +12,14 @@ modules/
   acm, alb, waf, redis, secrets, compute, cicd, monitoring
 scripts/
   ssm-connect.sh / wait-for-ssm.sh
+  eks-start.sh / eks-stop.sh / eks-status.sh   # EKS 노드 켰다/끄기
 .github/workflows/
   terraform-ci.yml   # PR: fmt(필수) / validate / plan
   terraform-cd.yml   # main push + workflow_dispatch: apply|destroy
+  eks-start-stop.yml # EKS 노드 start/stop/status (workflow_dispatch)
 ```
 
+EKS 비용 절약(노드 0 / 완전 삭제): [docs/eks-start-stop.md](./docs/eks-start-stop.md)
 ## 사전 준비 (1회)
 
 ```bash
