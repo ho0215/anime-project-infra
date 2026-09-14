@@ -24,8 +24,12 @@ cd bootstrap
 terraform init && terraform apply
 ```
 
-Outputs의 `github_actions_role_arn` 을 GitHub Actions **Variable** `AWS_ROLE_ARN` 에 등록하면
-워크플로가 OIDC로 인증합니다. (미설정 시 Access Key fallback)
+Outputs:
+
+- `github_actions_role_arn` → **infra** 레포 Variable `AWS_ROLE_ARN` (Terraform)
+- `github_actions_app_ecr_role_arn` → **anime-project** Variable `AWS_ROLE_ARN` (ECR push)
+
+OIDC는 각 레포에서 Variable `AWS_USE_OIDC=true` 일 때만 사용합니다. (미설정 시 Access Key fallback)
 
 ## GitHub Secrets / Variables
 
@@ -48,10 +52,14 @@ Outputs의 `github_actions_role_arn` 을 GitHub Actions **Variable** `AWS_ROLE_A
 
 | Name | 설명 |
 |------|------|
-| `AWS_ROLE_ARN` | bootstrap output `github_actions_role_arn` (OIDC용) |
-| `AWS_USE_OIDC` | `true` 일 때만 OIDC 사용. **비우면 Access Key로 apply** (권장: 일단 비움) |
+| `AWS_ROLE_ARN` | bootstrap `github_actions_role_arn` (infra OIDC) |
+| `AWS_USE_OIDC` | `true` 이면 OIDC. 먼저 [docs/infra-oidc.md](./docs/infra-oidc.md) 스모크 권장 |
 | `ALERT_EMAIL` | CloudWatch SNS 구독 이메일 |
 | `TF_VAR_RESTORE_FROM_LATEST_SNAPSHOT` | `true`/`false` |
+
+앱 레포(`anime-project`) Variables: `AWS_ROLE_ARN` = `github_actions_app_ecr_role_arn`, `AWS_USE_OIDC=true`  
+(앱·infra 역할 ARN이 **다름** — 섞지 말 것)
+
 
 ## RDS 스냅샷 복원
 

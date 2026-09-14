@@ -1,14 +1,19 @@
 # GitHub Actions → AWS OIDC (장기 Access Key 대체)
-# bootstrap apply 후 GitHub Actions Variable AWS_ROLE_ARN 에 role ARN 등록
+# bootstrap apply 후:
+#   - infra 레포 Variable AWS_ROLE_ARN = github_actions_role_arn
+#   - infra 레포 Variable AWS_USE_OIDC = true
 #
-# AWS IAM 규칙: GitHub OIDC trust 에는 반드시 범위가 있는
+# AWS IAM 규칙: trust 에 반드시 범위가 있는
 #   token.actions.githubusercontent.com:sub  (또는 job_workflow_ref)
 # StringEquals/StringLike 조건이 있어야 한다. repository 클레임만으로는 거부됨.
 #
-# CD 는 environment: production 을 쓰므로 sub 예시:
-#   repo:ho0215/anime-project-infra:environment:production
-# 2026-07 이후 immutable sub 예시:
-#   repo:ho0215@123/anime-project-infra@456:environment:production
+# GitHub environment 를 job 에 붙이면 sub 가
+#   repo:ORG/REPO:environment:NAME
+# 으로 바뀌어 trust 와 어긋나기 쉽다 → CD 는 environment 미사용.
+#
+# sub 예시:
+#   repo:ho0215/anime-project-infra:ref:refs/heads/main
+#   repo:ho0215@123/anime-project-infra@456:ref:refs/heads/main
 
 data "aws_caller_identity" "current" {}
 
@@ -61,9 +66,7 @@ data "aws_iam_policy_document" "github_assume" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        # 기존 형식
         "repo:${var.github_org}/${var.github_repo}:*",
-        # immutable ID 형식 (repo:org@id/name@id:...)
         "repo:${var.github_org}@*/${var.github_repo}@*:*",
       ]
     }
