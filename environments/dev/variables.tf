@@ -148,3 +148,16 @@ variable "enable_redis" {
   type    = bool
   default = true
 }
+
+variable "ecr_repository_name" {
+  description = "ECR 리포지토리 이름 (앱 이미지)"
+  type        = string
+  default     = "aniverse"
+}
+
+variable "ecr_keep_image_count" {
+  description = "ECR 라이프사이클으로 유지할 최대 이미지 수"
+  type        = number
+  default     = 20
+}
+

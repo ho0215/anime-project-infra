@@ -195,6 +195,17 @@ module "cicd" {
 }
 
 # ==========================================
+# ECR (컨테이너 이미지 — EKS / 랩 pull)
+# ==========================================
+module "ecr" {
+  source = "../../modules/ecr"
+
+  project_name     = var.project_name
+  repository_name  = var.ecr_repository_name
+  keep_image_count = var.ecr_keep_image_count
+}
+
+# ==========================================
 # Monitoring (옵션: alert_email 이 있을 때만)
 # ==========================================
 module "monitoring" {
