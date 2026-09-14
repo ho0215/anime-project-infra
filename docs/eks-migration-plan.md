@@ -284,7 +284,7 @@ Aniverse EKS 전환
 
 | 리스크 | 대응 |
 |--------|------|
-| EKS 컨트롤 플레인 상시 과금 | 실습 후 클러스터 삭제, Budgets 알람 |
+| EKS 컨트롤 플레인 상시 과금 | 실습 후 노드 0(`scripts/eks-stop.sh`) 또는 클러스터 삭제 — [eks-start-stop.md](./eks-start-stop.md), Budgets 알람 |
 | EBS · PV 비용 | 볼륨 크기 최소화, 미사용 PVC 정리 |
 | RDS와 Pod DB 혼선 | To-Be는 Pod로 통일하고 문서에 명시 |
 | 범위 확산 (메시, Karpenter 등) | Phase D 이전에는 최소 구성만 |

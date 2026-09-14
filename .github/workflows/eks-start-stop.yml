@@ -1,0 +1,83 @@
+# EKS 워커 노드 start / stop (컨트롤 플레인은 유지)
+name: EKS start/stop
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: start | stop | status
+        required: true
+        type: choice
+        options:
+          - status
+          - stop
+          - start
+        default: status
+      desired_size:
+        description: start 시 desired 노드 수
+        required: false
+        type: string
+        default: "2"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve auth
+        id: auth
+        run: |
+          if [ -n "${{ vars.AWS_ROLE_ARN }}" ] && [ "${{ vars.AWS_USE_OIDC }}" = "true" ]; then
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=keys" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS (OIDC)
+        if: steps.auth.outputs.mode == 'oidc'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-eks-start-stop
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS (access keys)
+        if: steps.auth.outputs.mode == 'keys'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check cluster variables
+        run: |
+          if [ -z "${{ vars.EKS_CLUSTER_NAME }}" ] || [ -z "${{ vars.EKS_NODEGROUP_NAME }}" ]; then
+            echo "::error::Set Variables EKS_CLUSTER_NAME and EKS_NODEGROUP_NAME"
+            exit 1
+          fi
+          echo "cluster=${{ vars.EKS_CLUSTER_NAME }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "nodegroups=${{ vars.EKS_NODEGROUP_NAME }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "action=${{ inputs.action }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run eks script
+        env:
+          EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+          EKS_NODEGROUP_NAME: ${{ vars.EKS_NODEGROUP_NAME }}
+          EKS_DESIRED_SIZE: ${{ inputs.desired_size }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          chmod +x scripts/eks-stop.sh scripts/eks-start.sh scripts/eks-status.sh
+          case "${{ inputs.action }}" in
+            stop)   ./scripts/eks-stop.sh ;;
+            start)  ./scripts/eks-start.sh ;;
+            status) ./scripts/eks-status.sh ;;
+            *) echo "bad action"; exit 1 ;;
+          esac
