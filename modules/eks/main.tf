@@ -205,6 +205,13 @@ resource "aws_eks_addon" "vpc_cni" {
   cluster_name                = aws_eks_cluster.this.name
   addon_name                  = "vpc-cni"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  # anime-project deploy/k8s/base/networkpolicy.yaml(aniverse-db-allow-web-only)가
+  # EKS에서도 그대로 강제될 거라 가정하고 있음. VPC CNI는 기본값으로는 NetworkPolicy를
+  # 무시(미강제)하므로 명시적으로 켜야 그 가정이 맞음.
+  configuration_values = jsonencode({
+    enableNetworkPolicy = "true"
+  })
 }
 
 resource "aws_eks_addon" "kube_proxy" {
@@ -219,6 +226,16 @@ resource "aws_eks_addon" "coredns" {
   resolve_conflicts_on_update = "OVERWRITE"
 
   # CoreDNS 파드가 뜰 노드가 있어야 함
+  depends_on = [aws_eks_node_group.default]
+}
+
+# anime-project deploy/helm/aniverse의 HPA(hpa.yaml)가 CPU 사용률 기준으로 스케일함.
+# metrics-server 없인 HPA가 "unknown" 상태로 멈춰서 min/maxReplicas가 있어도 동작 안 함.
+resource "aws_eks_addon" "metrics_server" {
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = "metrics-server"
+  resolve_conflicts_on_update = "OVERWRITE"
+
   depends_on = [aws_eks_node_group.default]
 }
 
