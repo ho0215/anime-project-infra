@@ -7,3 +7,6 @@
 
 # RDS snapshot restore: Terraform CD patches locals in
 # modules/database/main.tf when restore secrets/inputs are set.
+
+# EKS: 로컬 kubectl 접근이 필요하면 본인 IAM ARN을 추가
+# eks_cluster_admin_arns = ["arn:aws:iam::<account-id>:user/<your-iam-user>"]

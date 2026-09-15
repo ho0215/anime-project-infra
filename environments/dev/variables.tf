@@ -161,3 +161,55 @@ variable "ecr_keep_image_count" {
   default     = 20
 }
 
+# ==========================================
+# EKS
+# ==========================================
+variable "eks_cluster_version" {
+  description = "비워두면(null) AWS 기본(최신 지원) 버전 사용"
+  type        = string
+  default     = null
+}
+
+variable "eks_cluster_admin_arns" {
+  description = "로컬 kubectl용으로 cluster-admin 부여할 추가 IAM ARN (github actions 역할은 생성자 권한으로 자동 포함)"
+  type        = list(string)
+  default     = []
+}
+
+# scripts/eks-ctl.sh, .github/workflows/eks-start-stop.yml 기본값과 일치
+variable "eks_node_desired_size" {
+  type    = number
+  default = 2
+}
+
+variable "eks_node_min_size" {
+  type    = number
+  default = 0
+}
+
+variable "eks_node_max_size" {
+  type    = number
+  default = 4
+}
+
+variable "eks_node_instance_types" {
+  type    = list(string)
+  default = ["t3.medium"]
+}
+
+variable "eks_node_capacity_type" {
+  description = "ON_DEMAND | SPOT"
+  type        = string
+  default     = "ON_DEMAND"
+}
+
+variable "eks_enable_aws_lb_controller" {
+  type    = bool
+  default = true
+}
+
+variable "eks_enable_cluster_autoscaler" {
+  type    = bool
+  default = true
+}
+

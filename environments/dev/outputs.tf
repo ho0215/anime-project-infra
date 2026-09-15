@@ -85,3 +85,16 @@ output "ecr_repository_name" {
   value = module.ecr.repository_name
 }
 
+output "eks_cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "eks_kubeconfig_hint" {
+  description = "로컬에서 kubectl 붙일 때 실행할 명령"
+  value       = module.eks.kubeconfig_hint
+}
+
+output "eks_node_role_arn" {
+  value = module.eks.node_role_arn
+}
+
