@@ -8,12 +8,29 @@ output "alb_url" {
 }
 
 output "app_url" {
-  description = "HTTPS 앱 URL (도메인). ACM 꺼져 있으면 ALB URL"
-  value       = var.enable_acm ? module.acm[0].app_url : module.alb.alb_url
+  description = "앱 URL (도메인). HTTPS는 ACM ISSUED + Ingress 어노테이션 후"
+  value       = "http://${var.domain_name}"
 }
 
 output "certificate_arn" {
-  value = var.enable_acm ? module.acm[0].certificate_arn : null
+  description = "dns 모듈이 요청한 ACM (Pending 일 수 있음) 또는 enable_acm 인증서"
+  value = coalesce(
+    try(module.dns.certificate_arn, null),
+    var.enable_acm ? module.acm[0].certificate_arn : null,
+  )
+}
+
+output "route53_zone_id" {
+  value = module.dns.zone_id
+}
+
+output "route53_name_servers" {
+  description = "가비아(등록기관)에 넣을 NS — 이거 위임해야 aniverse.my 가 EKS ALB 로 해석됨"
+  value       = module.dns.name_servers
+}
+
+output "eks_ingress_hostname" {
+  value = var.eks_ingress_hostname
 }
 
 output "waf_web_acl_arn" {

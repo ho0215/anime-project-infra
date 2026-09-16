@@ -15,6 +15,9 @@
 #   "arn:aws:iam::<account-id>:user/<other>",
 # ]
 
-# Route53 호스팅 영역(aniverse.my)이 계정에 있을 때만 true.
-# 존이 없으면 ACM data source 가 plan 전체를 막아 EKS도 안 뜸 → 기본 false.
-# enable_acm = true
+# Route53 호스팅 영역: 없으면 create_route53_zone=true (기본) 로 생성 후
+# terraform output route53_name_servers → 가비아 NS 위임.
+# EKS Ingress ALB DNS 가 바뀌면:
+# eks_ingress_hostname = "k8s-aniverse-....elb.amazonaws.com"
+
+# enable_acm = true   # EC2 ALB HTTPS (인증서 ISSUED 된 뒤)

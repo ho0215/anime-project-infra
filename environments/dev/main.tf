@@ -68,8 +68,25 @@ module "storage" {
 }
 
 # ==========================================
-# ACM (기존 Route 53 호스팅 영역 + DNS 검증)
-# enable_acm=false 이면 스킵 — 존 없을 때 EKS/나머지 apply 가 막히지 않게.
+# DNS (Route53 존 복구 + EKS ALB alias + ACM DNS 검증 레코드)
+# 존이 없어 CD/스크립트가 막히던 상태 복구. NS 는 가비아에 위임.
+# ==========================================
+module "dns" {
+  source = "../../modules/dns"
+
+  project_name              = var.project_name
+  aws_region                = var.aws_region
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+  create_zone               = var.create_route53_zone
+  eks_alb_dns_name          = var.eks_ingress_hostname
+  request_acm               = var.request_acm
+}
+
+# ==========================================
+# ACM (기존 Route 53 호스팅 영역 + DNS 검증 + ISSUED 대기)
+# enable_acm=true 는 EC2 ALB HTTPS 용. 존/NS 준비되고 인증서 ISSUED 된 뒤.
+# EKS 전환 중에는 module.dns 가 존·레코드·인증서 요청을 담당 (대기 없음).
 # ==========================================
 module "acm" {
   count  = var.enable_acm ? 1 : 0
