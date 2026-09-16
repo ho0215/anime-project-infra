@@ -59,7 +59,8 @@ S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**�
 # 2) helm upgrade --install aniverse ... -f values-eks.yaml
 # 3) Route53 alias 를 새 ALB 에 재바인딩 (태그로 ALB 자동 조회)
 ./scripts/terraform-rebind-eks-dns.sh
-# 4) DB PVC 도 날아감 → SQL 덤프 복구 (Helm Job / 수동)
+# 4) DB PVC 도 날아감 → Helm dbRestore Job 이 SQL 자동 복구
+#    (anime-project values-eks.yaml dbRestore.enabled, docs/db-restore.md)
 # 5) (CD 실패·수동 시) S3 자산 재업로드
 #    Actions → Sync media → S3  또는
 #    APP_DIR=../anime-project STATIC_BUCKET_NAME=aniverse-static-... \
@@ -81,7 +82,7 @@ curl -sI "https://aniverse-static-679583587966-ap-northeast-2.s3.ap-northeast-2.
 | Route53 존 / ACM | 유지 | 재발급 불필요 |
 | S3 버킷·객체 | 삭제 | apply + **media/static sync** |
 | EKS / ALB | 삭제 | apply + helm + DNS rebind |
-| DB (EBS PVC) | 삭제 | SQL 덤프 복구 |
+| DB (EBS PVC) | 삭제 | Argo/Helm **dbRestore Job** (SQL) |
 | ECR 이미지 | 모듈에 있으면 삭제될 수 있음 | CI 재 push |
 
 검증용: Actions **Verify S3 wipe → restore** (버킷 비우기 시뮬레이션 → sync → HTTP 200).
