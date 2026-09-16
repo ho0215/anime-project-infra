@@ -44,5 +44,5 @@ terraform destroy -auto-approve -input=false "${TARGETS[@]}"
 
 echo
 echo "OK — Route53 zone + ACM preserved."
-echo "다음 기동: terraform apply → (EKS up) helm upgrade → terraform apply -target=module.dns"
-echo "또는 평소 비용절감: ./scripts/eks-stop.sh / eks-start.sh (존·클러스터 유지)"
+echo "다음 기동: terraform apply → helm upgrade -f values-eks.yaml → ./scripts/terraform-rebind-eks-dns.sh"
+echo "또는 평소 비용절감: ./scripts/eks-stop.sh / eks-start.sh"

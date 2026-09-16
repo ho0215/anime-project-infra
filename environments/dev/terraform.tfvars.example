@@ -1,23 +1,12 @@
 # Copy to terraform.tfvars locally (do NOT commit real secrets).
-# In GitHub Actions these come from repository secrets instead.
-
-# db_password          = "change-me"
-# django_secret_key    = "change-me-django-secret"
-# alert_email          = "you@example.com"
-
-# RDS snapshot restore: Terraform CD patches locals in
-# modules/database/main.tf when restore secrets/inputs are set.
+# GitHub Actions 는 보통 secrets 없이 EKS 스택만 apply.
 
 # EKS: 로컬 kubectl 접근이 필요하면 본인 IAM ARN을 추가
-# (기본값에 iac-admin 포함. 추가 시:)
 # eks_cluster_admin_arns = [
 #   "arn:aws:iam::679583587966:user/iac-admin",
 #   "arn:aws:iam::<account-id>:user/<other>",
 # ]
 
-# Route53 호스팅 영역: 없으면 create_route53_zone=true (기본) 로 생성 후
-# terraform output route53_name_servers → 가비아 NS 위임.
-# EKS Ingress ALB DNS 가 바뀌면:
+# Route53: create_route53_zone=true (기본) → output route53_name_servers → 가비아 NS
+# ALB DNS 폴백이 필요할 때만:
 # eks_ingress_hostname = "k8s-aniverse-....elb.amazonaws.com"
-
-# enable_acm = true   # EC2 ALB HTTPS (인증서 ISSUED 된 뒤)

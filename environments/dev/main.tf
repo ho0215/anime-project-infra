@@ -1,3 +1,6 @@
+# EKS-only stack: VPC + NAT + S3 static + Route53/ACM + ECR + EKS
+# (EC2 ASG / CodeDeploy / RDS / Redis / EFS / classic ALB 제거)
+
 # ==========================================
 # Network / NAT / Security
 # ==========================================
@@ -17,10 +20,8 @@ module "security" {
 
   project_name             = var.project_name
   vpc_id                   = module.network.vpc_id
-  vpc_cidr                 = var.vpc_cidr
   private_app_subnet_cidrs = var.private_app_subnet_cidrs
   private_db_subnet_cidrs  = var.private_db_subnet_cidrs
-  admin_cidr_blocks        = var.admin_cidr_blocks
 }
 
 module "nat" {
@@ -32,45 +33,19 @@ module "nat" {
   nat_sg_id        = module.security.nat_sg_id
 }
 
-# SSM Session Manager: private EC2 ↔ AWS (NAT 장애에도 접속 가능)
-module "endpoints" {
-  source = "../../modules/endpoints"
-
-  project_name           = var.project_name
-  vpc_id                 = module.network.vpc_id
-  vpce_sg_id             = module.security.vpce_sg_id
-  private_app_subnet_ids = module.network.private_app_subnet_ids
-}
-
 # ==========================================
-# Database & Storage
+# Storage (S3 static/media only — EFS 제거)
 # ==========================================
-module "database" {
-  source = "../../modules/database"
-
-  project_name                 = var.project_name
-  vpc_id                       = module.network.vpc_id
-  private_db_subnet_ids        = module.network.private_db_subnet_ids
-  db_sg_id                     = module.security.db_sg_id
-  db_password                  = var.db_password
-  db_snapshot_identifier       = var.db_snapshot_identifier
-  restore_from_latest_snapshot = var.restore_from_latest_snapshot
-}
-
 module "storage" {
   source = "../../modules/storage"
 
-  project_name           = var.project_name
-  vpc_id                 = module.network.vpc_id
-  private_app_subnet_ids = module.network.private_app_subnet_ids
-  efs_sg_id              = module.security.efs_sg_id
-  bucket_name            = var.static_bucket_name
+  project_name = var.project_name
+  bucket_name  = var.static_bucket_name
 }
 
 # ==========================================
-# DNS (Route53 존 + EKS ALB alias + ACM DNS 검증)
-# 존·ACM 은 destroy 해도 유지 (prevent_destroy + terraform-destroy-keep-dns.sh).
-# ALB 는 Ingress 태그로 조회 → 재생성 후 rebind/apply 시 alias 자동 갱신.
+# DNS (Route53 zone + EKS ALB alias + ACM)
+# destroy 시 존·ACM 보존: scripts/terraform-destroy-keep-dns.sh
 # ==========================================
 module "dns" {
   source = "../../modules/dns"
@@ -87,139 +62,7 @@ module "dns" {
 }
 
 # ==========================================
-# ACM (기존 Route 53 호스팅 영역 + DNS 검증 + ISSUED 대기)
-# enable_acm=true 는 EC2 ALB HTTPS 용. 존/NS 준비되고 인증서 ISSUED 된 뒤.
-# EKS 전환 중에는 module.dns 가 존·레코드·인증서 요청을 담당 (대기 없음).
-# ==========================================
-module "acm" {
-  count  = var.enable_acm ? 1 : 0
-  source = "../../modules/acm"
-
-  project_name              = var.project_name
-  domain_name               = var.domain_name
-  subject_alternative_names = var.subject_alternative_names
-}
-
-# ==========================================
-# ALB (퍼블릭 로드밸런서 / 타겟 그룹 / HTTPS)
-# ==========================================
-module "alb" {
-  source = "../../modules/alb"
-
-  project_name       = var.project_name
-  vpc_id             = module.network.vpc_id
-  public_subnet_ids  = module.network.public_subnet_ids
-  alb_sg_id          = module.security.alb_sg_id
-  certificate_arn    = var.enable_acm ? module.acm[0].certificate_arn : ""
-  enable_https       = var.enable_acm
-  enable_access_logs = var.enable_alb_access_logs
-}
-
-# apex / www → ALB (ACM 과 ALB 순환 참조 방지를 위해 루트에 둠)
-resource "aws_route53_record" "apex" {
-  count = var.enable_acm ? 1 : 0
-
-  zone_id = module.acm[0].zone_id
-  name    = var.domain_name
-  type    = "A"
-
-  alias {
-    name                   = module.alb.alb_dns_name
-    zone_id                = module.alb.alb_zone_id
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_route53_record" "www" {
-  count = var.enable_acm && contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
-
-  zone_id = module.acm[0].zone_id
-  name    = "www.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = module.alb.alb_dns_name
-    zone_id                = module.alb.alb_zone_id
-    evaluate_target_health = true
-  }
-}
-
-# ==========================================
-# WAF (ALB 연결)
-# ==========================================
-module "waf" {
-  count  = var.enable_waf ? 1 : 0
-  source = "../../modules/waf"
-
-  project_name = var.project_name
-  alb_arn      = module.alb.alb_arn
-  rate_limit   = var.waf_rate_limit
-}
-
-# ==========================================
-# Redis (Django Channels)
-# ==========================================
-module "redis" {
-  count  = var.enable_redis ? 1 : 0
-  source = "../../modules/redis"
-
-  project_name           = var.project_name
-  private_app_subnet_ids = module.network.private_app_subnet_ids
-  redis_sg_id            = module.security.redis_sg_id
-}
-
-# ==========================================
-# Secrets Manager (EC2 가 부팅 시 .env 로 로드)
-# ==========================================
-module "secrets" {
-  source = "../../modules/secrets"
-
-  project_name       = var.project_name
-  django_secret_key  = var.django_secret_key
-  db_password        = var.db_password
-  gemini_api_key     = var.gemini_api_key
-  db_host            = module.database.rds_address
-  db_port            = module.database.rds_port
-  static_bucket_name = module.storage.s3_bucket_name
-  aws_region         = var.aws_region
-  domain_name        = var.domain_name
-  use_https          = var.enable_acm
-  redis_url          = var.enable_redis ? module.redis[0].redis_url : ""
-}
-
-# ==========================================
-# Compute (ASG / Launch Template / IAM)
-# ==========================================
-module "compute" {
-  source = "../../modules/compute"
-
-  project_name           = var.project_name
-  private_app_subnet_ids = module.network.private_app_subnet_ids
-  app_sg_id              = module.security.app_sg_id
-  target_group_arn       = module.alb.target_group_arn
-  efs_dns_name           = module.storage.efs_dns_name
-  static_bucket_arn      = module.storage.s3_bucket_arn
-  app_secret_arn         = module.secrets.secret_arn
-  asg_desired_capacity   = var.asg_desired_capacity
-  asg_min_size           = var.asg_min_size
-  asg_max_size           = var.asg_max_size
-}
-
-# ==========================================
-# CI/CD (CodeDeploy + deploy S3)
-# ==========================================
-module "cicd" {
-  source = "../../modules/cicd"
-
-  project_name          = var.project_name
-  asg_name              = module.compute.asg_name
-  app_role_name         = module.compute.app_role_name
-  codedeploy_app_name   = var.codedeploy_app_name
-  codedeploy_group_name = var.codedeploy_group_name
-}
-
-# ==========================================
-# ECR (컨테이너 이미지 — EKS / 랩 pull)
+# ECR
 # ==========================================
 module "ecr" {
   source = "../../modules/ecr"
@@ -230,8 +73,7 @@ module "ecr" {
 }
 
 # ==========================================
-# EKS (클러스터 / 노드그룹 / IAM(노드·파드) / VPC CNI / EBS CSI+StorageClass /
-#      AWS Load Balancer Controller(Ingress) / Cluster Autoscaler)
+# EKS
 # ==========================================
 module "eks" {
   source = "../../modules/eks"
@@ -254,18 +96,4 @@ module "eks" {
 
   enable_aws_lb_controller  = var.eks_enable_aws_lb_controller
   enable_cluster_autoscaler = var.eks_enable_cluster_autoscaler
-}
-
-# ==========================================
-# Monitoring (옵션: alert_email 이 있을 때만)
-# ==========================================
-module "monitoring" {
-  count  = var.alert_email != "" ? 1 : 0
-  source = "../../modules/monitoring"
-
-  project_name            = var.project_name
-  alert_email             = var.alert_email
-  asg_name                = module.compute.asg_name
-  alb_arn_suffix          = module.alb.alb_arn_suffix
-  target_group_arn_suffix = module.alb.target_group_arn_suffix
 }

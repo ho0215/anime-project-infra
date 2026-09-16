@@ -1,23 +1,11 @@
-output "alb_dns_name" {
-  description = "애플리케이션 접속용 ALB DNS"
-  value       = module.alb.alb_dns_name
-}
-
-output "alb_url" {
-  value = module.alb.alb_url
-}
-
 output "app_url" {
-  description = "앱 URL (도메인). HTTPS는 ACM ISSUED + Ingress 어노테이션 후"
-  value       = "http://${var.domain_name}"
+  description = "앱 URL (HTTPS — Ingress ACM)"
+  value       = "https://${var.domain_name}"
 }
 
 output "certificate_arn" {
-  description = "dns 모듈이 요청한 ACM (Pending 일 수 있음) 또는 enable_acm 인증서"
-  value = coalesce(
-    try(module.dns.certificate_arn, null),
-    var.enable_acm ? module.acm[0].certificate_arn : null,
-  )
+  description = "dns 모듈 ACM (Pending 일 수 있음)"
+  value       = module.dns.certificate_arn
 }
 
 output "route53_zone_id" {
@@ -25,83 +13,26 @@ output "route53_zone_id" {
 }
 
 output "route53_name_servers" {
-  description = "가비아(등록기관)에 넣을 NS — 이거 위임해야 aniverse.my 가 EKS ALB 로 해석됨"
+  description = "가비아에 넣을 NS"
   value       = module.dns.name_servers
 }
 
 output "eks_ingress_hostname" {
-  description = "폴백 변수 값 (참고). 실제 alias 대상은 eks_alb_dns_resolved"
+  description = "폴백 변수 값 (참고)"
   value       = var.eks_ingress_hostname
 }
 
 output "eks_alb_dns_resolved" {
-  description = "Route53 이 실제로 가리키는 ALB DNS (태그 조회 결과)"
+  description = "Route53 이 가리키는 ALB DNS"
   value       = module.dns.eks_alb_dns_name
-}
-
-output "waf_web_acl_arn" {
-  value = var.enable_waf ? module.waf[0].web_acl_arn : null
-}
-
-output "redis_url" {
-  value     = var.enable_redis ? module.redis[0].redis_url : null
-  sensitive = true
-}
-
-output "app_secret_arn" {
-  value = module.secrets.secret_arn
-}
-
-output "rds_endpoint" {
-  value = module.database.rds_endpoint
-}
-
-output "rds_address" {
-  value = module.database.rds_address
 }
 
 output "static_bucket_name" {
   value = module.storage.s3_bucket_name
 }
 
-output "deploy_bucket_name" {
-  description = "GitHub Secret S3_BUCKET_NAME 에 등록할 값"
-  value       = module.cicd.deploy_bucket_name
-}
-
-output "codedeploy_app_name" {
-  value = module.cicd.codedeploy_app_name
-}
-
-output "codedeploy_group_name" {
-  value = module.cicd.codedeploy_group_name
-}
-
-output "asg_name" {
-  value = module.compute.asg_name
-}
-
-output "efs_dns_name" {
-  value = module.storage.efs_dns_name
-}
-
-output "restored_from_snapshot" {
-  value = module.database.restored_from_snapshot
-}
-
-output "ssm_endpoint_ids" {
-  description = "Private SSM VPC endpoint IDs (ssm / ssmmessages / ec2messages)"
-  value       = module.endpoints.ssm_endpoint_ids
-}
-
-output "ssm_connect_hint" {
-  description = "Local command to open an SSM shell on an ASG instance"
-  value       = "ASG_NAME=${module.compute.asg_name} ./scripts/ssm-connect.sh"
-}
-
 output "ecr_repository_url" {
-  description = "docker tag/push 대상 (예: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/aniverse)"
-  value       = module.ecr.repository_url
+  value = module.ecr.repository_url
 }
 
 output "ecr_repository_name" {
@@ -113,11 +44,9 @@ output "eks_cluster_name" {
 }
 
 output "eks_kubeconfig_hint" {
-  description = "로컬에서 kubectl 붙일 때 실행할 명령"
-  value       = module.eks.kubeconfig_hint
+  value = module.eks.kubeconfig_hint
 }
 
 output "eks_node_role_arn" {
   value = module.eks.node_role_arn
 }
-
