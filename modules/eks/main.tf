@@ -515,3 +515,72 @@ resource "helm_release" "cluster_autoscaler" {
 
   depends_on = [aws_eks_node_group.default, aws_eks_addon.vpc_cni]
 }
+
+# ==========================================
+# App web Pod IRSA — S3 media/static put (aniverse-web SA)
+# ==========================================
+locals {
+  enable_app_s3_irsa = var.app_s3_bucket_arn != ""
+}
+
+data "aws_iam_policy_document" "app_s3_assume" {
+  count = local.enable_app_s3_irsa ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:sub"
+      values   = ["system:serviceaccount:${var.app_irsa_namespace}:${var.app_irsa_service_account}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "app_s3" {
+  count              = local.enable_app_s3_irsa ? 1 : 0
+  name               = "${var.project_name}-web-s3-irsa"
+  assume_role_policy = data.aws_iam_policy_document.app_s3_assume[0].json
+}
+
+resource "aws_iam_role_policy" "app_s3" {
+  count = local.enable_app_s3_irsa ? 1 : 0
+  name  = "${var.project_name}-web-s3"
+  role  = aws_iam_role.app_s3[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListBucket"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
+        Resource = [var.app_s3_bucket_arn]
+      },
+      {
+        Sid    = "ObjectRW"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:AbortMultipartUpload",
+          "s3:ListMultipartUploadParts",
+        ]
+        Resource = ["${var.app_s3_bucket_arn}/*"]
+      },
+    ]
+  })
+}

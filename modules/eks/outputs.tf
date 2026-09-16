@@ -34,6 +34,11 @@ output "lb_controller_role_arn" {
   value = var.enable_aws_lb_controller ? aws_iam_role.lb_controller[0].arn : null
 }
 
+output "app_s3_irsa_role_arn" {
+  description = "aniverse-web SA 에 붙일 IAM 역할 (values-eks serviceAccount.annotations)"
+  value       = local.enable_app_s3_irsa ? aws_iam_role.app_s3[0].arn : null
+}
+
 output "kubeconfig_hint" {
   description = "로컬에서 kubectl 붙일 때"
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${aws_eks_cluster.this.name}"

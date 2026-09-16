@@ -104,7 +104,7 @@ ConfigMap / Secret / (추후 IRSA)로 주입. **이미지에 키를 넣지 않�
 | `DJANGO_SECRET_KEY` | Django | 필수 |
 | `DB_PASSWORD` | DB | Pod DB도 동일 |
 | `GEMINI_API_KEY` | 챗봇 | 선택 |
-| `AWS_SECRET_ACCESS_KEY` | S3 (키 쓸 때) | **가능하면 IRSA로 대체 → 키 제거** |
+| `AWS_SECRET_ACCESS_KEY` | S3 (키 쓸 때) | **IRSA(`aniverse-web-s3-irsa`)로 대체 — 키 생략** |
 
 ### ConfigMap · 일반 env
 
@@ -117,7 +117,7 @@ ConfigMap / Secret / (추후 IRSA)로 주입. **이미지에 키를 넣지 않�
 | `DB_NAME` / `DB_USER` / `DB_HOST` / `DB_PORT` | DB | HOST=DB Service명 |
 | `AWS_STORAGE_BUCKET_NAME` | S3 | |
 | `AWS_S3_REGION_NAME` | 리전 | ap-northeast-2 |
-| `AWS_ACCESS_KEY_ID` | S3 | IRSA면 생략 |
+| `AWS_ACCESS_KEY_ID` | S3 | IRSA면 생략 (EKS web SA) |
 | `GEMINI_MODEL` | 모델명 | |
 | `REDIS_URL` 또는 동등 | Channels | To-Be에서 Redis 사용 시 **추가** (현재 코드는 InMemory) |
 
@@ -126,7 +126,7 @@ ConfigMap / Secret / (추후 IRSA)로 주입. **이미지에 키를 넣지 않�
 | 항목 | 용도 |
 |------|------|
 | 이미지 URI | `계정.dkr.ecr.리전.amazonaws.com/aniverse:태그` |
-| 이미지 태그 | `git sha` / `dev-YYYYMMDD` 등 **규칙 확정 필요** |
+| 이미지 태그 | `sha-<12>` — Actions ECR push 후 values 자동 bump |
 | Argo Application | repo URL, path, destination cluster/namespace |
 
 ### 윤주·서이와 맞출 것

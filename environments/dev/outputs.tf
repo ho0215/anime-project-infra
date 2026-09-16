@@ -50,3 +50,8 @@ output "eks_kubeconfig_hint" {
 output "eks_node_role_arn" {
   value = module.eks.node_role_arn
 }
+
+output "app_s3_irsa_role_arn" {
+  description = "anime-project values-eks.yaml serviceAccount.annotations role-arn"
+  value       = module.eks.app_s3_irsa_role_arn
+}
