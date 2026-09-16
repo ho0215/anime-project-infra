@@ -112,3 +112,5 @@ jobs:
 
       - name: Smoke site
         run: curl -fsS -o /dev/null -w "health=%{http_code}\n" https://aniverse.my/health/
+
+# chart fix bcdd54d+/rewrite
