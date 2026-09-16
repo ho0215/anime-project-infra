@@ -22,6 +22,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: s3-static-assets
+  cancel-in-progress: false
+
 jobs:
   sync:
     name: aws s3 sync media+static

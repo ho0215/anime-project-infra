@@ -5,15 +5,19 @@ name: "Verify S3 wipe → restore (destroy 시뮬레이션)"
 on:
   workflow_dispatch:
   push:
-    branches: [cursor/verify-destroy-media-restore-8e41]
+    branches: [main, cursor/**]
     paths:
       - ".github/workflows/verify-s3-wipe-restore.yml"
-      - ".github/workflows/sync-media-s3.yml"
       - "scripts/restore-s3-assets.sh"
 
 permissions:
   contents: read
   id-token: write
+
+# Sync media 워크플로와 버킷을 동시에 건드리지 않음 (이전 실패: wipe 직후 sync 가 재업로드 → 200)
+concurrency:
+  group: s3-static-assets
+  cancel-in-progress: false
 
 jobs:
   wipe-and-restore:
@@ -50,23 +54,18 @@ jobs:
       - name: Wipe media/static prefixes (simulate empty bucket after destroy)
         run: |
           set -euo pipefail
+          KEY='goods_images/타마마.jpeg'
           for p in goods_images works_images community img css; do
             echo "Removing s3://${STATIC_BUCKET_NAME}/${p}/"
             aws s3 rm "s3://${STATIC_BUCKET_NAME}/${p}/" --recursive --region "${AWS_REGION}" || true
           done
-
-      - name: Expect sample media 403/404 after wipe
-        run: |
-          set -euo pipefail
-          ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('타마마.jpeg'))")
-          URL="https://${STATIC_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/goods_images/${ENC}"
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
-          echo "After wipe: $URL → HTTP $CODE"
-          echo "- after wipe: **$CODE** (expect 403/404)" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$CODE" = "200" ]; then
-            echo "::error::Wipe failed; object still readable"
+          # 공개 HTTP 대신 HeadObject 로 삭제 확인 (병렬 sync 레이스·403/404 애매함 방지)
+          if aws s3api head-object --bucket "${STATIC_BUCKET_NAME}" --key "${KEY}" --region "${AWS_REGION}" 2>/dev/null; then
+            echo "::error::Object still present after wipe: ${KEY}"
             exit 1
           fi
+          echo "Confirmed absent: s3://${STATIC_BUCKET_NAME}/${KEY}"
+          echo "- after wipe: \`${KEY}\` **absent** (HeadObject miss)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore from anime-project (media + static)
         run: |
