@@ -117,11 +117,29 @@ variable "subject_alternative_names" {
 }
 
 # CD state 가 비어 있고 Route53 존이 없으면 ACM data source 가 plan 전체를 막음.
-# EKS 먼저 올릴 때는 false — 존/NS 복구 후 true 로 되돌리면 EC2 ALB HTTPS 복구.
+# EKS 전환 중: module.dns 가 존 생성. EC2 ALB HTTPS 는 enable_acm=true (ISSUED 후).
 variable "enable_acm" {
-  description = "Route53 존 조회 + ACM 발급 + apex/www alias. 존 없으면 false"
+  description = "기존 acm 모듈(ISSUED 대기) + EC2 ALB HTTPS. 보통 false — dns 모듈 사용"
   type        = bool
   default     = false
+}
+
+variable "create_route53_zone" {
+  description = "aniverse.my 퍼블릭 호스팅 영역 생성 (없을 때 true). 가비아 NS 위임 필요"
+  type        = bool
+  default     = true
+}
+
+variable "request_acm" {
+  description = "ACM 인증서 + DNS 검증 레코드 생성 (ISSUED 대기는 안 함)"
+  type        = bool
+  default     = true
+}
+
+variable "eks_ingress_hostname" {
+  description = "EKS Ingress ALB DNS — kubectl -n aniverse get ingress aniverse-web"
+  type        = string
+  default     = "k8s-aniverse-aniverse-1ad630abc1-1159733626.ap-northeast-2.elb.amazonaws.com"
 }
 
 variable "db_snapshot_identifier" {
