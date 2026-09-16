@@ -248,9 +248,14 @@ jobs:
       - name: Terraform init
         run: terraform init -input=false
 
-      - name: Terraform destroy
-        run: terraform destroy -auto-approve -input=false
-
+      - name: Terraform destroy (keep Route53 zone + ACM)
+        working-directory: .
+        run: |
+          chmod +x scripts/terraform-destroy-keep-dns.sh
+          ./scripts/terraform-destroy-keep-dns.sh
+          echo "### DNS preserved" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Route53 hosted zone + ACM kept (Gabia NS unchanged)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Re-apply → helm → \`./scripts/terraform-rebind-eks-dns.sh\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Find newest final/manual snapshot for aniverse-rds
         id: snapshot
         run: |

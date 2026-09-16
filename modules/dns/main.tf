@@ -1,6 +1,8 @@
-# aniverse.my Route53 + (옵션) ACM DNS 검증 레코드 + EKS ALB alias
+# aniverse.my Route53 + ACM DNS 검증 레코드 + EKS ALB alias
 #
-# 존이 지워진 뒤 복구용. 새 존 NS 를 가비아에 위임해야 외부 해석/ACM 발급이 완료됨.
+# 호스팅 영역(NS)은 비용·가비아 위임 때문에 destroy 해도 지우지 않는다.
+# (lifecycle.prevent_destroy + scripts/terraform-destroy-keep-dns.sh)
+# EKS ALB 는 Ingress 태그로 조회 — 재생성 후 apply 하면 alias 가 자동 갱신.
 
 data "aws_lb_hosted_zone_id" "alb" {
   region             = var.aws_region
@@ -15,6 +17,10 @@ resource "aws_route53_zone" "main" {
     Name    = "${var.project_name}-public"
     Project = var.project_name
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "aws_route53_zone" "existing" {
@@ -25,19 +31,45 @@ data "aws_route53_zone" "existing" {
 
 locals {
   zone_id      = var.create_zone ? aws_route53_zone.main[0].zone_id : data.aws_route53_zone.existing[0].zone_id
-  zone_name    = var.create_zone ? aws_route53_zone.main[0].name : data.aws_route53_zone.existing[0].name
   name_servers = var.create_zone ? aws_route53_zone.main[0].name_servers : data.aws_route53_zone.existing[0].name_servers
 }
 
-# apex / www → EKS Ingress ALB
+# Ingress(AWS LB Controller)가 붙인 태그로 ALB 자동 탐색
+data "aws_lbs" "eks_ingress" {
+  count = var.lookup_eks_alb ? 1 : 0
+
+  tags = {
+    "ingress.k8s.aws/stack" = var.eks_ingress_stack
+  }
+}
+
+locals {
+  eks_alb_arn = var.lookup_eks_alb ? try(data.aws_lbs.eks_ingress[0].arns[0], "") : ""
+}
+
+data "aws_lb" "eks_ingress" {
+  count = local.eks_alb_arn != "" ? 1 : 0
+  arn   = local.eks_alb_arn
+}
+
+locals {
+  # 1) 태그로 찾은 ALB  2) 변수 폴백(최초/수동)
+  eks_alb_dns = coalesce(
+    try(data.aws_lb.eks_ingress[0].dns_name, null),
+    var.eks_alb_dns_name != "" ? var.eks_alb_dns_name : null,
+    ""
+  )
+}
+
+# apex / www → EKS Ingress ALB (ALB 있을 때만)
 resource "aws_route53_record" "eks_apex" {
-  count   = var.eks_alb_dns_name != "" ? 1 : 0
+  count   = local.eks_alb_dns != "" ? 1 : 0
   zone_id = local.zone_id
   name    = var.domain_name
   type    = "A"
 
   alias {
-    name                   = var.eks_alb_dns_name
+    name                   = local.eks_alb_dns
     zone_id                = data.aws_lb_hosted_zone_id.alb.id
     evaluate_target_health = true
   }
@@ -46,13 +78,13 @@ resource "aws_route53_record" "eks_apex" {
 }
 
 resource "aws_route53_record" "eks_www" {
-  count   = var.eks_alb_dns_name != "" && contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
+  count   = local.eks_alb_dns != "" && contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
   zone_id = local.zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
 
   alias {
-    name                   = var.eks_alb_dns_name
+    name                   = local.eks_alb_dns
     zone_id                = data.aws_lb_hosted_zone_id.alb.id
     evaluate_target_health = true
   }
@@ -60,7 +92,8 @@ resource "aws_route53_record" "eks_www" {
   allow_overwrite = true
 }
 
-# ACM — DNS 검증 레코드만 만들고, ISSUED 대기는 하지 않음 (NS 위임 전엔 영원히 Pending)
+# ACM — DNS 검증 레코드만. ISSUED 대기는 안 함.
+# 인증서도 가능하면 유지하는 편이 HTTPS 재기동이 빠름(destroy 스크립트에서 제외).
 resource "aws_acm_certificate" "main" {
   count                     = var.request_acm ? 1 : 0
   domain_name               = var.domain_name
@@ -73,6 +106,7 @@ resource "aws_acm_certificate" "main" {
 
   lifecycle {
     create_before_destroy = true
+    prevent_destroy       = true
   }
 }
 

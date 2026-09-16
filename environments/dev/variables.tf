@@ -125,7 +125,7 @@ variable "enable_acm" {
 }
 
 variable "create_route53_zone" {
-  description = "aniverse.my 퍼블릭 호스팅 영역 생성 (없을 때 true). 가비아 NS 위임 필요"
+  description = "퍼블릭 호스팅 영역 관리(true 유지). destroy 시 존은 keep-dns 스크립트·prevent_destroy 로 보존"
   type        = bool
   default     = true
 }
@@ -137,9 +137,21 @@ variable "request_acm" {
 }
 
 variable "eks_ingress_hostname" {
-  description = "EKS Ingress ALB DNS — kubectl -n aniverse get ingress aniverse-web"
+  description = "EKS Ingress ALB DNS 폴백 (lookup 실패 시). 비우면 태그만 사용 — 보통 비움"
   type        = string
-  default     = "k8s-aniverse-aniverse-1ad630abc1-1159733626.ap-northeast-2.elb.amazonaws.com"
+  default     = ""
+}
+
+variable "lookup_eks_alb" {
+  description = "Ingress 태그로 ALB 자동 조회 (재생성 후 apply 시 DNS 자동 갱신)"
+  type        = bool
+  default     = true
+}
+
+variable "eks_ingress_stack" {
+  description = "AWS LB Controller stack 태그 = namespace/ingress-name"
+  type        = string
+  default     = "aniverse/aniverse-web"
 }
 
 variable "db_snapshot_identifier" {

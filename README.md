@@ -13,13 +13,15 @@ modules/
 scripts/
   ssm-connect.sh / wait-for-ssm.sh
   eks-start.sh / eks-stop.sh / eks-status.sh   # EKS 노드 켰다/끄기
+  terraform-destroy-keep-dns.sh                # destroy 시 Route53 존·ACM 보존
+  terraform-rebind-eks-dns.sh                  # 재기동 후 ALB → Route53 alias 재바인딩
 .github/workflows/
   terraform-ci.yml   # PR: fmt(필수) / validate / plan
-  terraform-cd.yml   # main push + workflow_dispatch: apply|destroy
+  terraform-cd.yml   # main push + workflow_dispatch: apply|destroy(keep-dns)
   eks-start-stop.yml # EKS 노드 start/stop/status (workflow_dispatch)
 ```
 
-EKS 비용 절약(노드 0 / 완전 삭제): [docs/eks-start-stop.md](./docs/eks-start-stop.md)
+EKS 비용 절약(노드 0 / keep-dns destroy): [docs/eks-start-stop.md](./docs/eks-start-stop.md)
 ## 사전 준비 (1회)
 
 ```bash
