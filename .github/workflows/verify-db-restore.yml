@@ -1,4 +1,4 @@
-# Point Argo at a branch that has dbRestore Job, sync, wait for Job success
+# Point Argo at chart branch, sync, wait for db-restore Job (non-hook)
 name: "Verify DB restore Job"
 
 on:
@@ -48,64 +48,67 @@ jobs:
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
           kubectl get nodes
 
-      - name: Point aniverse-eks at branch + hard refresh
+      - name: Clear stuck hook Job + point Argo at branch
         run: |
           set -euo pipefail
-          kubectl -n argocd get app aniverse-eks
+          kubectl -n aniverse delete job aniverse-db-restore --ignore-not-found
+          # Drop stale SyncError condition by refreshing after patch
           kubectl -n argocd patch application aniverse-eks --type=json -p="[
             {\"op\":\"replace\",\"path\":\"/spec/source/targetRevision\",\"value\":\"${APP_REF}\"}
           ]"
           kubectl -n argocd annotate application aniverse-eks \
             argocd.argoproj.io/refresh=hard --overwrite
-          # Kick sync
           kubectl -n argocd patch application aniverse-eks --type merge -p \
-            '{"operation":{"initiatedBy":{"username":"ci-db-restore"},"sync":{"syncStrategy":{"hook":{}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
+            '{"operation":{"initiatedBy":{"username":"ci-db-restore"},"sync":{"prune":false,"syncStrategy":{"hook":{}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true","ApplyOutOfSyncOnly=true"]}}}' \
             || true
 
-      - name: Wait Synced + Job complete (or skip log)
+      - name: Wait Synced/Healthy
         run: |
           set -euo pipefail
-          for i in $(seq 1 72); do
+          for i in $(seq 1 60); do
             ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' || true)
             HL=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' || true)
             OP=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.operationState.phase}' || true)
             MSG=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.operationState.message}' || true)
-            echo "[$i] app sync=$ST health=$HL op=$OP"
-            if [ -n "$MSG" ]; then echo "  msg=$MSG"; fi
-            # Fail fast on SyncError
-            if kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions[?(@.type=="SyncError")].message}' 2>/dev/null | grep -q .; then
-              if [ "$OP" = "Failed" ] || [ "$OP" = "Error" ]; then
-                echo "::error::Argo sync failed: $MSG"
-                kubectl -n argocd get app aniverse-eks -o yaml | head -120
-                exit 1
-              fi
+            echo "[$i] sync=$ST health=$HL op=$OP msg=${MSG:-}"
+            if [ "$OP" = "Failed" ] || [ "$OP" = "Error" ]; then
+              echo "::error::Argo operation failed: $MSG"
+              kubectl -n argocd get app aniverse-eks -o yaml | head -160
+              exit 1
             fi
-            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ]; then
+            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ] && { [ -z "$OP" ] || [ "$OP" = "Succeeded" ]; }; then
+              break
+            fi
+            # Synced+Healthy while op Running on non-hook job is OK once resources applied
+            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ] && [ "$i" -gt 12 ]; then
               break
             fi
             sleep 5
           done
-          ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}')
-          HL=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}')
-          echo "final sync=$ST health=$HL"
-          # Hook Job may finish quickly; wait up to 5m
-          if kubectl -n aniverse get job aniverse-db-restore >/dev/null 2>&1; then
-            kubectl -n aniverse wait --for=condition=complete job/aniverse-db-restore --timeout=300s
-            kubectl -n aniverse logs job/aniverse-db-restore -c restore --tail=80 || \
-              kubectl -n aniverse logs job/aniverse-db-restore --tail=80
-            SUCC=$(kubectl -n aniverse get job aniverse-db-restore -o jsonpath='{.status.succeeded}' || echo 0)
-            test "${SUCC:-0}" = "1"
-          else
-            echo "Job not listed (hook cleaned up after success is OK if Synced)"
-            test "$ST" = "Synced"
-            test "$HL" = "Healthy"
+
+      - name: Wait Job + dump diagnostics on failure
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            if kubectl -n aniverse get job aniverse-db-restore >/dev/null 2>&1; then
+              break
+            fi
+            echo "waiting for Job to appear ($i)"
+            sleep 5
+          done
+          kubectl -n aniverse get job aniverse-db-restore -o wide || true
+          if ! kubectl -n aniverse wait --for=condition=complete job/aniverse-db-restore --timeout=360s; then
+            echo "::error::Job did not complete"
+            kubectl -n aniverse describe job aniverse-db-restore || true
+            kubectl -n aniverse get pods -l job-name=aniverse-db-restore -o wide || true
+            kubectl -n aniverse describe pods -l job-name=aniverse-db-restore || true
+            kubectl -n aniverse logs -l job-name=aniverse-db-restore --all-containers --tail=200 || true
+            exit 1
           fi
-          {
-            echo "### DB restore verify"
-            echo "- Argo targetRevision: \`${APP_REF}\`"
-            echo "- app: ${ST}/${HL}"
-            kubectl -n aniverse get job aniverse-db-restore 2>&1 || echo "(job gone after hook)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          kubectl -n aniverse logs job/aniverse-db-restore --tail=100
+          SUCC=$(kubectl -n aniverse get job aniverse-db-restore -o jsonpath='{.status.succeeded}')
+          test "${SUCC}" = "1"
+          echo "### DB restore Job OK" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke site
         run: curl -fsS -o /dev/null -w "health=%{http_code}\n" https://aniverse.my/health/
