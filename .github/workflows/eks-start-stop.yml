@@ -97,9 +97,10 @@ jobs:
           done
           if [ "${{ inputs.action }}" = "stop" ]; then
             DESIRED=$(python3 -c "import json; print(json.load(open('/tmp/ng.json'))['scaling']['desiredSize'])")
-            MAX=$(python3 -c "import json; print(json.load(open('/tmp/ng.json'))['scaling']['maxSize'])")
-            if [ "${DESIRED}" != "0" ] || [ "${MAX}" != "0" ]; then
-              echo "::error::stop expected desired=0 max=0, got desired=${DESIRED} max=${MAX}"
+            # EKS API maxSize 최소 1 — stop 스크립트는 max=1 + ASG Launch suspend
+            if [ "${DESIRED}" != "0" ]; then
+              echo "::error::stop expected desiredSize=0, got ${DESIRED}"
               exit 1
             fi
+            echo "stop OK: desiredSize=0 (ASG Launch should be suspended)"
           fi
