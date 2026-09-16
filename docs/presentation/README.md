@@ -10,7 +10,7 @@
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
 | **`SPEAKER_NOTES_강사.md`** | 슬라이드별 멘트·시간 |
 
-EKS AS-IS 한 장 구성도(별도): [`../aniverse-eks-architecture-as-is.png`](../aniverse-eks-architecture-as-is.png)
+EKS AS-IS 한 장 구성도: `docs/aniverse-eks-architecture-as-is.png` (별도 문서)
 
 ## 다시 만들기
 
