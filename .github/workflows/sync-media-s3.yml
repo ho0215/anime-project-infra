@@ -1,0 +1,81 @@
+# DB 복구 후 ImageField 경로만 있고 S3 객체는 비어 있을 때
+# anime-project media/ → static/media 버킷에 동기화
+name: "Sync media → S3"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, cursor/**]
+    paths:
+      - ".github/workflows/sync-media-s3.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sync:
+    name: aws s3 sync media/
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      # Terraform output static_bucket_name (environments/dev)
+      STATIC_BUCKET_NAME: aniverse-static-679583587966-ap-northeast-2
+    steps:
+      - name: Check OIDC Variables
+        id: auth
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ]; then
+            echo "::error::Set Variable AWS_ROLE_ARN (github_actions_role_arn)"
+            exit 1
+          fi
+          if [ "${{ vars.AWS_USE_OIDC }}" != "true" ]; then
+            echo "::error::Set Variable AWS_USE_OIDC=true"
+            exit 1
+          fi
+          echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Sync media → S3"
+            echo "- role: \`${{ vars.AWS_ROLE_ARN }}\`"
+            echo "- bucket: \`${STATIC_BUCKET_NAME}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-actions-sync-media
+          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Checkout anime-project (media/)
+        uses: actions/checkout@v4
+        with:
+          repository: ho0215/anime-project
+          ref: main
+          path: anime-project
+
+      - name: Sync media to S3
+        run: |
+          set -euo pipefail
+          chmod +x anime-project/scripts/sync_media_to_s3.sh
+          STATIC_BUCKET_NAME="${STATIC_BUCKET_NAME}" \
+            AWS_REGION="${AWS_REGION}" \
+            bash anime-project/scripts/sync_media_to_s3.sh
+
+      - name: Probe sample object
+        run: |
+          set -euo pipefail
+          SAMPLE=$(aws s3 ls "s3://${STATIC_BUCKET_NAME}/goods_images/" --region "${AWS_REGION}" \
+            | awk '{print $NF}' | head -1 || true)
+          if [ -z "$SAMPLE" ]; then
+            echo "::error::No objects under goods_images/ after sync"
+            exit 1
+          fi
+          ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$SAMPLE")
+          URL="https://${STATIC_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/goods_images/${ENC}"
+          echo "Probe: $URL"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          echo "HTTP $CODE"
+          echo "- sample: \`$URL\` → **$CODE**" >> "$GITHUB_STEP_SUMMARY"
+          test "$CODE" = "200"
