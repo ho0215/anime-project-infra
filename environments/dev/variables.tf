@@ -105,7 +105,7 @@ variable "asg_max_size" {
 }
 
 variable "domain_name" {
-  description = "앱 도메인 (Route 53 호스팅 영역이 이미 있어야 함). 가비아 NS → Route 53 위임 후 사용"
+  description = "앱 도메인 (Route 53). enable_acm=true 이면 호스팅 영역이 이미 있어야 함"
   type        = string
   default     = "aniverse.my"
 }
@@ -114,6 +114,14 @@ variable "subject_alternative_names" {
   description = "ACM SAN 목록"
   type        = list(string)
   default     = ["www.aniverse.my"]
+}
+
+# CD state 가 비어 있고 Route53 존이 없으면 ACM data source 가 plan 전체를 막음.
+# EKS 먼저 올릴 때는 false — 존/NS 복구 후 true 로 되돌리면 EC2 ALB HTTPS 복구.
+variable "enable_acm" {
+  description = "Route53 존 조회 + ACM 발급 + apex/www alias. 존 없으면 false"
+  type        = bool
+  default     = false
 }
 
 variable "db_snapshot_identifier" {

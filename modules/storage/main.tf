@@ -73,6 +73,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "static" {
   rule {
     id     = "delete-old-media"
     status = "Enabled"
+    filter {
+      prefix = ""
+    }
     expiration {
       days = 90
     }
