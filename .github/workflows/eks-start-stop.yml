@@ -1,4 +1,4 @@
-# EKS 워커 노드 start / stop (컨트롤 플레인은 유지)
+# EKS 워커 노드 + NAT start / stop (컨트롤 플레인은 유지)
 name: EKS start/stop
 
 on:
@@ -25,13 +25,15 @@ permissions:
 
 env:
   AWS_REGION: ap-northeast-2
-  # Terraform module.eks 기본값과 동일. Variables 있으면 그 값을 우선.
   EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
   EKS_NODEGROUP_NAME: ${{ vars.EKS_NODEGROUP_NAME || 'aniverse-nodes' }}
+  EKS_NAT_NAME: ${{ vars.EKS_NAT_NAME || 'aniverse-nat-instance' }}
 
 jobs:
   scale:
     runs-on: ubuntu-latest
+    # stop 은 ASG drain + NAT stop 대기 (최대 ~15분)
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -62,14 +64,17 @@ jobs:
 
       - name: Show target
         run: |
-          echo "cluster=${EKS_CLUSTER_NAME}" >> "$GITHUB_STEP_SUMMARY"
-          echo "nodegroups=${EKS_NODEGROUP_NAME}" >> "$GITHUB_STEP_SUMMARY"
-          echo "action=${{ inputs.action }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Using cluster=${EKS_CLUSTER_NAME} nodegroup=${EKS_NODEGROUP_NAME}"
+          {
+            echo "cluster=${EKS_CLUSTER_NAME}"
+            echo "nodegroups=${EKS_NODEGROUP_NAME}"
+            echo "nat=${EKS_NAT_NAME}"
+            echo "action=${{ inputs.action }}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Run eks script
         env:
           EKS_DESIRED_SIZE: ${{ inputs.desired_size }}
+          EKS_WAIT_TIMEOUT_SEC: "900"
         run: |
           chmod +x scripts/eks-stop.sh scripts/eks-start.sh scripts/eks-status.sh
           case "${{ inputs.action }}" in
@@ -79,28 +84,40 @@ jobs:
             *) echo "bad action"; exit 1 ;;
           esac
 
-      - name: Verify nodegroup scaling
-        if: inputs.action == 'stop' || inputs.action == 'status' || inputs.action == 'start'
+      - name: Verify stop (ASG empty + NAT stopped)
+        if: inputs.action == 'stop'
         run: |
           set -euo pipefail
+          fail=0
           for ng in ${EKS_NODEGROUP_NAME}; do
-            echo "### ${EKS_CLUSTER_NAME}/${ng}" >> "$GITHUB_STEP_SUMMARY"
-            aws eks describe-nodegroup \
-              --region "${AWS_REGION}" \
-              --cluster-name "${EKS_CLUSTER_NAME}" \
-              --nodegroup-name "${ng}" \
-              --query 'nodegroup.{status:status,scaling:scalingConfig}' \
-              --output json | tee /tmp/ng.json
-            echo '```json' >> "$GITHUB_STEP_SUMMARY"
-            cat /tmp/ng.json >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          done
-          if [ "${{ inputs.action }}" = "stop" ]; then
-            DESIRED=$(python3 -c "import json; print(json.load(open('/tmp/ng.json'))['scaling']['desiredSize'])")
-            # EKS API maxSize 최소 1 — stop 스크립트는 max=1 + ASG Launch suspend
-            if [ "${DESIRED}" != "0" ]; then
-              echo "::error::stop expected desiredSize=0, got ${DESIRED}"
-              exit 1
+            ASG=$(aws eks describe-nodegroup --region "${AWS_REGION}" \
+              --cluster-name "${EKS_CLUSTER_NAME}" --nodegroup-name "${ng}" \
+              --query 'nodegroup.resources.autoScalingGroups[0].name' --output text)
+            DESIRED=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
+              --auto-scaling-group-names "${ASG}" \
+              --query 'AutoScalingGroups[0].DesiredCapacity' --output text)
+            INST=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
+              --auto-scaling-group-names "${ASG}" \
+              --query 'length(AutoScalingGroups[0].Instances)' --output text)
+            echo "ASG ${ASG}: Desired=${DESIRED} Instances=${INST}" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ "${DESIRED}" != "0" ] || [ "${INST}" != "0" ]; then
+              echo "::error::ASG not empty Desired=${DESIRED} Instances=${INST}"
+              fail=1
             fi
-            echo "stop OK: desiredSize=0 (ASG Launch should be suspended)"
-          fi
+          done
+          NAT_JSON=$(aws ec2 describe-instances --region "${AWS_REGION}" \
+            --filters "Name=tag:Name,Values=${EKS_NAT_NAME}" \
+              "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+            --query 'Reservations[].Instances[].[InstanceId,State.Name]' --output json)
+          echo "NAT: ${NAT_JSON}" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "${NAT_JSON}" | python3 -c '
+          import json,sys
+          rows=json.load(sys.stdin)
+          bad=[r for r in rows if r[1] not in ("stopped","stopping")]
+          if not rows:
+            print("WARN: NAT not found", file=sys.stderr)
+          if bad:
+            raise SystemExit(f"NAT not stopped: {bad}")
+          '
+          if [ "${fail}" != "0" ]; then exit 1; fi
+          echo "### stop verified: workers=0, NAT stopped" >> "$GITHUB_STEP_SUMMARY"
