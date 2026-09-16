@@ -124,7 +124,7 @@ resource "aws_iam_role_policy_attachment" "node_ssm" {
 
 # ==========================================
 # 워커 노드 그룹 (매니지드) + 오토스케일링 범위
-# node_group_name은 scripts/eks-ctl.sh, eks-start-stop.yml 기본값(aniverse-nodes)과 일치해야 함
+# node_group_name은 scripts/eks-start.sh · eks-start-stop.yml 기본값(aniverse-nodes)과 일치해야 함
 # desired_size는 eks-start.sh/eks-stop.sh가 AWS API로 직접 바꾸므로,
 # terraform apply(CD가 main push마다 돎)가 그 값을 되돌리지 않도록 ignore_changes 처리
 # ==========================================

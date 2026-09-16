@@ -39,7 +39,7 @@ variable "cluster_admin_arns" {
   default     = []
 }
 
-# scripts/eks-ctl.sh, .github/workflows/eks-start-stop.yml 기본값과 반드시 일치
+# scripts/eks-start.sh · .github/workflows/eks-start-stop.yml 기본값과 반드시 일치
 variable "node_desired_size" {
   type    = number
   default = 2
