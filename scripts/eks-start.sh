@@ -72,23 +72,25 @@ need_aws
 
 case "${cmd}" in
   eks-stop.sh)
+    # max 도 0으로 — Cluster Autoscaler 가 pending Pod 보고 노드를 다시 올리지 못하게 함
     echo "Stopping workers on ${CLUSTER} (control plane stays UP ~\$0.10/h)"
+    echo "NOTE: maxSize=0 so Cluster Autoscaler cannot scale back up"
     for ng in $(list_ngs); do
-      scale_ng "${ng}" 0 "${MAX_SIZE}" 0
+      scale_ng "${ng}" 0 0 0
     done
-    echo "OK — nodes scaling to 0. Route53/ALB 유지 → 재기동 시 DNS 재바인딩 불필요."
+    echo "OK — nodes scaling to 0 (min=max=desired=0). NAT 인스턴스는 유지."
+    echo "EC2 콘솔: Running 필터만 보면 워커는 수 분 내 사라지고 NAT 1대만 남음."
     echo "Check: ./scripts/eks-status.sh"
     ;;
   eks-start.sh)
-    echo "Starting workers on ${CLUSTER} (desired=${DESIRED})"
+    echo "Starting workers on ${CLUSTER} (desired=${DESIRED}, max=${MAX_SIZE})"
     for ng in $(list_ngs); do
       scale_ng "${ng}" "${MIN_START}" "${MAX_SIZE}" "${DESIRED}"
     done
     wait_nodes_ready
     echo "OK — curl -sI http://aniverse.my/health/  (helm 앱이 이미 있으면 바로 접속)"
     ;;
-  eks-status.sh)
-    echo "Cluster: ${CLUSTER} (${REGION})"
+  eks-status.sh)    echo "Cluster: ${CLUSTER} (${REGION})"
     aws eks describe-cluster --region "${REGION}" --name "${CLUSTER}" \
       --query 'cluster.{status:status,version:version,endpoint:endpoint}' --output table || true
     echo

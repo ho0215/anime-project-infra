@@ -78,3 +78,28 @@ jobs:
             status) ./scripts/eks-status.sh ;;
             *) echo "bad action"; exit 1 ;;
           esac
+
+      - name: Verify nodegroup scaling
+        if: inputs.action == 'stop' || inputs.action == 'status' || inputs.action == 'start'
+        run: |
+          set -euo pipefail
+          for ng in ${EKS_NODEGROUP_NAME}; do
+            echo "### ${EKS_CLUSTER_NAME}/${ng}" >> "$GITHUB_STEP_SUMMARY"
+            aws eks describe-nodegroup \
+              --region "${AWS_REGION}" \
+              --cluster-name "${EKS_CLUSTER_NAME}" \
+              --nodegroup-name "${ng}" \
+              --query 'nodegroup.{status:status,scaling:scalingConfig}' \
+              --output json | tee /tmp/ng.json
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/ng.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ "${{ inputs.action }}" = "stop" ]; then
+            DESIRED=$(python3 -c "import json; print(json.load(open('/tmp/ng.json'))['scaling']['desiredSize'])")
+            MAX=$(python3 -c "import json; print(json.load(open('/tmp/ng.json'))['scaling']['maxSize'])")
+            if [ "${DESIRED}" != "0" ] || [ "${MAX}" != "0" ]; then
+              echo "::error::stop expected desired=0 max=0, got desired=${DESIRED} max=${MAX}"
+              exit 1
+            fi
+          fi
