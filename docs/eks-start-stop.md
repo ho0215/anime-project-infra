@@ -50,18 +50,41 @@ curl -sI http://aniverse.my/health/
 
 CD destroy 는 `scripts/terraform-destroy-keep-dns.sh` 를 씀 (존·ACM 보존).
 
+S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**된다.  
+버킷 이름은 계정+리전으로 고정이라 URL은 그대로이고, **내용은 git에서 다시 올려야** 한다.
+
 ```bash
-# 1) terraform apply  (EKS 등 재생성)
+# 1) terraform apply  (EKS·S3 등 재생성)
+#    → CD 가 apply 직후 Sync media → S3 (restore-s3-assets) 도 실행
 # 2) helm upgrade --install aniverse ... -f values-eks.yaml
 # 3) Route53 alias 를 새 ALB 에 재바인딩 (태그로 ALB 자동 조회)
 ./scripts/terraform-rebind-eks-dns.sh
+# 4) DB PVC 도 날아감 → SQL 덤프 복구 (Helm Job / 수동)
+# 5) (CD 실패·수동 시) S3 자산 재업로드
+#    Actions → Sync media → S3  또는
+#    APP_DIR=../anime-project STATIC_BUCKET_NAME=aniverse-static-... \
+#      ./scripts/restore-s3-assets.sh
 
 dig +short aniverse.my
-curl -sI http://aniverse.my/health/
+curl -sI https://aniverse.my/health/
+# 사진 샘플
+curl -sI "https://aniverse-static-679583587966-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/goods_images/타마마.jpeg"
 ```
 
 가비아 NS 를 유지하려면 **반드시** keep-dns destroy 를 쓴다.  
 존을 지우면 NS 가 바뀌어 가비아를 다시 고쳐야 한다.
+
+### destroy → reapply 후 “사진까지” 같은지?
+
+| 항목 | destroy 후 | 복구 |
+|------|------------|------|
+| Route53 존 / ACM | 유지 | 재발급 불필요 |
+| S3 버킷·객체 | 삭제 | apply + **media/static sync** |
+| EKS / ALB | 삭제 | apply + helm + DNS rebind |
+| DB (EBS PVC) | 삭제 | SQL 덤프 복구 |
+| ECR 이미지 | 모듈에 있으면 삭제될 수 있음 | CI 재 push |
+
+검증용: Actions **Verify S3 wipe → restore** (버킷 비우기 시뮬레이션 → sync → HTTP 200).
 
 ## GitHub Actions으로도 가능
 

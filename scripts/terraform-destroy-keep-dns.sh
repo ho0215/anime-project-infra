@@ -44,5 +44,9 @@ terraform destroy -auto-approve -input=false "${TARGETS[@]}"
 
 echo
 echo "OK — Route53 zone + ACM preserved."
-echo "다음 기동: terraform apply → helm upgrade -f values-eks.yaml → ./scripts/terraform-rebind-eks-dns.sh"
+echo "다음 기동:"
+echo "  1) terraform apply  (CD면 restore-s3-assets 가 media/static 재업로드)"
+echo "  2) helm upgrade -f values-eks.yaml"
+echo "  3) ./scripts/terraform-rebind-eks-dns.sh"
+echo "  4) DB SQL 복구 + (필요 시) ./scripts/restore-s3-assets.sh"
 echo "또는 평소 비용절감: ./scripts/eks-stop.sh / eks-start.sh"
