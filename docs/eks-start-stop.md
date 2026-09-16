@@ -6,9 +6,9 @@ EKS는 **계속 켜둘 필요 없음**. 작업할 때만 켜고, 끝나면 끄�
 
 | 명령 | 하는 일 | 남는 비용 |
 |------|---------|-----------|
-| `./scripts/eks-stop.sh` | 워커 **desired=0** + ASG Launch suspend (Autoscaler 재기동 방지). EKS `maxSize`는 API상 최소 1 | 컨트롤 플레인 ≈ **$0.10/h** + NAT |
-| `./scripts/eks-start.sh` | 워커 다시 올림 + Ready 대기 | 노드 + 컨트롤 |
-| `./scripts/eks-status.sh` | 상태 확인 | — |
+| `./scripts/eks-stop.sh` | 워커 **desired=0** + ASG 직접 0 + **NAT stop** (Autoscaler Launch suspend) | 컨트롤 플레인 ≈ **$0.10/h** (+ EBS) |
+| `./scripts/eks-start.sh` | **NAT start** → ASG resume → 워커 복구 | 노드 + NAT + 컨트롤 |
+| `./scripts/eks-status.sh` | 상태 확인 (노드그룹·ASG·NAT) | — |
 | Terraform **destroy** (`terraform-destroy-keep-dns.sh`) | 인프라 삭제, **Route53 존·ACM 유지** | DNS≈0, NS 그대로 |
 | Terraform **destroy 전체** (비권장) | 존까지 삭제 | 가비아 NS 다시 등록 필요 |
 
