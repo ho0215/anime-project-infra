@@ -25,6 +25,9 @@ permissions:
 
 env:
   AWS_REGION: ap-northeast-2
+  # Terraform module.eks 기본값과 동일. Variables 있으면 그 값을 우선.
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
+  EKS_NODEGROUP_NAME: ${{ vars.EKS_NODEGROUP_NAME || 'aniverse-nodes' }}
 
 jobs:
   scale:
@@ -57,22 +60,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Check cluster variables
+      - name: Show target
         run: |
-          if [ -z "${{ vars.EKS_CLUSTER_NAME }}" ] || [ -z "${{ vars.EKS_NODEGROUP_NAME }}" ]; then
-            echo "::error::Set Variables EKS_CLUSTER_NAME and EKS_NODEGROUP_NAME"
-            exit 1
-          fi
-          echo "cluster=${{ vars.EKS_CLUSTER_NAME }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "nodegroups=${{ vars.EKS_NODEGROUP_NAME }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "cluster=${EKS_CLUSTER_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "nodegroups=${EKS_NODEGROUP_NAME}" >> "$GITHUB_STEP_SUMMARY"
           echo "action=${{ inputs.action }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Using cluster=${EKS_CLUSTER_NAME} nodegroup=${EKS_NODEGROUP_NAME}"
 
       - name: Run eks script
         env:
-          EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
-          EKS_NODEGROUP_NAME: ${{ vars.EKS_NODEGROUP_NAME }}
           EKS_DESIRED_SIZE: ${{ inputs.desired_size }}
-          AWS_REGION: ${{ env.AWS_REGION }}
         run: |
           chmod +x scripts/eks-stop.sh scripts/eks-start.sh scripts/eks-status.sh
           case "${{ inputs.action }}" in

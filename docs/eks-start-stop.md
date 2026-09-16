@@ -93,10 +93,9 @@ curl -sI "https://aniverse-static-679583587966-ap-northeast-2.s3.ap-northeast-2.
 
 1. Actions → **EKS start/stop** → Run workflow  
 2. `action`: `start` | `stop` | `status`  
-3. Variables (infra 레포):
-   - `EKS_CLUSTER_NAME`
-   - `EKS_NODEGROUP_NAME`
-   - (OIDC) `AWS_ROLE_ARN` + `AWS_USE_OIDC=true`
+3. 인증 Variables (infra 레포): (OIDC) `AWS_ROLE_ARN` + `AWS_USE_OIDC=true`  
+4. 클러스터 이름 Variables는 **선택** — 없으면 기본 `aniverse-eks` / `aniverse-nodes`  
+   (다른 이름이면 `EKS_CLUSTER_NAME`, `EKS_NODEGROUP_NAME` 설정)
 
 브라우저에서 끄기 좋다.
 
