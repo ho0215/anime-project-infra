@@ -216,21 +216,21 @@ module "ecr" {
 module "eks" {
   source = "../../modules/eks"
 
-  project_name            = var.project_name
-  vpc_id                  = module.network.vpc_id
-  vpc_cidr                = var.vpc_cidr
-  public_subnet_ids       = module.network.public_subnet_ids
-  private_app_subnet_ids  = module.network.private_app_subnet_ids
+  project_name           = var.project_name
+  vpc_id                 = module.network.vpc_id
+  vpc_cidr               = var.vpc_cidr
+  public_subnet_ids      = module.network.public_subnet_ids
+  private_app_subnet_ids = module.network.private_app_subnet_ids
 
   cluster_version             = var.eks_cluster_version
   cluster_public_access_cidrs = var.admin_cidr_blocks
   cluster_admin_arns          = var.eks_cluster_admin_arns
 
-  node_desired_size    = var.eks_node_desired_size
-  node_min_size        = var.eks_node_min_size
-  node_max_size        = var.eks_node_max_size
-  node_instance_types  = var.eks_node_instance_types
-  node_capacity_type   = var.eks_node_capacity_type
+  node_desired_size   = var.eks_node_desired_size
+  node_min_size       = var.eks_node_min_size
+  node_max_size       = var.eks_node_max_size
+  node_instance_types = var.eks_node_instance_types
+  node_capacity_type  = var.eks_node_capacity_type
 
   enable_aws_lb_controller  = var.eks_enable_aws_lb_controller
   enable_cluster_autoscaler = var.eks_enable_cluster_autoscaler

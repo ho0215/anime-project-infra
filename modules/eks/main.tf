@@ -152,7 +152,7 @@ resource "aws_eks_node_group" "default" {
 
   # Cluster Autoscaler ASG 자동탐색용 (EKS가 노드그룹 태그를 하위 ASG에 전파)
   tags = {
-    "k8s.io/cluster-autoscaler/enabled"                        = "true"
+    "k8s.io/cluster-autoscaler/enabled"                      = "true"
     "k8s.io/cluster-autoscaler/${aws_eks_cluster.this.name}" = "owned"
   }
 

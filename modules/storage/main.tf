@@ -24,7 +24,7 @@ resource "aws_s3_bucket" "static" {
 }
 # ── S3 퍼블릭 접근 허용 ─────────────────────────────────
 resource "aws_s3_bucket_public_access_block" "static" {
-  bucket = aws_s3_bucket.static.id
+  bucket                  = aws_s3_bucket.static.id
   block_public_acls       = true
   ignore_public_acls      = true
   block_public_policy     = false
