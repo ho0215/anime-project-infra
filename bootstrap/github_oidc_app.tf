@@ -57,6 +57,12 @@ resource "aws_iam_role" "github_actions_app_ecr" {
   }
 }
 
+variable "static_bucket_name_for_ci" {
+  description = "앱 CI가 media/static sync 할 S3 버킷 (비우면 S3 권한 미부여)"
+  type        = string
+  default     = "aniverse-static-679583587966-ap-northeast-2"
+}
+
 data "aws_iam_policy_document" "github_app_ecr" {
   statement {
     sid    = "EcrAuthToken"
@@ -85,6 +91,31 @@ data "aws_iam_policy_document" "github_app_ecr" {
     resources = [
       "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}",
     ]
+  }
+
+  # DB 복구 후 media sync / collectstatic 용 (bootstrap apply 후 유효)
+  dynamic "statement" {
+    for_each = var.static_bucket_name_for_ci != "" ? [var.static_bucket_name_for_ci] : []
+    content {
+      sid    = "StaticMediaBucketSync"
+      effect = "Allow"
+      actions = [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:PutBucketOwnershipControls",
+        "s3:PutBucketCors",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+      ]
+      resources = [
+        "arn:aws:s3:::${statement.value}",
+        "arn:aws:s3:::${statement.value}/*",
+      ]
+    }
   }
 }
 
