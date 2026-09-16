@@ -93,3 +93,21 @@ variable "cluster_autoscaler_chart_version" {
   type    = string
   default = "9.43.2"
 }
+
+variable "app_s3_bucket_arn" {
+  description = "앱 web Pod IRSA용 S3 버킷 ARN (비우면 IRSA 미생성)"
+  type        = string
+  default     = ""
+}
+
+variable "app_irsa_namespace" {
+  description = "앱 ServiceAccount 네임스페이스"
+  type        = string
+  default     = "aniverse"
+}
+
+variable "app_irsa_service_account" {
+  description = "앱 web ServiceAccount 이름 (Helm values serviceAccount.name)"
+  type        = string
+  default     = "aniverse-web"
+}

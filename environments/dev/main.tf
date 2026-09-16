@@ -96,4 +96,7 @@ module "eks" {
 
   enable_aws_lb_controller  = var.eks_enable_aws_lb_controller
   enable_cluster_autoscaler = var.eks_enable_cluster_autoscaler
+
+  # web Pod IRSA — Helm values-eks serviceAccount.annotations
+  app_s3_bucket_arn = module.storage.s3_bucket_arn
 }

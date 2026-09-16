@@ -18,12 +18,12 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 
 ### 1.2 성공 기준
 
-- [ ] Django 앱이 Docker 이미지로 빌드된다.
-- [ ] 로컬 또는 미니 K8s(EC2 + minikube 등)에서 앱 + DB가 정상 동작한다.
-- [ ] EKS 클러스터가 기동되고, Ingress(ALB)를 통해 앱에 접근 가능하다.
-- [ ] DB는 **Pod(StatefulSet) + 볼륨**으로 동작하며, 백업/복구 전략이 문서화되어 있다.
-- [ ] GitHub Actions → ECR → (Argo CD) 배포 흐름의 뼈대가 동작한다.
-- [ ] As-Is(EC2) 코드는 git에 보존하고, To-Be(EKS)와 비교 가능하다.
+- [x] Django 앱이 Docker 이미지로 빌드된다.
+- [x] 로컬 또는 미니 K8s(EC2 + minikube 등)에서 앱 + DB가 정상 동작한다.
+- [x] EKS 클러스터가 기동되고, Ingress(ALB)를 통해 앱에 접근 가능하다.
+- [x] DB는 **Pod(StatefulSet) + 볼륨**으로 동작하며, 백업/복구 전략이 문서화되어 있다.
+- [x] GitHub Actions → ECR → (Argo CD) 배포 흐름의 뼈대가 동작한다.
+- [x] As-Is(EC2) 코드는 git에 보존하고, To-Be(EKS)와 비교 가능하다.
 
 ### 1.3 핵심 원칙
 
@@ -137,12 +137,12 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 
 **공통**
 
-- [ ] As-Is (ALB · ASG · CodeDeploy · RDS …) 정리  
-- [ ] To-Be (EKS · Ingress · App Pod · DB StatefulSet · ECR · Argo) 정리  
-- [ ] Keep / Replace / Add 표  
-- [ ] 보안 초안: 베이스 이미지, ECR 접근 범위  
-- [ ] 비용 러프 추정 (컨트롤 플레인 + 노드 + EBS)  
-- [ ] env로 뺄 항목 초안 목록  
+- [x] As-Is (ALB · ASG · CodeDeploy · RDS …) 정리  
+- [x] To-Be (EKS · Ingress · App Pod · DB StatefulSet · ECR · Argo) 정리  
+- [x] Keep / Replace / Add 표  
+- [x] 보안 초안: 베이스 이미지, ECR 접근 범위  
+- [x] 비용 러프 추정 (컨트롤 플레인 + 노드 + EBS)  
+- [x] env로 뺄 항목 초안 목록  
 
 **역할**
 
@@ -150,7 +150,7 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 - 윤주: 앱 · DB 컨테이너 · PVC  
 - 현우: Actions → ECR → Argo 흐름  
 
-**게이트:** 아키텍처 리뷰 통과 전에는 본격 이관하지 않는다.
+**게이트:** 아키텍처 리뷰 통과 전에는 본격 이관하지 않는다. → **통과**
 
 ---
 
@@ -158,24 +158,24 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 
 **윤주**
 
-- [ ] Dockerfile 작성 · 이미지 빌드  
-- [ ] 앱 + DB를 compose 또는 minikube에서 기동  
-- [ ] 헬스체크 · 주요 기능 확인  
-- [ ] 볼륨 재시작 후 데이터 유지 확인  
-- [ ] Helm 차트 초안  
+- [x] Dockerfile 작성 · 이미지 빌드  
+- [x] 앱 + DB를 compose 또는 minikube에서 기동  
+- [x] 헬스체크 · 주요 기능 확인  
+- [x] 볼륨 재시작 후 데이터 유지 확인  
+- [x] Helm 차트 초안  
 
 **서이**
 
-- [ ] 테스트 환경(옵션 A 또는 B) 준비  
-- [ ] Ingress · StorageClass 계획  
+- [x] 테스트 환경(옵션 A 또는 B) 준비  
+- [x] Ingress · StorageClass 계획  
 
 **현우**
 
-- [ ] Actions 빌드 파이프라인 뼈대  
-- [ ] 이미지 태그 규칙 초안  
-- [ ] env → ConfigMap/Secret 매핑 표  
+- [x] Actions 빌드 파이프라인 뼈대  
+- [x] 이미지 태그 규칙 초안  
+- [x] env → ConfigMap/Secret 매핑 표  
 
-**게이트:** 미니 K8s(또는 동등 환경)에서 앱 + DB 정상 동작.
+**게이트:** 미니 K8s(또는 동등 환경)에서 앱 + DB 정상 동작. → **통과**
 
 ---
 
@@ -183,26 +183,26 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 
 **서이**
 
-- [ ] Terraform EKS + 노드 그룹  
-- [ ] IAM · VPC CNI  
-- [ ] Ingress → ALB  
-- [ ] EBS CSI + StorageClass  
-- [ ] 오토스케일(노드) 설정 · 문서화  
+- [x] Terraform EKS + 노드 그룹  
+- [x] IAM · VPC CNI  
+- [x] Ingress → ALB  
+- [x] EBS CSI + StorageClass  
+- [x] 오토스케일(노드) 설정 · 문서화  
 
 **윤주**
 
-- [ ] Helm으로 app / db 배포  
-- [ ] 데이터 이관 · 백업/복구 문서  
-- [ ] StatefulSet 안정화  
+- [x] Helm으로 app / db 배포  
+- [x] 데이터 이관 · 백업/복구 문서  
+- [x] StatefulSet 안정화  
 
 **현우**
 
-- [ ] ECR 연동 · Actions 푸시  
-- [ ] Argo CD Application  
-- [ ] 환경별 overlay  
-- [ ] 권한 · GitOps 경로 정리  
+- [x] ECR 연동 · Actions 푸시  
+- [x] Argo CD Application  
+- [x] 환경별 overlay  
+- [x] 권한 · GitOps 경로 정리  
 
-**게이트:** 17일 — ALB(또는 동등)로 앱 응답, DB 연결 확인.
+**게이트:** 17일 — ALB(또는 동등)로 앱 응답, DB 연결 확인. → **통과**
 
 ---
 
@@ -211,9 +211,10 @@ EC2 · ASG · CodeDeploy 기반 구성을 **컨테이너화**하고 **Kubernetes
 우선순위 3→5 순으로 얇게 진행한다.
 
 - [ ] Prometheus + Grafana (Helm) — 메트릭 · 대시보드 최소  
-- [ ] 베이스 이미지 · ECR 최소 권한  
+- [x] 베이스 이미지 · ECR 최소 권한 (+ Actions OIDC, Pod S3 IRSA)  
 - [ ] (후순위) Private Endpoint, 클러스터 only 접근  
-- [ ] HPA vs 노드 스케일 차이 문서화  
+- [x] HPA vs 노드 스케일 차이 문서화 (Helm HPA + Cluster Autoscaler)  
+- [x] 이미지 태그 자동화 (`sha-*` GitOps bump)  
 - [ ] 언급 · 학습: SonarQube / Quality Gate, OpenTelemetry, Argo UI  
 - [ ] 각자 포트폴리오 스토리 · 트러블슈팅 메모  
 
