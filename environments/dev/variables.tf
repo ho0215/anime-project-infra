@@ -179,9 +179,12 @@ variable "eks_cluster_version" {
 }
 
 variable "eks_cluster_admin_arns" {
-  description = "로컬 kubectl용으로 cluster-admin 부여할 추가 IAM ARN (github actions 역할은 생성자 권한으로 자동 포함)"
+  description = "로컬 kubectl용 cluster-admin IAM ARN (GitHub OIDC 생성자는 bootstrap 으로 자동 포함)"
   type        = list(string)
-  default     = []
+  # cp1 기본 자격 증명 (aws sts get-caller-identity)
+  default = [
+    "arn:aws:iam::679583587966:user/iac-admin",
+  ]
 }
 
 # scripts/eks-ctl.sh, .github/workflows/eks-start-stop.yml 기본값과 일치
