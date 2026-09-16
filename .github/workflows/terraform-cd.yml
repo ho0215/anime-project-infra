@@ -122,6 +122,17 @@ jobs:
           echo "- NS: \`terraform output route53_name_servers\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- kubeconfig: \`$(terraform output -raw eks_kubeconfig_hint)\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- helm + DNS: anime-project \`./scripts/eks-bind-domain.sh\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- S3 media/static: Sync media → S3 워크플로(아래 job) 또는 \`scripts/restore-s3-assets.sh\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # destroy(force_destroy) 후 빈 버킷 → git 의 media/static 재업로드
+  restore-s3-assets:
+    name: Restore S3 media+static after apply
+    needs: apply
+    uses: ./.github/workflows/sync-media-s3.yml
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
 
   destroy:
     name: Terraform Destroy (keep Route53 + ACM)

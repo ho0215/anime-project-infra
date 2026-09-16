@@ -1,0 +1,91 @@
+# Terraform destroy(force_destroy) 후 버킷이 비는 것과 동일하게
+# media/static 객체를 지운 뒤 git → S3 복구가 되는지 검증한다.
+name: "Verify S3 wipe → restore (destroy 시뮬레이션)"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/verify-destroy-media-restore-8e41]
+    paths:
+      - ".github/workflows/verify-s3-wipe-restore.yml"
+      - ".github/workflows/sync-media-s3.yml"
+      - "scripts/restore-s3-assets.sh"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  wipe-and-restore:
+    name: Wipe S3 assets → sync → probe
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      STATIC_BUCKET_NAME: aniverse-static-679583587966-ap-northeast-2
+    steps:
+      - name: Check OIDC Variables
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ] || [ "${{ vars.AWS_USE_OIDC }}" != "true" ]; then
+            echo "::error::Need AWS_ROLE_ARN + AWS_USE_OIDC=true"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-actions-verify-s3-wipe
+          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/checkout@v4
+
+      - name: Checkout anime-project
+        uses: actions/checkout@v4
+        with:
+          repository: ho0215/anime-project
+          ref: main
+          path: anime-project
+
+      - name: Wipe media/static prefixes (simulate empty bucket after destroy)
+        run: |
+          set -euo pipefail
+          for p in goods_images works_images community img css; do
+            echo "Removing s3://${STATIC_BUCKET_NAME}/${p}/"
+            aws s3 rm "s3://${STATIC_BUCKET_NAME}/${p}/" --recursive --region "${AWS_REGION}" || true
+          done
+
+      - name: Expect sample media 403/404 after wipe
+        run: |
+          set -euo pipefail
+          ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('타마마.jpeg'))")
+          URL="https://${STATIC_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/goods_images/${ENC}"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          echo "After wipe: $URL → HTTP $CODE"
+          echo "- after wipe: **$CODE** (expect 403/404)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" = "200" ]; then
+            echo "::error::Wipe failed; object still readable"
+            exit 1
+          fi
+
+      - name: Restore from anime-project (media + static)
+        run: |
+          set -euo pipefail
+          chmod +x scripts/restore-s3-assets.sh
+          APP_DIR="$PWD/anime-project" \
+            STATIC_BUCKET_NAME="${STATIC_BUCKET_NAME}" \
+            AWS_REGION="${AWS_REGION}" \
+            bash scripts/restore-s3-assets.sh
+
+      - name: Probe media + favicon 200
+        run: |
+          set -euo pipefail
+          ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('타마마.jpeg'))")
+          GOODS="https://${STATIC_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/goods_images/${ENC}"
+          FAV="https://${STATIC_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/img/favicon-32.png"
+          for URL in "$GOODS" "$FAV"; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            echo "$URL → $CODE"
+            echo "- \`$URL\` → **$CODE**" >> "$GITHUB_STEP_SUMMARY"
+            test "$CODE" = "200"
+          done

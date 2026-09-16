@@ -1,5 +1,5 @@
-# DB 복구 후 ImageField 경로만 있고 S3 객체는 비어 있을 때
-# anime-project media/ → static/media 버킷에 동기화
+# DB/인프라 복구 후 S3 객체가 비어 있을 때
+# anime-project media/ + static/(css·img) → 버킷 동기화
 name: "Sync media → S3"
 
 on:
@@ -8,6 +8,15 @@ on:
     branches: [main, cursor/**]
     paths:
       - ".github/workflows/sync-media-s3.yml"
+      - "scripts/restore-s3-assets.sh"
+  # Terraform apply 성공 후 자산도 호출 가능 (workflow_call)
+  workflow_call:
+    inputs:
+      bucket:
+        description: "static/media 버킷 이름"
+        type: string
+        required: false
+        default: "aniverse-static-679583587966-ap-northeast-2"
 
 permissions:
   contents: read
@@ -15,12 +24,11 @@ permissions:
 
 jobs:
   sync:
-    name: aws s3 sync media/
+    name: aws s3 sync media+static
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
-      # Terraform output static_bucket_name (environments/dev)
-      STATIC_BUCKET_NAME: aniverse-static-679583587966-ap-northeast-2
+      STATIC_BUCKET_NAME: ${{ inputs.bucket || 'aniverse-static-679583587966-ap-northeast-2' }}
     steps:
       - name: Check OIDC Variables
         id: auth
@@ -35,7 +43,7 @@ jobs:
           fi
           echo "mode=oidc" >> "$GITHUB_OUTPUT"
           {
-            echo "### Sync media → S3"
+            echo "### Sync media+static → S3"
             echo "- role: \`${{ vars.AWS_ROLE_ARN }}\`"
             echo "- bucket: \`${STATIC_BUCKET_NAME}\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -48,20 +56,23 @@ jobs:
           audience: sts.amazonaws.com
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Checkout anime-project (media/)
+      - uses: actions/checkout@v4
+
+      - name: Checkout anime-project
         uses: actions/checkout@v4
         with:
           repository: ho0215/anime-project
           ref: main
           path: anime-project
 
-      - name: Sync media to S3
+      - name: Restore media + static assets
         run: |
           set -euo pipefail
-          chmod +x anime-project/scripts/sync_media_to_s3.sh
-          STATIC_BUCKET_NAME="${STATIC_BUCKET_NAME}" \
+          chmod +x scripts/restore-s3-assets.sh
+          APP_DIR="$PWD/anime-project" \
+            STATIC_BUCKET_NAME="${STATIC_BUCKET_NAME}" \
             AWS_REGION="${AWS_REGION}" \
-            bash anime-project/scripts/sync_media_to_s3.sh
+            bash scripts/restore-s3-assets.sh
 
       - name: Probe sample object
         run: |
