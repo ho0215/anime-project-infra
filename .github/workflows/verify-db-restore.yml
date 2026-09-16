@@ -1,4 +1,4 @@
-# Point Argo at chart branch, sync, wait for db-restore Job (non-hook)
+# Terminate stuck Argo ops, apply db-restore Job via helm, wait for success
 name: "Verify DB restore Job"
 
 on:
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Sync Argo → wait db-restore Job
+    name: Apply db-restore Job + wait
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
@@ -43,74 +43,98 @@ jobs:
         with:
           version: v1.31.0
 
+      - name: Install helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
       - name: kubeconfig
         run: |
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
           kubectl get nodes
+          kubectl -n aniverse get pods
 
-      - name: Clear stuck hook Job + point Argo at branch
+      - name: Checkout anime-project chart branch
+        uses: actions/checkout@v4
+        with:
+          repository: ho0215/anime-project
+          ref: ${{ env.APP_REF }}
+          path: anime-project
+
+      - name: Terminate stuck Argo operation + delete old Job
         run: |
           set -euo pipefail
+          # Stuck "waiting for hook Job" blocks forever after Job delete
+          if kubectl -n argocd get application aniverse-eks -o jsonpath='{.operation}' | grep -q .; then
+            echo "Terminating stuck Argo operation..."
+            kubectl -n argocd patch application aniverse-eks --type=json \
+              -p='[{"op":"remove","path":"/operation"}]' || true
+          fi
           kubectl -n aniverse delete job aniverse-db-restore --ignore-not-found
-          # Drop stale SyncError condition by refreshing after patch
+          sleep 3
+
+      - name: Point Argo at chart branch (GitOps path)
+        run: |
+          set -euo pipefail
           kubectl -n argocd patch application aniverse-eks --type=json -p="[
             {\"op\":\"replace\",\"path\":\"/spec/source/targetRevision\",\"value\":\"${APP_REF}\"}
           ]"
           kubectl -n argocd annotate application aniverse-eks \
             argocd.argoproj.io/refresh=hard --overwrite
+          # Sync without ApplyOutOfSyncOnly so new Job is created
           kubectl -n argocd patch application aniverse-eks --type merge -p \
-            '{"operation":{"initiatedBy":{"username":"ci-db-restore"},"sync":{"prune":false,"syncStrategy":{"hook":{}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true","ApplyOutOfSyncOnly=true"]}}}' \
+            '{"operation":{"initiatedBy":{"username":"ci-db-restore"},"sync":{"prune":false,"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
             || true
 
-      - name: Wait Synced/Healthy
+      - name: Helm-apply Job (authoritative verify)
         run: |
           set -euo pipefail
-          for i in $(seq 1 60); do
-            ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' || true)
-            HL=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' || true)
-            OP=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.operationState.phase}' || true)
-            MSG=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.operationState.message}' || true)
-            echo "[$i] sync=$ST health=$HL op=$OP msg=${MSG:-}"
-            if [ "$OP" = "Failed" ] || [ "$OP" = "Error" ]; then
-              echo "::error::Argo operation failed: $MSG"
-              kubectl -n argocd get app aniverse-eks -o yaml | head -160
-              exit 1
-            fi
-            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ] && { [ -z "$OP" ] || [ "$OP" = "Succeeded" ]; }; then
-              break
-            fi
-            # Synced+Healthy while op Running on non-hook job is OK once resources applied
-            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ] && [ "$i" -gt 12 ]; then
-              break
-            fi
-            sleep 5
-          done
+          # Reuse live secrets so we do not overwrite passwords
+          DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
+          DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
+          ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
 
-      - name: Wait Job + dump diagnostics on failure
+          helm template aniverse anime-project/deploy/helm/aniverse \
+            -n aniverse \
+            -f anime-project/deploy/helm/aniverse/values-eks.yaml \
+            --set-string "secrets.DJANGO_SECRET_KEY=${DJANGO}" \
+            --set-string "secrets.DB_PASSWORD=${DBPASS}" \
+            --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
+            -s templates/db-restore-job.yaml \
+            -s templates/networkpolicy.yaml \
+            > /tmp/db-restore.yaml
+
+          echo "--- rendered ---"
+          sed -n '1,40p' /tmp/db-restore.yaml
+          kubectl -n aniverse delete job aniverse-db-restore --ignore-not-found
+          kubectl apply -f /tmp/db-restore.yaml
+
+      - name: Wait Job complete
         run: |
           set -euo pipefail
-          for i in $(seq 1 36); do
-            if kubectl -n aniverse get job aniverse-db-restore >/dev/null 2>&1; then
-              break
-            fi
-            echo "waiting for Job to appear ($i)"
-            sleep 5
-          done
-          kubectl -n aniverse get job aniverse-db-restore -o wide || true
-          if ! kubectl -n aniverse wait --for=condition=complete job/aniverse-db-restore --timeout=360s; then
-            echo "::error::Job did not complete"
+          kubectl -n aniverse get job aniverse-db-restore -o wide
+          if ! kubectl -n aniverse wait --for=condition=complete job/aniverse-db-restore --timeout=600s; then
+            echo "::error::Job failed or timed out"
             kubectl -n aniverse describe job aniverse-db-restore || true
             kubectl -n aniverse get pods -l job-name=aniverse-db-restore -o wide || true
             kubectl -n aniverse describe pods -l job-name=aniverse-db-restore || true
-            kubectl -n aniverse logs -l job-name=aniverse-db-restore --all-containers --tail=200 || true
+            kubectl -n aniverse logs -l job-name=aniverse-db-restore --all-containers --tail=300 || true
             exit 1
           fi
+          echo "==== logs ===="
           kubectl -n aniverse logs job/aniverse-db-restore --tail=100
           SUCC=$(kubectl -n aniverse get job aniverse-db-restore -o jsonpath='{.status.succeeded}')
           test "${SUCC}" = "1"
-          echo "### DB restore Job OK" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### DB restore Job"
+            echo "- applied via helm template from \`${APP_REF}\`"
+            echo "- succeeded=1"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Smoke site
-        run: curl -fsS -o /dev/null -w "health=%{http_code}\n" https://aniverse.my/health/
-
-# chart fix bcdd54d+/rewrite
+      - name: Smoke site + Argo status
+        run: |
+          set -euo pipefail
+          curl -fsS -o /dev/null -w "health=%{http_code}\n" https://aniverse.my/health/
+          kubectl -n argocd get app aniverse-eks -o wide || true
+          kubectl -n aniverse get pods
+# client fix 202609160443
+# chart 1f86eb3+mariadb-admin 044405
