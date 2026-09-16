@@ -1,0 +1,100 @@
+# Point Argo at a branch that has dbRestore Job, sync, wait for Job success
+name: "Verify DB restore Job"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/db-restore-auto-8e41]
+    paths:
+      - ".github/workflows/verify-db-restore.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: argocd-eks
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Sync Argo → wait db-restore Job
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
+      APP_REF: cursor/db-restore-auto-8e41
+    steps:
+      - name: Check OIDC
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ] || [ "${{ vars.AWS_USE_OIDC }}" != "true" ]; then
+            echo "::error::Need AWS_ROLE_ARN + AWS_USE_OIDC=true"
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-verify-db-restore
+          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+
+      - name: kubeconfig
+        run: |
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          kubectl get nodes
+
+      - name: Point aniverse-eks at branch + hard refresh
+        run: |
+          set -euo pipefail
+          kubectl -n argocd get app aniverse-eks
+          kubectl -n argocd patch application aniverse-eks --type=json -p="[
+            {\"op\":\"replace\",\"path\":\"/spec/source/targetRevision\",\"value\":\"${APP_REF}\"}
+          ]"
+          kubectl -n argocd annotate application aniverse-eks \
+            argocd.argoproj.io/refresh=hard --overwrite
+          # Kick sync
+          kubectl -n argocd patch application aniverse-eks --type merge -p \
+            '{"operation":{"initiatedBy":{"username":"ci-db-restore"},"sync":{"syncStrategy":{"hook":{}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
+            || true
+
+      - name: Wait Synced + Job complete (or skip log)
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' || true)
+            HL=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' || true)
+            echo "[$i] app sync=$ST health=$HL"
+            if [ "$ST" = "Synced" ] && [ "$HL" = "Healthy" ]; then
+              break
+            fi
+            sleep 5
+          done
+          # Hook Job may finish quickly; wait up to 5m
+          if kubectl -n aniverse get job aniverse-db-restore >/dev/null 2>&1; then
+            kubectl -n aniverse wait --for=condition=complete job/aniverse-db-restore --timeout=300s \
+              || kubectl -n aniverse wait --for=condition=failed job/aniverse-db-restore --timeout=30s || true
+            kubectl -n aniverse logs job/aniverse-db-restore --tail=50
+            SUCC=$(kubectl -n aniverse get job aniverse-db-restore -o jsonpath='{.status.succeeded}' || echo 0)
+            test "${SUCC:-0}" = "1"
+          else
+            echo "Job not listed yet (hook cleaned up?) — check app resources"
+            kubectl -n argocd get app aniverse-eks -o yaml | sed -n '/status:/,/^$/p' | head -80
+            # Require app healthy even if job already deleted by hook policy
+            ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}')
+            HL=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}')
+            test "$ST" = "Synced" && test "$HL" = "Healthy"
+          fi
+          {
+            echo "### DB restore verify"
+            echo "- Argo targetRevision: \`${APP_REF}\`"
+            echo "- app: Synced/Healthy"
+            kubectl -n aniverse get job aniverse-db-restore 2>&1 || echo "(job gone after hook)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke site
+        run: curl -fsS -o /dev/null -w "health=%{http_code}\n" https://aniverse.my/health/
