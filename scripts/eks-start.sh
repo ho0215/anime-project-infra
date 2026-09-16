@@ -70,6 +70,19 @@ resume_asg() {
 set_asg_desired() {
   local asg="$1" desired="$2"
   echo "==> ASG set-desired-capacity (${asg}) → ${desired}"
+  # scale-in protection 있으면 종료가 막힘
+  local ids
+  ids="$(aws autoscaling describe-auto-scaling-groups --region "${REGION}" \
+    --auto-scaling-group-names "${asg}" \
+    --query 'AutoScalingGroups[0].Instances[].InstanceId' --output text | tr '\t' ' ')"
+  if [ -n "${ids}" ]; then
+    echo "==> clear scale-in protection: ${ids}"
+    # shellcheck disable=SC2086
+    aws autoscaling set-instance-protection --region "${REGION}" \
+      --auto-scaling-group-name "${asg}" \
+      --instance-ids ${ids} \
+      --no-protected-from-scale-in || true
+  fi
   aws autoscaling set-desired-capacity \
     --region "${REGION}" \
     --auto-scaling-group-name "${asg}" \
