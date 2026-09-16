@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-09-16
+
+### D-007 — Terraform EKS-only 정리
+
+| 항목 | 내용 |
+|------|------|
+| 결정 | 루트 모듈에서 EC2 ASG · classic ALB · CodeDeploy · RDS · Redis · EFS · WAF · Secrets Manager · SSM endpoints · monitoring 제거 |
+| 유지 | network · nat · security(NAT SG) · storage(S3) · dns · ecr · eks |
+| 앱 DB | Helm MariaDB StatefulSet + EBS PVC |
+| 사유 | 비용 · 운영 단순화. As-Is는 git 태그 `v1-ec2-codedeploy` 로 보존 |
+| 주의 | 다음 apply 시 state에 남은 레거시 리소스는 **destroy** 됨 |
+
+---
+
 ## 2026-09-11
 
 ### D-001 — AWS 계정 · 비용
