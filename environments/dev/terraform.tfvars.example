@@ -10,3 +10,7 @@
 
 # EKS: 로컬 kubectl 접근이 필요하면 본인 IAM ARN을 추가
 # eks_cluster_admin_arns = ["arn:aws:iam::<account-id>:user/<your-iam-user>"]
+
+# Route53 호스팅 영역(aniverse.my)이 계정에 있을 때만 true.
+# 존이 없으면 ACM data source 가 plan 전체를 막아 EKS도 안 뜸 → 기본 false.
+# enable_acm = true

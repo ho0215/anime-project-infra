@@ -69,8 +69,10 @@ module "storage" {
 
 # ==========================================
 # ACM (기존 Route 53 호스팅 영역 + DNS 검증)
+# enable_acm=false 이면 스킵 — 존 없을 때 EKS/나머지 apply 가 막히지 않게.
 # ==========================================
 module "acm" {
+  count  = var.enable_acm ? 1 : 0
   source = "../../modules/acm"
 
   project_name              = var.project_name
@@ -88,14 +90,16 @@ module "alb" {
   vpc_id             = module.network.vpc_id
   public_subnet_ids  = module.network.public_subnet_ids
   alb_sg_id          = module.security.alb_sg_id
-  certificate_arn    = module.acm.certificate_arn
-  enable_https       = true
+  certificate_arn    = var.enable_acm ? module.acm[0].certificate_arn : ""
+  enable_https       = var.enable_acm
   enable_access_logs = var.enable_alb_access_logs
 }
 
 # apex / www → ALB (ACM 과 ALB 순환 참조 방지를 위해 루트에 둠)
 resource "aws_route53_record" "apex" {
-  zone_id = module.acm.zone_id
+  count = var.enable_acm ? 1 : 0
+
+  zone_id = module.acm[0].zone_id
   name    = var.domain_name
   type    = "A"
 
@@ -107,9 +111,9 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
-  count = contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
+  count = var.enable_acm && contains(var.subject_alternative_names, "www.${var.domain_name}") ? 1 : 0
 
-  zone_id = module.acm.zone_id
+  zone_id = module.acm[0].zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
 
@@ -159,7 +163,7 @@ module "secrets" {
   static_bucket_name = module.storage.s3_bucket_name
   aws_region         = var.aws_region
   domain_name        = var.domain_name
-  use_https          = true
+  use_https          = var.enable_acm
   redis_url          = var.enable_redis ? module.redis[0].redis_url : ""
 }
 
@@ -212,21 +216,21 @@ module "ecr" {
 module "eks" {
   source = "../../modules/eks"
 
-  project_name            = var.project_name
-  vpc_id                  = module.network.vpc_id
-  vpc_cidr                = var.vpc_cidr
-  public_subnet_ids       = module.network.public_subnet_ids
-  private_app_subnet_ids  = module.network.private_app_subnet_ids
+  project_name           = var.project_name
+  vpc_id                 = module.network.vpc_id
+  vpc_cidr               = var.vpc_cidr
+  public_subnet_ids      = module.network.public_subnet_ids
+  private_app_subnet_ids = module.network.private_app_subnet_ids
 
   cluster_version             = var.eks_cluster_version
   cluster_public_access_cidrs = var.admin_cidr_blocks
   cluster_admin_arns          = var.eks_cluster_admin_arns
 
-  node_desired_size    = var.eks_node_desired_size
-  node_min_size        = var.eks_node_min_size
-  node_max_size        = var.eks_node_max_size
-  node_instance_types  = var.eks_node_instance_types
-  node_capacity_type   = var.eks_node_capacity_type
+  node_desired_size   = var.eks_node_desired_size
+  node_min_size       = var.eks_node_min_size
+  node_max_size       = var.eks_node_max_size
+  node_instance_types = var.eks_node_instance_types
+  node_capacity_type  = var.eks_node_capacity_type
 
   enable_aws_lb_controller  = var.eks_enable_aws_lb_controller
   enable_cluster_autoscaler = var.eks_enable_cluster_autoscaler

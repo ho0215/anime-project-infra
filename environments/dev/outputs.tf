@@ -8,12 +8,12 @@ output "alb_url" {
 }
 
 output "app_url" {
-  description = "HTTPS 앱 URL (도메인)"
-  value       = module.acm.app_url
+  description = "HTTPS 앱 URL (도메인). ACM 꺼져 있으면 ALB URL"
+  value       = var.enable_acm ? module.acm[0].app_url : module.alb.alb_url
 }
 
 output "certificate_arn" {
-  value = module.acm.certificate_arn
+  value = var.enable_acm ? module.acm[0].certificate_arn : null
 }
 
 output "waf_web_acl_arn" {

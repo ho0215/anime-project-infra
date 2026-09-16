@@ -152,7 +152,7 @@ resource "aws_eks_node_group" "default" {
 
   # Cluster Autoscaler ASG 자동탐색용 (EKS가 노드그룹 태그를 하위 ASG에 전파)
   tags = {
-    "k8s.io/cluster-autoscaler/enabled"                        = "true"
+    "k8s.io/cluster-autoscaler/enabled"                      = "true"
     "k8s.io/cluster-autoscaler/${aws_eks_cluster.this.name}" = "owned"
   }
 
@@ -169,31 +169,34 @@ resource "aws_eks_node_group" "default" {
 
 # ==========================================
 # 서브넷 태그 — ALB/NLB 자동탐색(AWS Load Balancer Controller)에 필요
+# for_each + toset(subnet_ids) 는 서브넷이 같은 apply에서 만들어질 때
+# ID가 plan 시점에 unknown → "Invalid for_each argument" 로 막힘.
+# count + index 는 length만 알면 되므로 VPC와 같이 첫 apply 가능.
 # ==========================================
 resource "aws_ec2_tag" "public_elb" {
-  for_each    = toset(var.public_subnet_ids)
-  resource_id = each.value
+  count       = length(var.public_subnet_ids)
+  resource_id = var.public_subnet_ids[count.index]
   key         = "kubernetes.io/role/elb"
   value       = "1"
 }
 
 resource "aws_ec2_tag" "public_cluster" {
-  for_each    = toset(var.public_subnet_ids)
-  resource_id = each.value
+  count       = length(var.public_subnet_ids)
+  resource_id = var.public_subnet_ids[count.index]
   key         = "kubernetes.io/cluster/${aws_eks_cluster.this.name}"
   value       = "shared"
 }
 
 resource "aws_ec2_tag" "private_internal_elb" {
-  for_each    = toset(var.private_app_subnet_ids)
-  resource_id = each.value
+  count       = length(var.private_app_subnet_ids)
+  resource_id = var.private_app_subnet_ids[count.index]
   key         = "kubernetes.io/role/internal-elb"
   value       = "1"
 }
 
 resource "aws_ec2_tag" "private_cluster" {
-  for_each    = toset(var.private_app_subnet_ids)
-  resource_id = each.value
+  count       = length(var.private_app_subnet_ids)
+  resource_id = var.private_app_subnet_ids[count.index]
   key         = "kubernetes.io/cluster/${aws_eks_cluster.this.name}"
   value       = "shared"
 }
