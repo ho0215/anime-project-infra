@@ -1,0 +1,100 @@
+# EKS에 Argo CD 설치 + aniverse-eks Application sync (실전 GitOps)
+name: "Argo CD on EKS"
+
+on:
+  workflow_dispatch:
+    inputs:
+      sync:
+        description: "Application sync 실행"
+        type: boolean
+        default: true
+  push:
+    branches: [cursor/argocd-eks-8e41]
+    paths:
+      - ".github/workflows/argocd-eks.yml"
+      - "scripts/argocd-eks-via-oidc.sh"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: argocd-eks
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Install Argo CD + sync aniverse-eks
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OIDC Variables
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ] || [ "${{ vars.AWS_USE_OIDC }}" != "true" ]; then
+            echo "::error::Need AWS_ROLE_ARN + AWS_USE_OIDC=true"
+            exit 1
+          fi
+          echo "cluster=${EKS_CLUSTER_NAME}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-actions-argocd-eks
+          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+
+      - name: kubeconfig
+        run: |
+          set -euo pipefail
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          kubectl cluster-info
+          kubectl get nodes -o wide
+
+      - name: Checkout anime-project
+        uses: actions/checkout@v4
+        with:
+          repository: ho0215/anime-project
+          # Prefer this PR branch if present; else main
+          ref: cursor/argocd-eks-8e41
+          path: anime-project
+
+      - name: Install PyYAML (Application patch)
+        run: pip install --quiet pyyaml
+
+      - name: Run argocd-eks-install.sh
+        env:
+          SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.sync || 'true' }}
+        run: |
+          set -euo pipefail
+          chmod +x anime-project/scripts/argocd-eks-install.sh
+          bash anime-project/scripts/argocd-eks-install.sh
+
+      - name: Summarize
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "### Argo CD / aniverse-eks"
+            echo '```'
+            kubectl -n argocd get app aniverse-eks -o wide 2>&1 || true
+            echo '```'
+            echo '```'
+            kubectl -n aniverse get pods,ingress 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          SYNC_ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' 2>/dev/null || echo missing)
+          HEALTH=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' 2>/dev/null || echo missing)
+          echo "sync=${SYNC_ST} health=${HEALTH}"
+          test "${SYNC_ST}" = "Synced"
+          test "${HEALTH}" = "Healthy"
+          curl -fsS -o /dev/null -w "health_http=%{http_code}\n" https://aniverse.my/health/
