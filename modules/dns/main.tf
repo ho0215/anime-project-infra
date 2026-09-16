@@ -44,7 +44,8 @@ data "aws_lbs" "eks_ingress" {
 }
 
 locals {
-  eks_alb_arn = var.lookup_eks_alb ? try(data.aws_lbs.eks_ingress[0].arns[0], "") : ""
+  # aws_lbs.arns 는 set — list 로 변환 후 첫 ALB 사용
+  eks_alb_arn = var.lookup_eks_alb ? try(tolist(data.aws_lbs.eks_ingress[0].arns)[0], "") : ""
 }
 
 data "aws_lb" "eks_ingress" {
