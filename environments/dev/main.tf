@@ -68,8 +68,9 @@ module "storage" {
 }
 
 # ==========================================
-# DNS (Route53 존 복구 + EKS ALB alias + ACM DNS 검증 레코드)
-# 존이 없어 CD/스크립트가 막히던 상태 복구. NS 는 가비아에 위임.
+# DNS (Route53 존 + EKS ALB alias + ACM DNS 검증)
+# 존·ACM 은 destroy 해도 유지 (prevent_destroy + terraform-destroy-keep-dns.sh).
+# ALB 는 Ingress 태그로 조회 → 재생성 후 rebind/apply 시 alias 자동 갱신.
 # ==========================================
 module "dns" {
   source = "../../modules/dns"
@@ -80,6 +81,8 @@ module "dns" {
   subject_alternative_names = var.subject_alternative_names
   create_zone               = var.create_route53_zone
   eks_alb_dns_name          = var.eks_ingress_hostname
+  lookup_eks_alb            = var.lookup_eks_alb
+  eks_ingress_stack         = var.eks_ingress_stack
   request_acm               = var.request_acm
 }
 

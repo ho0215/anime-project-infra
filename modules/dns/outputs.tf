@@ -3,7 +3,7 @@ output "zone_id" {
 }
 
 output "name_servers" {
-  description = "가비아에 등록할 NS"
+  description = "가비아에 등록할 NS (존을 지우지 않는 한 고정)"
   value       = local.name_servers
 }
 
@@ -20,6 +20,7 @@ output "app_url" {
   value = "https://${var.domain_name}"
 }
 
-output "eks_apex_fqdn" {
-  value = var.eks_alb_dns_name != "" ? var.domain_name : null
+output "eks_alb_dns_name" {
+  description = "현재 Route53 alias 가 가리키는 ALB DNS"
+  value       = local.eks_alb_dns != "" ? local.eks_alb_dns : null
 }

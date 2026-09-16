@@ -7,12 +7,13 @@ EKS는 **계속 켜둘 필요 없음**. 작업할 때만 켜고, 끝나면 끄�
 | 명령 | 하는 일 | 남는 비용 |
 |------|---------|-----------|
 | `./scripts/eks-stop.sh` | 워커 노드 **0대** | 컨트롤 플레인 ≈ **$0.10/h** (하루 ~$2.4) |
-| `./scripts/eks-start.sh` | 워커 다시 올림 (기본 2대) | 노드 + 컨트롤 |
+| `./scripts/eks-start.sh` | 워커 다시 올림 + Ready 대기 | 노드 + 컨트롤 |
 | `./scripts/eks-status.sh` | 상태 확인 | — |
-| Terraform **destroy** (클러스터) | 완전 삭제 | **≈ $0** (ECR·코드는 유지) |
+| Terraform **destroy** (`terraform-destroy-keep-dns.sh`) | 인프라 삭제, **Route53 존·ACM 유지** | DNS≈0, NS 그대로 |
+| Terraform **destroy 전체** (비권장) | 존까지 삭제 | 가비아 NS 다시 등록 필요 |
 
-> 아직 EKS Terraform이 없으면 서이가 클러스터·노드그룹 만든 뒤  
-> 아래 이름만 환경변수로 맞추면 된다.
+> **평소 비용 절감은 `eks-stop` / `eks-start`.**  
+> destroy 는 가끔만. destroy 해도 **aniverse.my 호스팅 영역 NS는 안 바뀜**.
 
 ## 사전 설정 (한 번)
 
@@ -28,20 +29,39 @@ aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
 `~/.bashrc`에 export 넣어 두면 편하다.
 
-## 매일 쓰는 법
+## 매일 쓰는 법 (권장)
 
 ```bash
 cd anime-project-infra
 
-# 작업 시작
+# 작업 시작 (노드 Ready 될 때까지 대기)
 ./scripts/eks-start.sh
-# 2~5분 후
 kubectl get nodes
 
-# 작업 끝 (노드만 꺼서 EC2비 절약)
+# 앱이 이미 helm 으로 올라가 있으면 바로 접속
+# (Route53 alias · ALB 는 stop/start 동안 유지 → DNS 재바인딩 불필요)
+curl -sI http://aniverse.my/health/
+
+# 작업 끝
 ./scripts/eks-stop.sh
-./scripts/eks-status.sh
 ```
+
+## destroy 후 다시 올릴 때
+
+CD destroy 는 `scripts/terraform-destroy-keep-dns.sh` 를 씀 (존·ACM 보존).
+
+```bash
+# 1) terraform apply  (EKS 등 재생성)
+# 2) helm upgrade --install aniverse ... -f values-eks.yaml
+# 3) Route53 alias 를 새 ALB 에 재바인딩 (태그로 ALB 자동 조회)
+./scripts/terraform-rebind-eks-dns.sh
+
+dig +short aniverse.my
+curl -sI http://aniverse.my/health/
+```
+
+가비아 NS 를 유지하려면 **반드시** keep-dns destroy 를 쓴다.  
+존을 지우면 NS 가 바뀌어 가비아를 다시 고쳐야 한다.
 
 ## GitHub Actions으로도 가능
 
@@ -62,14 +82,17 @@ kubectl get nodes
 며칠~2주 쉴 거면 클러스터를 지우는 편이 싸다.
 
 ```bash
-# 실제 모듈 경로는 서이 Terraform에 맞게
-terraform destroy -target=module.eks
+# CD: Terraform CD → action=destroy (keep-dns)
+# 로컬:
+./scripts/terraform-destroy-keep-dns.sh
 ```
 
-다시 켤 때 `terraform apply` + kubeconfig + 앱/Argo 재적용.
+다시 켤 때 `terraform apply` → helm → `./scripts/terraform-rebind-eks-dns.sh`.
 
 ## 안 지워도 되는 것
 
+- **Route53 호스팅 영역** (가비아 NS 고정) — destroy 시에도 유지
+- **ACM 인증서** (+ DNS 검증 레코드) — HTTPS 재기동 빠르게
 - ECR 이미지
 - GitHub 코드 · 매니페스트
 - Terraform state / (공유 시) VPC
@@ -77,6 +100,6 @@ terraform destroy -target=module.eks
 ## 팀 약속 (추천)
 
 1. **당일 실습만** → `eks-stop` (노드 0)  
-2. **2일 이상 안 씀** → 클러스터 destroy  
+2. **2일 이상 안 씀** → keep-dns destroy  
 3. Budgets 알람 (예: $30)  
 4. 클러스터/노드그룹 이름은 Variables·이 문서에 통일

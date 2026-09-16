@@ -30,7 +30,13 @@ output "route53_name_servers" {
 }
 
 output "eks_ingress_hostname" {
-  value = var.eks_ingress_hostname
+  description = "폴백 변수 값 (참고). 실제 alias 대상은 eks_alb_dns_resolved"
+  value       = var.eks_ingress_hostname
+}
+
+output "eks_alb_dns_resolved" {
+  description = "Route53 이 실제로 가리키는 ALB DNS (태그 조회 결과)"
+  value       = module.dns.eks_alb_dns_name
 }
 
 output "waf_web_acl_arn" {
