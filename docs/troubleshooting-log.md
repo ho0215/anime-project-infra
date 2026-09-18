@@ -37,21 +37,21 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
-### 2026-09-18 — AWS 계정 Blocked (의심 침해 알림)로 EKS start 실패
+### 2026-09-18 — AWS 계정 Blocked — `iac-admin` Access Key 유출
 
 | 항목 | 내용 |
 |------|------|
 | 담당 | 현우 |
 | 환경 | AWS 계정 / GitHub Actions / EKS |
-| 관련 파트 | 보안 · 계정 / GitOps · CI/CD / 컴퓨트 |
-| 증상 | Actions `EKS start/stop` → `start` 실패. NAT `StartInstances` 에서 `Blocked: This account is currently blocked and not recognized as a valid account`. OIDC·워크플로 로직은 정상 |
-| 가설 | (1) start 스크립트/권한 버그 (2) NAT/ASG 설정 오류 (3) **계정 단위 서비스 제한** |
-| 원인 | AWS가 “제3자의 부적절 접근 가능” 알림을 보내고 **일부 서비스 권한을 일시 제한**. 팀 실습용으로 **동일 계정에 IAM 사용자를 공유**한 구조에서, 자격 증명 유출·과도한 권한·비정상 API 사용이 감지되면 **계정 전체**가 잠김. (특정 팀원 실수라고 단정할 수 없음 — CloudTrail로 주체·IP 확인 필요) |
-| 조치 | 코드 수정이 아니라 **계정 복구 절차**: ① 루트 암호 변경 ② 루트 MFA ③ IAM/CloudTrail에서 수상 User·Access Key·Role 점검·삭제 ④ 전 리전·Billing에서 이상 리소스 확인 ⑤ Support 사례에 1~3단계 완료 회신 (기한 2026-09-22). 복구 후 `start` 재실행 |
-| 재발 방지 | 루트 공유 금지·MFA 필수 · IAM은 **최소 권한** · Access Key 지양(콘솔 MFA / CI는 OIDC) · 키를 깃·메신저에 올리지 않기 · 이상 과금 Budgets 알람 |
-| 계획 변경 | 실습 일정: 계정 복구 전까지 EKS start·EC2 기동 불가. 복구 후 start → health 확인 |
-| PR · 커밋 | (인시던트 기록) Actions run `35291530311` |
-| 참고 | AWS Trust & Safety 메일(계정 보호 지침). 표면 증상은 “start 실패”이나 근본 원인은 **계정 Blocked**. 발표 포인트: “인프라 as Code / CI가 정상이어도 계정 보안 이벤트가 배포를 막을 수 있다” |
+| 관련 파트 | 보안 · 계정 / GitOps · CI/CD |
+| 증상 | Actions·콘솔 모두 `StartInstances` → `Blocked`. Support Resolved 후에도 제한 유지 → 전담팀 에스컬레이션 |
+| 가설 | GitHub Actions start가 원인? → **아님** (콘솔도 동일) |
+| 원인 | **`iac-admin` 장기 Access Key 유출**. AWS가 `AKIAZ4OSWTZ7DVWXNPH2` 도용 지목. CloudTrail **9/17** `iac-admin`이 NAT AMI가 아닌 AMI로 `RunInstances` 다수 호출. 9/16 `github-actions-terraform`은 정상 Terraform. 발표자료「GitHub .env에 iac-admin 키 노출」과 일치 |
+| 조치 | 키 삭제·무단 리소스 정리·Support 회신. CI는 **OIDC만** (장기 키 불필요) |
+| 재발 방지 | Access Key 금지, `.env`/깃에 키 금지, MFA, Budgets, OIDC Admin 권한 축소(후속) |
+| 계획 변경 | 활성화 전까지 EC2/NAT/워커 start 불가 |
+| PR · 커밋 | Actions `35291530311` 등 |
+| 참고 | 표면은 start 실패, 근본은 **키 유출 → 무단 RunInstances → 계정 Block** |
 
 ### 2026-09-16 — EKS stop Actions 성공인데 EC2 워커가 안 꺼짐
 
@@ -267,7 +267,7 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 | 날짜 | 제목 | 담당 | 환경 |
 |------|------|------|------|
-| 2026-09-18 | AWS 계정 Blocked (의심 침해 알림)로 EKS start 실패 | 현우 | AWS / Actions |
+| 2026-09-18 | AWS 계정 Blocked — iac-admin Access Key 유출 | 현우 | AWS / Actions |
 | 2026-09-16 | EKS stop Actions 성공인데 EC2 워커가 안 꺼짐 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop `maxSize=0` API 거절 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop 후 Cluster Autoscaler가 워커 재기동 | 현우 | EKS |
