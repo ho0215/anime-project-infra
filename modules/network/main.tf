@@ -7,11 +7,6 @@ resource "aws_vpc" "main" {
   tags = {
     Name = "${var.project_name}-vpc"
   }
-
-  # EKS Hyperplane ENI 해제 대기 — 기본 ~20m 에서 DependencyViolation 나기 쉬움
-  timeouts {
-    delete = "45m"
-  }
 }
 
 # ── Internet Gateway (퍼블릭 서브넷용) ─────────────────
