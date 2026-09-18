@@ -86,7 +86,78 @@ for arn in "${TG_ARNS[@]:-}"; do
   fi
 done
 
-# ---- 3) DELETE_FAILED / 잔여 노드그룹 재삭제 ----
+# ---- 3) DELETE_FAILED / 잔여 노드그룹 강제 정리 ----
+# Access Entry 만으로는 DELETE_FAILED 가 안 풀리는 경우가 많음.
+# ASG 0 + 인스턴스 종료 → delete-nodegroup 재시도 → CFN FORCE_DELETE_STACK.
+force_scale_nodegroup_asg() {
+  local asgs
+  asgs="$(aws eks describe-nodegroup \
+    --region "${REGION}" \
+    --cluster-name "${CLUSTER}" \
+    --nodegroup-name "${NODEGROUP}" \
+    --query 'nodegroup.resources.autoScalingGroups[].name' \
+    --output text 2>/dev/null || true)"
+  if [ -z "${asgs}" ] || [ "${asgs}" = "None" ]; then
+    # 태그로 보조 탐색
+    asgs="$(aws autoscaling describe-auto-scaling-groups --region "${REGION}" \
+      --query "AutoScalingGroups[?contains(AutoScalingGroupName, '${CLUSTER}') || contains(AutoScalingGroupName, '${NODEGROUP}')].AutoScalingGroupName" \
+      --output text 2>/dev/null || true)"
+  fi
+  for asg in ${asgs}; do
+    [ -n "${asg}" ] || continue
+    echo "    force ASG ${asg} → min/desired/max=0"
+    aws autoscaling suspend-processes --region "${REGION}" --auto-scaling-group-name "${asg}" \
+      --scaling-processes Launch ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions 2>/dev/null || true
+    # scale-in protection 해제
+    mapfile -t ids < <(
+      aws autoscaling describe-auto-scaling-groups --region "${REGION}" \
+        --auto-scaling-group-names "${asg}" \
+        --query 'AutoScalingGroups[0].Instances[].InstanceId' --output text 2>/dev/null \
+        | tr '\t' '\n' | sed '/^$/d' || true
+    )
+    for id in "${ids[@]:-}"; do
+      [ -n "${id}" ] || continue
+      aws autoscaling set-instance-protection --region "${REGION}" \
+        --auto-scaling-group-name "${asg}" --instance-ids "${id}" \
+        --no-protected-from-scale-in 2>/dev/null || true
+    done
+    aws autoscaling update-auto-scaling-group --region "${REGION}" \
+      --auto-scaling-group-name "${asg}" \
+      --min-size 0 --desired-capacity 0 --max-size 0 || true
+    for id in "${ids[@]:-}"; do
+      [ -n "${id}" ] || continue
+      echo "    terminate ${id}"
+      aws ec2 terminate-instances --region "${REGION}" --instance-ids "${id}" >/dev/null 2>&1 || true
+    done
+  done
+}
+
+force_delete_nodegroup_cfn() {
+  # EKS 매니지드 노드그룹은 eks-*-nodegroup-* CFN 스택을 씀
+  echo "    CloudFormation stacks matching ${CLUSTER}/${NODEGROUP}"
+  mapfile -t stacks < <(
+    aws cloudformation list-stacks --region "${REGION}" \
+      --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE \
+        DELETE_FAILED UPDATE_ROLLBACK_FAILED ROLLBACK_COMPLETE IMPORT_COMPLETE \
+        IMPORT_ROLLBACK_COMPLETE \
+      --query "StackSummaries[?contains(StackName, '${CLUSTER}') || contains(StackName, '${NODEGROUP}') || contains(StackName, 'nodegroup')].StackName" \
+      --output text 2>/dev/null | tr '\t' '\n' | sed '/^$/d' || true
+  )
+  for stack in "${stacks[@]:-}"; do
+    [ -n "${stack}" ] || continue
+    # 너무 넓은 'nodegroup' 매칭은 다른 스택을 칠 수 있어 클러스터/노드그룹 이름 포함만
+    if [[ "${stack}" != *"${CLUSTER}"* ]] && [[ "${stack}" != *"${NODEGROUP}"* ]]; then
+      continue
+    fi
+    echo "    delete-stack FORCE ${stack}"
+    aws cloudformation delete-stack --region "${REGION}" \
+      --stack-name "${stack}" \
+      --deletion-mode FORCE_DELETE_STACK 2>/dev/null \
+      || aws cloudformation delete-stack --region "${REGION}" --stack-name "${stack}" 2>/dev/null \
+      || true
+  done
+}
+
 if [ "${cluster_exists}" = 1 ]; then
   ng_status="$(aws eks describe-nodegroup \
     --region "${REGION}" \
@@ -95,15 +166,24 @@ if [ "${cluster_exists}" = 1 ]; then
     --query 'nodegroup.status' --output text 2>/dev/null || echo MISSING)"
   echo "==> nodegroup ${NODEGROUP} status=${ng_status}"
   if [ "${ng_status}" != "MISSING" ] && [ "${ng_status}" != "None" ]; then
-    if [ "${ng_status}" != "DELETING" ]; then
-      echo "    delete-nodegroup ${NODEGROUP}"
-      aws eks delete-nodegroup \
-        --region "${REGION}" \
-        --cluster-name "${CLUSTER}" \
-        --nodegroup-name "${NODEGROUP}" >/dev/null || true
-    fi
-    echo "    wait nodegroup deleted (timeout ${WAIT_SEC}s)"
+    # health issues 출력
+    aws eks describe-nodegroup \
+      --region "${REGION}" \
+      --cluster-name "${CLUSTER}" \
+      --nodegroup-name "${NODEGROUP}" \
+      --query 'nodegroup.health.issues' --output json 2>/dev/null || true
+
+    force_scale_nodegroup_asg
+
+    echo "    delete-nodegroup ${NODEGROUP}"
+    aws eks delete-nodegroup \
+      --region "${REGION}" \
+      --cluster-name "${CLUSTER}" \
+      --nodegroup-name "${NODEGROUP}" >/dev/null 2>&1 || true
+
+    echo "    wait nodegroup deleted (timeout ${WAIT_SEC}s, force after 2 DELETE_FAILED)"
     deadline=$((SECONDS + WAIT_SEC))
+    failed_rounds=0
     while (( SECONDS < deadline )); do
       st="$(aws eks describe-nodegroup \
         --region "${REGION}" \
@@ -115,7 +195,12 @@ if [ "${cluster_exists}" = 1 ]; then
         break
       fi
       if [ "${st}" = "DELETE_FAILED" ]; then
-        echo "    DELETE_FAILED again — re-ensure access entry + retry delete"
+        failed_rounds=$((failed_rounds + 1))
+        echo "    DELETE_FAILED (round ${failed_rounds})"
+        force_scale_nodegroup_asg
+        if (( failed_rounds >= 2 )); then
+          force_delete_nodegroup_cfn
+        fi
         aws eks create-access-entry \
           --region "${REGION}" \
           --cluster-name "${CLUSTER}" \
@@ -124,9 +209,13 @@ if [ "${cluster_exists}" = 1 ]; then
         aws eks delete-nodegroup \
           --region "${REGION}" \
           --cluster-name "${CLUSTER}" \
-          --nodegroup-name "${NODEGROUP}" >/dev/null || true
+          --nodegroup-name "${NODEGROUP}" >/dev/null 2>&1 || true
+        if (( failed_rounds >= 4 )); then
+          echo "    giving up wait — will state-rm later; continue cleanup"
+          break
+        fi
       fi
-      sleep 15
+      sleep 20
     done
   fi
 fi

@@ -26,13 +26,16 @@ echo "==> preflight (ALB / EIP / nodegroup)"
 chmod +x "${ROOT}/scripts/terraform-destroy-preflight.sh"
 "${ROOT}/scripts/terraform-destroy-preflight.sh"
 
-# preflight 가 AWS 에서 노드그룹을 지웠으면 state 만 남은 경우 제거 (TF wait DELETE_FAILED 방지)
-if ! aws eks describe-nodegroup \
+# preflight 가 AWS 에서 노드그룹을 지웠거나 DELETE_FAILED 로 남기면
+# TF 가 다시 wait 하지 않도록 state 에서 제거 (잔여 ASG/CFN 은 preflight 가 처리).
+ng_now="$(aws eks describe-nodegroup \
   --region "${REGION}" \
   --cluster-name "${CLUSTER}" \
-  --nodegroup-name "${PROJECT}-nodes" >/dev/null 2>&1; then
+  --nodegroup-name "${PROJECT}-nodes" \
+  --query 'nodegroup.status' --output text 2>/dev/null || echo MISSING)"
+if [ "${ng_now}" = "MISSING" ] || [ "${ng_now}" = "None" ] || [ "${ng_now}" = "DELETE_FAILED" ]; then
   if terraform state list 2>/dev/null | grep -q 'module.eks.aws_eks_node_group.default'; then
-    echo "==> state rm module.eks.aws_eks_node_group.default (already gone in AWS)"
+    echo "==> state rm module.eks.aws_eks_node_group.default (aws status=${ng_now})"
     terraform state rm 'module.eks.aws_eks_node_group.default' || true
   fi
 fi
