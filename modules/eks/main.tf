@@ -531,7 +531,7 @@ resource "helm_release" "cluster_autoscaler" {
 # App web Pod IRSA — S3 media/static put (aniverse-web SA)
 # ==========================================
 locals {
-  enable_app_s3_irsa = var.app_s3_bucket_arn != ""
+  enable_app_s3_irsa = var.enable_app_s3_irsa
 }
 
 data "aws_iam_policy_document" "app_s3_assume" {
@@ -602,7 +602,7 @@ resource "aws_iam_role_policy" "app_s3" {
 # (static/media 파일엔 손 못 대게 — 최소 권한).
 # ==========================================
 locals {
-  enable_db_backup_irsa = var.db_backup_s3_bucket_arn != ""
+  enable_db_backup_irsa = var.enable_db_backup_irsa
 }
 
 data "aws_iam_policy_document" "db_backup_assume" {
