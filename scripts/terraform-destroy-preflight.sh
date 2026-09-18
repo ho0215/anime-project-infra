@@ -337,25 +337,82 @@ for id in "${INSTANCES[@]:-}"; do
   fi
 done
 
-# ---- 5) available ENI 정리 (서브넷 삭제 차단) ----
-echo "==> delete available ENIs in VPC"
-deadline=$((SECONDS + 180))
-while (( SECONDS < deadline )); do
-  mapfile -t ENIS < <(
+# ---- 5) VPC 의존성 정리 (VPC destroy 가 수십 분 hang 하는 주원인) ----
+# EKS 클러스터 삭제 직후 Hyperplane/ENI 가 비동기로 남음 → DeleteVpc 가 오래 걸리거나 DependencyViolation.
+# available ENI 삭제 + (가능하면) non-default SG / VPC endpoint 제거. in-use 는 AWS 해제까지 대기.
+echo "==> wait/clean ENIs + endpoints in VPC (EKS leftovers)"
+eni_deadline=$((SECONDS + "${DESTROY_ENI_WAIT_SEC:-600}"))
+while (( SECONDS < eni_deadline )); do
+  mapfile -t ENI_ROWS < <(
     aws ec2 describe-network-interfaces --region "${REGION}" \
-      --filters "Name=vpc-id,Values=${VPC_ID}" "Name=status,Values=available" \
-      --query 'NetworkInterfaces[].NetworkInterfaceId' --output text 2>/dev/null \
+      --filters "Name=vpc-id,Values=${VPC_ID}" \
+      --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,InterfaceType,Description]' \
+      --output text 2>/dev/null || true
+  )
+  avail=0
+  inuse=0
+  for row in "${ENI_ROWS[@]:-}"; do
+    [ -n "${row}" ] || continue
+    eni="$(echo "${row}" | awk '{print $1}')"
+    st="$(echo "${row}" | awk '{print $2}')"
+    itype="$(echo "${row}" | awk '{print $3}')"
+    desc="$(echo "${row}" | cut -f4- | tr '\t' ' ')"
+    if [ "${st}" = "available" ]; then
+      avail=$((avail + 1))
+      echo "    delete ENI ${eni} (${itype}: ${desc})"
+      aws ec2 delete-network-interface --region "${REGION}" --network-interface-id "${eni}" || true
+    else
+      inuse=$((inuse + 1))
+      echo "    in-use ENI ${eni} (${itype}: ${desc}) — waiting for AWS release"
+    fi
+  done
+  # VPC endpoints (Interface type) 도 ENI 를 붙잡음
+  mapfile -t VPCE < <(
+    aws ec2 describe-vpc-endpoints --region "${REGION}" \
+      --filters "Name=vpc-id,Values=${VPC_ID}" \
+      --query 'VpcEndpoints[].VpcEndpointId' --output text 2>/dev/null \
       | tr '\t' '\n' | sed '/^$/d' || true
   )
-  if [ "${#ENIS[@]}" -eq 0 ] || [ -z "${ENIS[0]:-}" ]; then
-    echo "    no available ENIs"
+  for ep in "${VPCE[@]:-}"; do
+    [ -n "${ep}" ] || continue
+    echo "    delete vpc-endpoint ${ep}"
+    aws ec2 delete-vpc-endpoints --region "${REGION}" --vpc-endpoint-ids "${ep}" || true
+  done
+
+  if (( avail == 0 && inuse == 0 )); then
+    echo "    VPC has no ENIs"
     break
   fi
-  for eni in "${ENIS[@]}"; do
-    echo "    delete-network-interface ${eni}"
-    aws ec2 delete-network-interface --region "${REGION}" --network-interface-id "${eni}" || true
-  done
-  sleep 10
+  # available 는 방금 삭제 시도함. in-use 만 남으면 AWS Hyperplane 해제 대기.
+  sleep 15
 done
+
+echo "==> delete non-default security groups in VPC (best-effort)"
+mapfile -t SGS < <(
+  aws ec2 describe-security-groups --region "${REGION}" \
+    --filters "Name=vpc-id,Values=${VPC_ID}" \
+    --query 'SecurityGroups[?GroupName!=`default`].GroupId' --output text 2>/dev/null \
+    | tr '\t' '\n' | sed '/^$/d' || true
+)
+for pass in 1 2 3; do
+  left=0
+  for sg in "${SGS[@]:-}"; do
+    [ -n "${sg}" ] || continue
+    if aws ec2 delete-security-group --region "${REGION}" --group-id "${sg}" 2>/dev/null; then
+      echo "    deleted SG ${sg}"
+    else
+      left=$((left + 1))
+    fi
+  done
+  (( left == 0 )) && break
+  sleep 5
+done
+
+# 남은 ENI 요약 (VPC hang 진단용)
+echo "==> remaining ENIs in VPC (if any, DeleteVpc will keep retrying)"
+aws ec2 describe-network-interfaces --region "${REGION}" \
+  --filters "Name=vpc-id,Values=${VPC_ID}" \
+  --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,Description]' \
+  --output table 2>/dev/null || true
 
 echo "OK preflight"
