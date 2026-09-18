@@ -47,8 +47,8 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | 증상 | [run 35318377695](https://github.com/ho0215/anime-project-infra/actions/runs/35318377695) destroy 실패. `aniverse-nodes`=`DELETE_FAILED` (AccessDenied / aws-auth), public subnet·IGW `DependencyViolation` (`mapped public address(es)`) |
 | 가설 | (1) 계정 Block (2) NAT EIP (3) Ingress ALB 잔여 ENI (4) API 인증 모드에서 노드 Access Entry 부재 |
 | 원인 | `authentication_mode=API` 인데 노드 `EC2_LINUX` Access Entry 를 TF 미관리 → 노드그룹 삭제 시 drain 권한 없음. Ingress ALB(`k8s-aniverse-…`)는 TF state 밖이라 LB Controller helm 삭제 후에도 퍼블릭 IP/ENI 잔존 → 서브넷·IGW 삭제 차단 |
-| 조치 | `aws_eks_access_entry.nodes`(EC2_LINUX) + nodegroup `depends_on`. destroy 전 `terraform-destroy-preflight.sh`(Access Entry 복구·ALB/TG 삭제·EIP/ENI·잔여 EC2 정리) + 실패 시 1회 재시도. 부분 destroy 후 plan 깨짐 보완: 폐기된 `imports.tf` 제거, IRSA `count`를 알려진 bool로 분리 |
-| 재발 방지 | destroy CD 가 preflight 필수. 재apply 시 기존 Access Entry import. S3 ARN으로 count 금지 |
+| 조치 | … + **ASG 강제 0/terminate + CFN `FORCE_DELETE_STACK`** (Access Entry 재시도만으로 DELETE_FAILED 루프 방지) |
+| 재발 방지 | destroy CD 가 preflight 필수. DELETE_FAILED 시 Access Entry 재시도만 하지 말고 ASG/CFN force. S3 ARN으로 count 금지 |
 | 계획 변경 | 없음 |
 | PR · 커밋 | `cursor/fix-destroy-deps-8e41` |
 | 참고 | [terraform-destroy-preflight.sh](../scripts/terraform-destroy-preflight.sh) |
