@@ -37,6 +37,22 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — Terraform destroy 실패 (노드그룹 DELETE_FAILED + subnet/IGW DependencyViolation)
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | 현우 / Cursor |
+| 환경 | EKS / GitHub Actions Terraform CD |
+| 관련 파트 | 네트워크 · 컴퓨트 / GitOps · CI/CD |
+| 증상 | [run 35318377695](https://github.com/ho0215/anime-project-infra/actions/runs/35318377695) destroy 실패. `aniverse-nodes`=`DELETE_FAILED` (AccessDenied / aws-auth), public subnet·IGW `DependencyViolation` (`mapped public address(es)`) |
+| 가설 | (1) 계정 Block (2) NAT EIP (3) Ingress ALB 잔여 ENI (4) API 인증 모드에서 노드 Access Entry 부재 |
+| 원인 | `authentication_mode=API` 인데 노드 `EC2_LINUX` Access Entry 를 TF 미관리 → 노드그룹 삭제 시 drain 권한 없음. Ingress ALB(`k8s-aniverse-…`)는 TF state 밖이라 LB Controller helm 삭제 후에도 퍼블릭 IP/ENI 잔존 → 서브넷·IGW 삭제 차단 |
+| 조치 | `aws_eks_access_entry.nodes`(EC2_LINUX) + nodegroup `depends_on`. destroy 전 `terraform-destroy-preflight.sh`(Access Entry 복구·ALB/TG 삭제·EIP/ENI·잔여 EC2 정리) + 실패 시 1회 재시도. 부분 destroy 후 plan 깨짐 보완: 폐기된 `imports.tf` 제거, IRSA `count`를 알려진 bool로 분리 |
+| 재발 방지 | destroy CD 가 preflight 필수. 재apply 시 기존 Access Entry import. S3 ARN으로 count 금지 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | `cursor/fix-destroy-deps-8e41` |
+| 참고 | [terraform-destroy-preflight.sh](../scripts/terraform-destroy-preflight.sh) |
+
 ### 2026-09-18 — AWS 계정 Blocked — `iac-admin` Access Key 유출
 
 | 항목 | 내용 |

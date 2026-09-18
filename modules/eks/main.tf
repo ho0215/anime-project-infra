@@ -68,6 +68,16 @@ resource "aws_eks_access_policy_association" "admins" {
   depends_on = [aws_eks_access_entry.admins]
 }
 
+# authentication_mode=API 전용: 매니지드 노드그룹이 클러스터에 join/drain 하려면
+# EC2_LINUX Access Entry 가 필요. TF 밖에서 EKS 가 자동 생성만 하면 destroy 시
+# 엔트리가 없거나 순서가 꼬여 DELETE_FAILED(AccessDenied / aws-auth) 가 난다.
+# 노드그룹보다 먼저 만들고 depends_on 으로 삭제 순서를 고정한다.
+resource "aws_eks_access_entry" "nodes" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = aws_iam_role.node.arn
+  type          = "EC2_LINUX"
+}
+
 # ==========================================
 # IRSA: OIDC 프로바이더 (파드 단위 IAM)
 # ==========================================
@@ -160,6 +170,7 @@ resource "aws_eks_node_group" "default" {
     aws_iam_role_policy_attachment.node_worker,
     aws_iam_role_policy_attachment.node_cni,
     aws_iam_role_policy_attachment.node_ecr_ro,
+    aws_eks_access_entry.nodes,
   ]
 
   lifecycle {
@@ -520,7 +531,7 @@ resource "helm_release" "cluster_autoscaler" {
 # App web Pod IRSA — S3 media/static put (aniverse-web SA)
 # ==========================================
 locals {
-  enable_app_s3_irsa = var.app_s3_bucket_arn != ""
+  enable_app_s3_irsa = var.enable_app_s3_irsa
 }
 
 data "aws_iam_policy_document" "app_s3_assume" {
@@ -591,7 +602,7 @@ resource "aws_iam_role_policy" "app_s3" {
 # (static/media 파일엔 손 못 대게 — 최소 권한).
 # ==========================================
 locals {
-  enable_db_backup_irsa = var.db_backup_s3_bucket_arn != ""
+  enable_db_backup_irsa = var.enable_db_backup_irsa
 }
 
 data "aws_iam_policy_document" "db_backup_assume" {

@@ -95,9 +95,15 @@ variable "cluster_autoscaler_chart_version" {
 }
 
 variable "app_s3_bucket_arn" {
-  description = "앱 web Pod IRSA용 S3 버킷 ARN (비우면 IRSA 미생성)"
+  description = "앱 web Pod IRSA용 S3 버킷 ARN"
   type        = string
   default     = ""
+}
+
+variable "enable_app_s3_irsa" {
+  description = "web Pod S3 IRSA 생성. plan 시점에 알려진 bool 이어야 함 (버킷 ARN 으로 count 하지 말 것)"
+  type        = bool
+  default     = false
 }
 
 variable "app_irsa_namespace" {
@@ -113,9 +119,15 @@ variable "app_irsa_service_account" {
 }
 
 variable "db_backup_s3_bucket_arn" {
-  description = "DB 백업(mysqldump) 저장용 S3 버킷 ARN (비우면 IRSA 미생성)"
+  description = "DB 백업(mysqldump) 저장용 S3 버킷 ARN"
   type        = string
   default     = ""
+}
+
+variable "enable_db_backup_irsa" {
+  description = "DB 백업 CronJob IRSA 생성. plan 시점에 알려진 bool"
+  type        = bool
+  default     = false
 }
 
 variable "db_backup_s3_prefix" {
