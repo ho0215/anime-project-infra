@@ -37,6 +37,17 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — 노드그룹 DELETE_FAILED: ReplaceUnhealthy suspend + premature state rm
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Terraform CD destroy |
+| 증상 | health: `AutoScalingGroupInvalidConfiguration` (ReplaceUnhealthy suspended). 클러스터 삭제 `ResourceInUseException: nodegroups attached`. 노드 IAM 롤이 노드그룹보다 먼저 Destruction complete |
+| 원인 | preflight 가 ReplaceUnhealthy 를 suspend → EKS 가 노드그룹 삭제 거부. DELETE_FAILED 인데 state rm → TF 가 노드 롤 삭제 → AccessDenied 고착 |
+| 조치 | delete 전 ASG **resume**(ReplaceUnhealthy). CFN은 ASG physical id 로 스택 조회 후 FORCE. 노드그룹 AWS 삭제 완료 전에는 state rm 거부 |
+| PR · 커밋 | `cursor/ng-resume-cfn-8e41` |
+
 ### 2026-09-18 — Terraform destroy 실패 (노드그룹 DELETE_FAILED + subnet/IGW DependencyViolation)
 
 | 항목 | 내용 |
