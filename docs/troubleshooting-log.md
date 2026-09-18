@@ -37,6 +37,22 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — AWS 계정 Blocked — `iac-admin` Access Key 유출
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | 현우 |
+| 환경 | AWS 계정 / GitHub Actions / EKS |
+| 관련 파트 | 보안 · 계정 / GitOps · CI/CD |
+| 증상 | Actions·콘솔 모두 `StartInstances` → `Blocked`. Support Resolved 후에도 제한 유지 → 전담팀 에스컬레이션 |
+| 가설 | GitHub Actions start가 원인? → **아님** (콘솔도 동일) |
+| 원인 | **`iac-admin` 장기 Access Key 유출**. AWS가 `AKIAZ4OSWTZ7DVWXNPH2` 도용 지목. CloudTrail **9/17** `iac-admin`이 NAT AMI가 아닌 AMI로 `RunInstances` 다수 호출. 9/16 `github-actions-terraform`은 정상 Terraform. 발표자료「GitHub .env에 iac-admin 키 노출」과 일치 |
+| 조치 | 키 삭제·무단 리소스 정리·Support 회신. CI는 **OIDC만** (장기 키 불필요). 체크리스트: [account-block-checklist.md](./account-block-checklist.md) |
+| 재발 방지 | Access Key 금지, `.env`/깃에 키 금지, MFA, Budgets, OIDC Admin 권한 축소(후속) |
+| 계획 변경 | 활성화 전까지 EC2/NAT/워커 start 불가 |
+| PR · 커밋 | Actions `35291530311` 등 |
+| 참고 | 표면은 start 실패, 근본은 **키 유출 → 무단 RunInstances → 계정 Block** |
+
 ### 2026-09-16 — EKS stop Actions 성공인데 EC2 워커가 안 꺼짐
 
 | 항목 | 내용 |
