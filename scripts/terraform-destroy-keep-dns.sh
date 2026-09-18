@@ -86,9 +86,55 @@ for r in "${DESTROY_LIST[@]}"; do
 done
 
 echo "DESTROY ${#DESTROY_LIST[@]} resources (zone/ACM kept)..."
+
+LOCK_TIMEOUT="${TF_LOCK_TIMEOUT:-20m}"
+
+# 취소된 Actions run 이 S3 lockfile 을 남기면 다음 destroy 가 PreconditionFailed.
+# runner@ 가 잡은 지 N분 지난 락은 force-unlock 후 재시도.
+maybe_clear_stale_lock() {
+  local log_file="$1"
+  local lock_id who created
+  # 컬러/박스 문자 무시하고 Lock Info 파싱
+  lock_id="$(grep -Eo 'ID:[[:space:]]*[0-9a-f-]{36}' "${log_file}" 2>/dev/null | head -1 | awk '{print $2}' || true)"
+  who="$(grep -E 'Who:[[:space:]]*' "${log_file}" 2>/dev/null | head -1 | sed -E 's/.*Who:[[:space:]]*//' | tr -d '\r' | sed 's/[[:space:]]*$//' || true)"
+  created="$(grep -E 'Created:[[:space:]]*' "${log_file}" 2>/dev/null | head -1 | sed -E 's/.*Created:[[:space:]]*//' | tr -d '\r' || true)"
+  if [ -z "${lock_id}" ]; then
+    return 1
+  fi
+  echo "==> state lock held id=${lock_id} who=${who} created=${created}"
+  if [[ "${who}" == runner@* ]] || [[ "${TF_FORCE_UNLOCK:-}" == "1" ]]; then
+    echo "==> force-unlock stale Actions lock ${lock_id}"
+    terraform force-unlock -force "${lock_id}" || true
+    return 0
+  fi
+  echo "Refusing force-unlock for non-runner lock (set TF_FORCE_UNLOCK=1 to override)" >&2
+  return 1
+}
+
+run_destroy() {
+  local log
+  log="$(mktemp)"
+  set +e
+  # shellcheck disable=SC2086
+  terraform destroy -auto-approve -input=false -lock-timeout="${LOCK_TIMEOUT}" "${TARGETS[@]}" 2>&1 | tee "${log}"
+  local rc=${PIPESTATUS[0]}
+  set -e
+  if [ "${rc}" -ne 0 ] && grep -q 'Error acquiring the state lock' "${log}"; then
+    if maybe_clear_stale_lock "${log}"; then
+      echo "==> retry destroy after force-unlock"
+      set +e
+      terraform destroy -auto-approve -input=false -lock-timeout="${LOCK_TIMEOUT}" "${TARGETS[@]}"
+      rc=$?
+      set -e
+    fi
+  fi
+  rm -f "${log}"
+  return "${rc}"
+}
+
 # 부분 실패 시 한 번 더: preflight 잔여 ENI 정리 후 재시도
 set +e
-terraform destroy -auto-approve -input=false "${TARGETS[@]}"
+run_destroy
 rc=$?
 set -e
 if [ "${rc}" -ne 0 ]; then
@@ -107,7 +153,7 @@ if [ "${rc}" -ne 0 ]; then
   for r in "${DESTROY_LIST[@]}"; do
     TARGETS+=("-target=${r}")
   done
-  terraform destroy -auto-approve -input=false "${TARGETS[@]}"
+  run_destroy
 fi
 
 echo

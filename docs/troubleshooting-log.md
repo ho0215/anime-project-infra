@@ -37,6 +37,17 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — destroy 재실행이 state lock 으로 즉시 실패
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD destroy |
+| 증상 | [run 35325490995](https://github.com/ho0215/anime-project-infra/actions/runs/35325490995) `Error acquiring the state lock` (S3 use_lockfile PreconditionFailed). Lock ID `887a3d59-…`, Who `runner@…`, Created 이전 취소된 destroy 재시도 시각 |
+| 원인 | VPC DependencyViolation 중이던 run 을 Cancel 하면 S3 lockfile 이 남음. ENI 는 이미 없음 (`VPC has no ENIs`) — 이번 실패는 VPC가 아니라 **락** |
+| 조치 | destroy 에 `-lock-timeout` + runner 스테일 락 `force-unlock` 후 재시도. VPC delete timeout 45m·ENI permission 정리도 포함 |
+| PR · 커밋 | `cursor/vpc-timeout-eni-8e41` |
+
 ### 2026-09-18 — VPC destroy 가 10분+ Still destroying
 
 | 항목 | 내용 |
