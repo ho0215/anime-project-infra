@@ -37,6 +37,17 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — VPC destroy 가 10분+ Still destroying
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD destroy |
+| 증상 | `module.network.aws_vpc.main: Still destroying...` 14분+ |
+| 원인 | EKS 삭제 직후 Hyperplane/ENI·SG 가 VPC 에 비동기 잔존. 빈 VPC 면 초 단위지만 EKS 직후엔 정상적으로 수~수십 분 걸리거나 DependencyViolation |
+| 조치 | preflight 에 ENI 대기/삭제·VPC endpoint·non-default SG 정리 강화 (재시도 시 효과) |
+| PR · 커밋 | `cursor/vpc-eni-cleanup-8e41` |
+
 ### 2026-09-18 — 노드그룹 DELETE_FAILED: ReplaceUnhealthy suspend + premature state rm
 
 | 항목 | 내용 |
