@@ -55,3 +55,8 @@ output "app_s3_irsa_role_arn" {
   description = "anime-project values-eks.yaml serviceAccount.annotations role-arn"
   value       = module.eks.app_s3_irsa_role_arn
 }
+
+output "db_backup_irsa_role_arn" {
+  description = "윤주 백업 CronJob ServiceAccount(aniverse-db-backup)에 붙일 role-arn"
+  value       = module.eks.db_backup_irsa_role_arn
+}

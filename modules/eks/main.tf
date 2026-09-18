@@ -584,3 +584,75 @@ resource "aws_iam_role_policy" "app_s3" {
     ]
   })
 }
+
+# ==========================================
+# DB 백업 CronJob Pod IRSA — mysqldump를 S3에 put (윤주 CronJob yaml)
+# 같은 static 버킷을 쓰되 db_backup_s3_prefix 경로로만 권한 범위를 좁힘
+# (static/media 파일엔 손 못 대게 — 최소 권한).
+# ==========================================
+locals {
+  enable_db_backup_irsa = var.db_backup_s3_bucket_arn != ""
+}
+
+data "aws_iam_policy_document" "db_backup_assume" {
+  count = local.enable_db_backup_irsa ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:sub"
+      values   = ["system:serviceaccount:${var.db_backup_irsa_namespace}:${var.db_backup_irsa_service_account}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "db_backup" {
+  count              = local.enable_db_backup_irsa ? 1 : 0
+  name               = "${var.project_name}-db-backup-irsa"
+  assume_role_policy = data.aws_iam_policy_document.db_backup_assume[0].json
+}
+
+resource "aws_iam_role_policy" "db_backup" {
+  count = local.enable_db_backup_irsa ? 1 : 0
+  name  = "${var.project_name}-db-backup-s3"
+  role  = aws_iam_role.db_backup[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListBackupPrefixOnly"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [var.db_backup_s3_bucket_arn]
+        Condition = {
+          StringLike = { "s3:prefix" = ["${var.db_backup_s3_prefix}/*"] }
+        }
+      },
+      {
+        Sid    = "BackupObjectRW"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+        ]
+        Resource = ["${var.db_backup_s3_bucket_arn}/${var.db_backup_s3_prefix}/*"]
+      },
+    ]
+  })
+}

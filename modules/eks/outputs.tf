@@ -39,6 +39,11 @@ output "app_s3_irsa_role_arn" {
   value       = local.enable_app_s3_irsa ? aws_iam_role.app_s3[0].arn : null
 }
 
+output "db_backup_irsa_role_arn" {
+  description = "백업 CronJob ServiceAccount(aniverse-db-backup)에 붙일 IAM role"
+  value       = local.enable_db_backup_irsa ? aws_iam_role.db_backup[0].arn : null
+}
+
 output "kubeconfig_hint" {
   description = "로컬에서 kubectl 붙일 때"
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${aws_eks_cluster.this.name}"

@@ -111,3 +111,27 @@ variable "app_irsa_service_account" {
   type        = string
   default     = "aniverse-web"
 }
+
+variable "db_backup_s3_bucket_arn" {
+  description = "DB 백업(mysqldump) 저장용 S3 버킷 ARN (비우면 IRSA 미생성)"
+  type        = string
+  default     = ""
+}
+
+variable "db_backup_s3_prefix" {
+  description = "버킷 안 백업 파일 경로 — IAM 권한을 이 prefix로만 제한 (static/media는 접근 불가)"
+  type        = string
+  default     = "db-backups"
+}
+
+variable "db_backup_irsa_namespace" {
+  description = "백업 CronJob ServiceAccount 네임스페이스"
+  type        = string
+  default     = "aniverse"
+}
+
+variable "db_backup_irsa_service_account" {
+  description = "백업 CronJob이 쓰는 ServiceAccount 이름 — CronJob yaml의 serviceAccountName과 일치해야 함"
+  type        = string
+  default     = "aniverse-db-backup"
+}
