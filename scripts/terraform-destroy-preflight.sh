@@ -341,7 +341,9 @@ done
 # EKS 클러스터 삭제 직후 Hyperplane/ENI 가 비동기로 남음 → DeleteVpc 가 오래 걸리거나 DependencyViolation.
 # available ENI 삭제 + (가능하면) non-default SG / VPC endpoint 제거. in-use 는 AWS 해제까지 대기.
 echo "==> wait/clean ENIs + endpoints in VPC (EKS leftovers)"
-eni_deadline=$((SECONDS + "${DESTROY_ENI_WAIT_SEC:-600}"))
+# EKS 직후 in-use Hyperplane ENI 는 available 이 될 때까지 삭제 불가.
+# 과거 로그: "no available ENIs" 직후에도 DeleteVpc DependencyViolation.
+eni_deadline=$((SECONDS + "${DESTROY_ENI_WAIT_SEC:-900}"))
 while (( SECONDS < eni_deadline )); do
   mapfile -t ENI_ROWS < <(
     aws ec2 describe-network-interfaces --region "${REGION}" \
@@ -408,11 +410,62 @@ for pass in 1 2 3; do
   sleep 5
 done
 
-# 남은 ENI 요약 (VPC hang 진단용)
-echo "==> remaining ENIs in VPC (if any, DeleteVpc will keep retrying)"
+# 남은 ENI / SG 요약 — 남아 있으면 DeleteVpc 가 또 DependencyViolation
+echo "==> remaining ENIs in VPC"
 aws ec2 describe-network-interfaces --region "${REGION}" \
   --filters "Name=vpc-id,Values=${VPC_ID}" \
-  --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,Description]' \
+  --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,InterfaceType,Description]' \
   --output table 2>/dev/null || true
+
+left_eni="$(aws ec2 describe-network-interfaces --region "${REGION}" \
+  --filters "Name=vpc-id,Values=${VPC_ID}" \
+  --query 'length(NetworkInterfaces)' --output text 2>/dev/null || echo 0)"
+left_sg="$(aws ec2 describe-security-groups --region "${REGION}" \
+  --filters "Name=vpc-id,Values=${VPC_ID}" \
+  --query 'length(SecurityGroups[?GroupName!=`default`])' --output text 2>/dev/null || echo 0)"
+
+if [ "${left_eni}" != "0" ] && [ "${left_eni}" != "None" ]; then
+  echo "WARNING: ${left_eni} ENI(s) still in VPC — DeleteVpc may DependencyViolation until AWS releases them"
+  # requester-managed ENI permission 정리 시도
+  mapfile -t ENI_IDS < <(
+    aws ec2 describe-network-interfaces --region "${REGION}" \
+      --filters "Name=vpc-id,Values=${VPC_ID}" \
+      --query 'NetworkInterfaces[].NetworkInterfaceId' --output text 2>/dev/null \
+      | tr '\t' '\n' | sed '/^$/d' || true
+  )
+  for eni in "${ENI_IDS[@]:-}"; do
+    [ -n "${eni}" ] || continue
+    mapfile -t PERMS < <(
+      aws ec2 describe-network-interface-permissions --region "${REGION}" \
+        --filters "Name=network-interface-id,Values=${eni}" \
+        --query 'NetworkInterfacePermissions[].NetworkInterfacePermissionId' \
+        --output text 2>/dev/null | tr '\t' '\n' | sed '/^$/d' || true
+    )
+    for perm in "${PERMS[@]:-}"; do
+      [ -n "${perm}" ] || continue
+      echo "    revoke ENI permission ${perm} on ${eni}"
+      aws ec2 reject-network-interface-permission --region "${REGION}" \
+        --network-interface-permission-id "${perm}" 2>/dev/null \
+        || aws ec2 delete-network-interface-permission --region "${REGION}" \
+          --network-interface-permission-id "${perm}" --force 2>/dev/null \
+        || true
+    done
+  done
+  # 권한 해제 후 available 되면 삭제
+  sleep 20
+  mapfile -t ENIS < <(
+    aws ec2 describe-network-interfaces --region "${REGION}" \
+      --filters "Name=vpc-id,Values=${VPC_ID}" "Name=status,Values=available" \
+      --query 'NetworkInterfaces[].NetworkInterfaceId' --output text 2>/dev/null \
+      | tr '\t' '\n' | sed '/^$/d' || true
+  )
+  for eni in "${ENIS[@]:-}"; do
+    echo "    delete ENI after revoke ${eni}"
+    aws ec2 delete-network-interface --region "${REGION}" --network-interface-id "${eni}" || true
+  done
+fi
+if [ "${left_sg}" != "0" ] && [ "${left_sg}" != "None" ]; then
+  echo "WARNING: ${left_sg} non-default SG(s) still in VPC"
+fi
 
 echo "OK preflight"
