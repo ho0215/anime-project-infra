@@ -26,18 +26,22 @@ echo "==> preflight (ALB / EIP / nodegroup)"
 chmod +x "${ROOT}/scripts/terraform-destroy-preflight.sh"
 "${ROOT}/scripts/terraform-destroy-preflight.sh"
 
-# preflight 가 AWS 에서 노드그룹을 지웠거나 DELETE_FAILED 로 남기면
-# TF 가 다시 wait 하지 않도록 state 에서 제거 (잔여 ASG/CFN 은 preflight 가 처리).
+# preflight 가 AWS 에서 노드그룹을 *완전히* 지운 뒤에만 state rm.
+# DELETE_FAILED 상태에서 state rm 하면 노드 IAM 롤이 먼저 지워지고
+# 클러스터는 ResourceInUseException (nodegroups attached) 로 실패한다.
 ng_now="$(aws eks describe-nodegroup \
   --region "${REGION}" \
   --cluster-name "${CLUSTER}" \
   --nodegroup-name "${PROJECT}-nodes" \
   --query 'nodegroup.status' --output text 2>/dev/null || echo MISSING)"
-if [ "${ng_now}" = "MISSING" ] || [ "${ng_now}" = "None" ] || [ "${ng_now}" = "DELETE_FAILED" ]; then
+if [ "${ng_now}" = "MISSING" ] || [ "${ng_now}" = "None" ]; then
   if terraform state list 2>/dev/null | grep -q 'module.eks.aws_eks_node_group.default'; then
-    echo "==> state rm module.eks.aws_eks_node_group.default (aws status=${ng_now})"
+    echo "==> state rm module.eks.aws_eks_node_group.default (aws gone)"
     terraform state rm 'module.eks.aws_eks_node_group.default' || true
   fi
+elif [ "${ng_now}" = "DELETE_FAILED" ]; then
+  echo "ERROR: nodegroup still DELETE_FAILED after preflight — refusing state rm" >&2
+  exit 1
 fi
 
 # 기존 클러스터에 EKS 가 자동 만든 노드 Access Entry 가 있으면 state 로 끌어와
