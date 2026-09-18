@@ -92,8 +92,10 @@ terraform destroy -auto-approve -input=false "${TARGETS[@]}"
 rc=$?
 set -e
 if [ "${rc}" -ne 0 ]; then
-  echo "==> destroy failed (rc=${rc}) — re-run preflight + retry once"
-  "${ROOT}/scripts/terraform-destroy-preflight.sh"
+  echo "==> destroy failed (rc=${rc}) — re-run preflight (long ENI wait) + retry once"
+  # EKS ENI 해제는 첫 destroy 이후에야 보이므로 재시도에서 더 오래 대기
+  DESTROY_ENI_WAIT_SEC="${DESTROY_ENI_WAIT_SEC:-900}" \
+    "${ROOT}/scripts/terraform-destroy-preflight.sh"
   mapfile -t DESTROY_LIST < <(terraform state list 2>/dev/null | grep -v -E \
     'module\.dns\.aws_route53_zone\.|module\.dns\.aws_acm_certificate\.|module\.dns\.aws_route53_record\.cert_validation' \
     || true)
