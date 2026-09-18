@@ -106,6 +106,27 @@ jobs:
       - name: Terraform init
         run: terraform init -input=false
 
+      # 기존 클러스터: EKS 가 자동 생성한 EC2_LINUX entry 가 있으면 충돌 방지용 import
+      - name: Import node Access Entry if present
+        run: |
+          set +e
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          CLUSTER=aniverse-eks
+          PRINCIPAL="arn:aws:iam::${ACCOUNT}:role/aniverse-eks-node-role"
+          if aws eks describe-access-entry \
+            --region "${AWS_REGION}" \
+            --cluster-name "${CLUSTER}" \
+            --principal-arn "${PRINCIPAL}" >/dev/null 2>&1; then
+            terraform import -input=false \
+              'module.eks.aws_eks_access_entry.nodes' \
+              "${CLUSTER}:${PRINCIPAL}" \
+              && echo "Imported node access entry" \
+              || echo "Import skipped (already in state)"
+          else
+            echo "No existing node access entry — apply will create it"
+          fi
+          set -e
+
       - name: Terraform apply
         run: |
           terraform apply -auto-approve -input=false
@@ -208,8 +229,9 @@ jobs:
       - name: Terraform destroy (keep Route53 zone + ACM)
         working-directory: .
         run: |
-          chmod +x scripts/terraform-destroy-keep-dns.sh
+          chmod +x scripts/terraform-destroy-keep-dns.sh scripts/terraform-destroy-preflight.sh
           ./scripts/terraform-destroy-keep-dns.sh
           echo "### DNS preserved" >> "$GITHUB_STEP_SUMMARY"
           echo "- Route53 hosted zone + ACM kept (Gabia NS unchanged)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Preflight: node Access Entry + orphan ALB/EIP/ENI cleanup" >> "$GITHUB_STEP_SUMMARY"
           echo "- Re-apply → helm → \`./scripts/terraform-rebind-eks-dns.sh\`" >> "$GITHUB_STEP_SUMMARY"
