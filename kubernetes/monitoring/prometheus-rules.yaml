@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: aniverse-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: aniverse.rules
+      rules:
+
+        # 파드가 계속 재시작될 때
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="aniverse"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: "{{ $labels.pod }} 파드가 계속 재시작되고 있어요"
+
+        # 파드가 죽었을 때
+        - alert: PodNotRunning
+          expr: kube_pod_status_phase{namespace="aniverse", phase!="Running"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: "{{ $labels.pod }} 파드가 Running 상태가 아니에요"
+
+        # CPU 90% 넘을 때
+        - alert: HighCPUUsage
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{namespace="aniverse"}[5m]))
+            /
+            sum(kube_node_status_allocatable{resource="cpu"}) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            description: "CPU 사용률이 90%를 넘었어요 (현재: {{ $value }}%)"
+
+        # 메모리 80% 넘을 때
+        - alert: HighMemoryUsage
+          expr: |
+            sum(container_memory_working_set_bytes{namespace="aniverse"})
+            /
+            sum(kube_node_status_allocatable{resource="memory"}) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            description: "메모리 사용률이 80%를 넘었어요 (현재: {{ $value }}%)"
+
+        # DB 파드 죽었을 때
+        - alert: DatabaseDown
+          expr: kube_pod_status_phase{namespace="aniverse", pod=~"aniverse-db.*", phase!="Running"} == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            description: "DB 파드가 죽었어요! 즉시 확인 필요"
