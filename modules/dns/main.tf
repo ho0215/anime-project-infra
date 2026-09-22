@@ -54,10 +54,14 @@ data "aws_lb" "eks_ingress" {
 }
 
 locals {
-  # 1) 태그로 찾은 ALB  2) 변수 폴백(최초/수동)
-  eks_alb_dns = coalesce(
-    try(data.aws_lb.eks_ingress[0].dns_name, null),
-    var.eks_alb_dns_name != "" ? var.eks_alb_dns_name : null,
+  # 1) 태그로 찾은 ALB  2) 변수 폴백(최초/수동)  3) 아직 둘 다 없으면(첫 apply 등) ""
+  # coalesce()는 인자 전부가 null/빈 문자열이면 그 자체로 에러를 내서 ""를 폴백으로
+  # 못 씀 — 바깥을 try()로 한 번 더 감싸서 그 에러를 ""로 흡수함.
+  eks_alb_dns = try(
+    coalesce(
+      try(data.aws_lb.eks_ingress[0].dns_name, null),
+      var.eks_alb_dns_name != "" ? var.eks_alb_dns_name : null,
+    ),
     ""
   )
 }

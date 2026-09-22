@@ -49,7 +49,9 @@ variable "nat_ami" {
 variable "static_bucket_name" {
   description = "정적/미디어 S3 버킷 base 이름 (뒤에 account-region 이 붙음)"
   type        = string
-  default     = "aniverse-static-ho0215-dev-2026"
+  # anime-project의 values-eks.yaml AWS_STORAGE_BUCKET_NAME, docs/scripts 전부
+  # "aniverse-static-<account>-<region>" 형태를 가정하고 있음 — base는 "aniverse-static"으로 고정.
+  default = "aniverse-static"
 }
 
 variable "domain_name" {
