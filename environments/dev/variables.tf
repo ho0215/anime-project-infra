@@ -41,9 +41,9 @@ variable "admin_cidr_blocks" {
 }
 
 variable "nat_ami" {
-  description = "NAT 인스턴스 AMI (Amazon Linux 2, ap-northeast-2)"
+  description = "NAT 인스턴스 AMI. 비우면 SSM /ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
   type        = string
-  default     = "ami-0cde067c44daf99fc"
+  default     = ""
 }
 
 variable "static_bucket_name" {
