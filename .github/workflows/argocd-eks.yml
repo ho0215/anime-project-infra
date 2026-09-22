@@ -8,6 +8,10 @@ on:
         description: "Application sync 실행"
         type: boolean
         default: true
+      anime_ref:
+        description: "anime-project git ref"
+        type: string
+        default: "main"
   push:
     branches: [cursor/argocd-eks-8e41]
     paths:
@@ -64,8 +68,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ho0215/anime-project
-          # Prefer this PR branch if present; else main
-          ref: cursor/argocd-eks-8e41
+          ref: ${{ inputs.anime_ref || 'main' }}
           path: anime-project
 
       - name: Install PyYAML (Application patch)
