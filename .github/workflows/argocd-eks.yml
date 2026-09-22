@@ -39,14 +39,16 @@ jobs:
     name: Install / restore ALB HTTPS
     runs-on: ubuntu-latest
     # Cancel/대기 루프가 기본 6h 까지 안 가게
-    timeout-minutes: 40
+    timeout-minutes: 30
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
       # 구계정(6795…) ISSUED 인증서가 아님. 신계정 인증서는 DNS 검증 후 ISSUED 여야 ALB HTTPS 가능.
       ACM_CERT_ARN: arn:aws:acm:ap-northeast-2:841535407395:certificate/da27663b-d716-4eaa-98ba-2ea5653bdb71
-      ACM_WAIT_SEC: "600"
+      ACM_WAIT_SEC: "300"
       DOMAIN: aniverse.my
+      ARGO_SYNC_MAX_WAIT: "12"
+      ARGO_SYNC_EARLY_MISSING: "3"
     steps:
       - uses: actions/checkout@v4
 
@@ -94,7 +96,7 @@ jobs:
       # → CI 가 매번 "ALB hostname missing". 구계정은 이미 ISSUED 라 안 터졌음.
       - name: ACM DNS validation + wait ISSUED
         id: acm
-        timeout-minutes: 12
+        timeout-minutes: 6
         run: |
           set -euo pipefail
           trap 'echo "::warning::cancelled"; exit 130' INT TERM
@@ -212,10 +214,14 @@ jobs:
       - name: Run argocd-eks-install.sh
         id: argo
         continue-on-error: true
+        timeout-minutes: 8
         env:
           SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.sync || 'true' }}
+          ARGO_SYNC_MAX_WAIT: ${{ env.ARGO_SYNC_MAX_WAIT }}
+          ARGO_SYNC_EARLY_MISSING: ${{ env.ARGO_SYNC_EARLY_MISSING }}
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled during argocd install"; exit 130' INT TERM
           chmod +x anime-project/scripts/argocd-eks-install.sh
           bash anime-project/scripts/argocd-eks-install.sh
 
@@ -253,26 +259,38 @@ jobs:
           kubectl -n argocd patch application aniverse-eks --type merge -p \
             '{"operation":{"initiatedBy":{"username":"ci-strip-ssa"},"sync":{"revision":"HEAD","syncStrategy":{"apply":{"force":false}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
             || true
-          for i in $(seq 1 36); do
+          for i in $(seq 1 12); do
             SYNC_ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
             HEALTH=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' 2>/dev/null || true)
             COND=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions[*].type}' 2>/dev/null || true)
             OPTS=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.spec.syncPolicy.syncOptions}' 2>/dev/null || true)
-            echo "  [$i] sync=${SYNC_ST} health=${HEALTH} opts=${OPTS}"
-            if [ "${SYNC_ST}" = "Synced" ] && [ "${HEALTH}" = "Healthy" ]; then
-              exit 0
+            MISSING_N=$(kubectl -n argocd get app aniverse-eks \
+              -o jsonpath='{range .status.resources[*]}{.health.status}{"\n"}{end}' 2>/dev/null \
+              | grep -c '^Missing$' || true)
+            echo "  [$i/12] sync=${SYNC_ST} health=${HEALTH} missing=${MISSING_N} opts=${OPTS}"
+            if [ "${SYNC_ST}" = "Synced" ] && [ "${MISSING_N}" = "0" ]; then
+              if [ "${HEALTH}" = "Healthy" ] || [ "${HEALTH}" = "Progressing" ]; then
+                exit 0
+              fi
+            fi
+            # Missing 고착이면 오래 안 기다림
+            if [ "${HEALTH}" = "Missing" ] || [ "${MISSING_N}" != "0" ]; then
+              if [ "$i" -ge 3 ]; then
+                echo "Missing persists — stop strip wait early"
+                break
+              fi
             fi
             if echo "${COND}" | grep -q ComparisonError && echo "${OPTS}" | grep -q ServerSideApply; then
               kubectl -n argocd patch application aniverse-eks --type=json -p='[
                 {"op":"replace","path":"/spec/syncPolicy/syncOptions","value":["CreateNamespace=true","RespectIgnoreDifferences=true"]}
               ]' || true
             fi
-            if [ $((i % 6)) -eq 0 ]; then
+            if [ $((i % 4)) -eq 0 ]; then
               kubectl -n argocd get app aniverse-eks \
                 -o jsonpath='{range .status.resources[*]}{.kind}/{.name} sync={.status} health={.health.status}{"\n"}{end}' \
                 2>/dev/null | head -40 || true
             fi
-            sleep 5
+            sleep 3
           done
           kubectl -n argocd get app aniverse-eks -o wide || true
           kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions}' ; echo
@@ -314,7 +332,7 @@ jobs:
             --set-string "secrets.DB_PASSWORD=${DBPASS}" \
             --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
             "${TAKE_OWN[@]}" \
-            --timeout 15m
+            --timeout 8m
           kubectl -n aniverse get pods,ingress -o wide
           kubectl -n aniverse get ingress aniverse-web -o yaml | sed -n '1,80p' || true
 
@@ -351,7 +369,7 @@ jobs:
         id: alb
         # ACM PENDING 이면 위에서 이미 실패 — cancel/ACM 실패 후 "ALB missing" 로 덮어쓰지 않음
         if: ${{ !cancelled() && steps.acm.outcome == 'success' }}
-        timeout-minutes: 15
+        timeout-minutes: 8
         run: |
           set -euo pipefail
           # Ingress 없으면 실패
@@ -364,7 +382,7 @@ jobs:
           kubectl -n aniverse annotate ingress aniverse-web \
             aniverse.force-reconcile="$(date +%s)" --overwrite || true
 
-          for i in $(seq 1 60); do
+          for i in $(seq 1 24); do
             ALB="$(kubectl -n aniverse get ingress aniverse-web \
               -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
             if [ -n "${ALB}" ]; then
@@ -372,13 +390,13 @@ jobs:
               echo "ALB=${ALB}" | tee -a "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "waiting ALB (${i}/60)"
+            echo "waiting ALB (${i}/24)"
             kubectl -n aniverse get ingress aniverse-web -o wide 2>&1 || true
-            if [ $((i % 6)) -eq 0 ]; then
+            if [ $((i % 4)) -eq 0 ]; then
               kubectl -n aniverse describe ingress aniverse-web 2>&1 | tail -40 || true
               kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=40 2>&1 || true
             fi
-            sleep 15
+            sleep 10
           done
           kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=150 || true
           kubectl -n aniverse describe ingress aniverse-web || true
