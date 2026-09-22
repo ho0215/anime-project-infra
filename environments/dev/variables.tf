@@ -115,12 +115,9 @@ variable "eks_cluster_version" {
 }
 
 variable "eks_cluster_admin_arns" {
-  description = "kubectl cluster-admin IAM ARN"
+  description = "kubectl cluster-admin 추가 IAM ARN (로컬 SSO 사용자 등). CI Terraform 역할은 모듈이 자동 부여"
   type        = list(string)
-  # 클러스터를 실제로 apply하는 주체(지금은 SSO seoyi-developer)는
-  # bootstrap_cluster_creator_admin_permissions로 이미 자동 admin.
-  # 팀원 SSO role ARN(예: AWSReservedSSO_AdministratorAccess_xxx) 확정되면 여기 추가.
-  default = []
+  default     = []
 }
 
 variable "eks_node_desired_size" {

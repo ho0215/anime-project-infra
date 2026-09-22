@@ -1,4 +1,12 @@
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
+# apply 중인 자격(OIDC assumed-role 등) → IAM 역할 ARN
+# bootstrap_cluster_creator 만으로는 CI 재apply 시 kube Unauthorized 가 나는 경우가 있어
+# Terraform runner 에 ClusterAdmin Access Entry 를 항상 명시한다.
+data "aws_iam_session_context" "current" {
+  arn = data.aws_caller_identity.current.arn
+}
 
 # ==========================================
 # 클러스터(컨트롤 플레인) IAM
@@ -48,7 +56,30 @@ resource "aws_eks_cluster" "this" {
   tags = { Name = "${var.project_name}-eks" }
 }
 
-# 로컬 kubectl 등 CI 역할 외 추가 관리자 (클러스터 생성자는 access_config로 자동 admin)
+# GitHub Actions Terraform 역할 등 — 현재 apply principal 에 kube admin
+# (클러스터 생성 시 bootstrap 이 같은 ARN 을 이미 넣었으면 CD 가 import)
+resource "aws_eks_access_entry" "terraform_runner" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = data.aws_iam_session_context.current.issuer_arn
+
+  lifecycle {
+    ignore_changes = [user_name]
+  }
+}
+
+resource "aws_eks_access_policy_association" "terraform_runner" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = data.aws_iam_session_context.current.issuer_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.terraform_runner]
+}
+
+# 로컬 kubectl 등 CI 역할 외 추가 관리자
 resource "aws_eks_access_entry" "admins" {
   for_each      = toset(var.cluster_admin_arns)
   cluster_name  = aws_eks_cluster.this.name
@@ -316,7 +347,7 @@ resource "kubernetes_storage_class" "gp3" {
     encrypted = "true"
   }
 
-  depends_on = [aws_eks_addon.ebs_csi]
+  depends_on = [aws_eks_addon.ebs_csi, aws_eks_access_policy_association.terraform_runner]
 }
 
 # ==========================================
@@ -410,7 +441,12 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = aws_iam_role.lb_controller[0].arn
   }
 
-  depends_on = [aws_eks_node_group.default, aws_eks_addon.vpc_cni, aws_eks_addon.coredns]
+  depends_on = [
+    aws_eks_node_group.default,
+    aws_eks_addon.vpc_cni,
+    aws_eks_addon.coredns,
+    aws_eks_access_policy_association.terraform_runner,
+  ]
 }
 
 # ==========================================
@@ -524,7 +560,11 @@ resource "helm_release" "cluster_autoscaler" {
     value = "true"
   }
 
-  depends_on = [aws_eks_node_group.default, aws_eks_addon.vpc_cni]
+  depends_on = [
+    aws_eks_node_group.default,
+    aws_eks_addon.vpc_cni,
+    aws_eks_access_policy_association.terraform_runner,
+  ]
 }
 
 # ==========================================
