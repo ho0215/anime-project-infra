@@ -129,6 +129,46 @@ jobs:
           fi
           set -e
 
+      # bootstrap_cluster_creator 또는 수동으로 이미 생긴 CI 역할 Access Entry → state 로 흡수
+      # (없으면 apply 가 새로 만들고, 있으면 ResourceInUse 대신 import)
+      - name: Import Terraform runner EKS Access Entry if present
+        run: |
+          set +e
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          CLUSTER=aniverse-eks
+          # assumed-role/... → role ARN (고정 이름; OIDC Terraform 역할)
+          PRINCIPAL="arn:aws:iam::${ACCOUNT}:role/aniverse-github-actions-terraform"
+          ENTRY='module.eks.aws_eks_access_entry.terraform_runner'
+          ASSOC='module.eks.aws_eks_access_policy_association.terraform_runner'
+          POLICY='arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+          in_state() { terraform state list 2>/dev/null | grep -qx "$1"; }
+
+          if aws eks describe-access-entry \
+            --region "${AWS_REGION}" \
+            --cluster-name "${CLUSTER}" \
+            --principal-arn "${PRINCIPAL}" >/dev/null 2>&1; then
+            if in_state "${ENTRY}"; then
+              echo "Already in state: ${ENTRY}"
+            else
+              terraform import -input=false "${ENTRY}" "${CLUSTER}:${PRINCIPAL}" \
+                && echo "Imported ${ENTRY}" \
+                || echo "Entry import failed (non-fatal)"
+            fi
+            if in_state "${ASSOC}"; then
+              echo "Already in state: ${ASSOC}"
+            else
+              # aws_eks_access_policy_association import id:
+              # cluster_name#principal_arn#policy_arn
+              terraform import -input=false "${ASSOC}" \
+                "${CLUSTER}#${PRINCIPAL}#${POLICY}" \
+                && echo "Imported ${ASSOC}" \
+                || echo "Assoc import failed — apply may create association"
+            fi
+          else
+            echo "No existing CI access entry for ${PRINCIPAL} — apply will create it"
+          fi
+          set -e
+
       # 부분 실패 apply 후 IAM만 AWS에 남은 경우 EntityAlreadyExists(409) 방지
       - name: Import orphan NAT IAM if present
         run: |
