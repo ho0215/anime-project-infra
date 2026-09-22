@@ -43,22 +43,38 @@ provider "aws" {
 
 provider "random" {}
 
-# kubernetes/helm provider가 module.eks가 만든 클러스터를 그대로 바라봄
-# (별도 kubeconfig 파일 불필요 — CI/로컬 어디서 apply해도 동일하게 동작)
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
-}
-
+# EKS 토큰은 ~15분 만료. data.aws_eks_cluster_auth 정적 token 은
+# 노드그룹 등 긴 apply 중에 만료되어 kubernetes/helm 단계에서
+# Unauthorized / "asked for credentials" 가 난다.
+# exec 는 리소스마다 aws eks get-token 을 다시 호출한다.
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
-  token                  = data.aws_eks_cluster_auth.this.token
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = [
+      "eks", "get-token",
+      "--cluster-name", module.eks.cluster_name,
+      "--region", var.aws_region,
+    ]
+  }
 }
 
 provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
-    token                  = data.aws_eks_cluster_auth.this.token
+
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args = [
+        "eks", "get-token",
+        "--cluster-name", module.eks.cluster_name,
+        "--region", var.aws_region,
+      ]
+    }
   }
 }
