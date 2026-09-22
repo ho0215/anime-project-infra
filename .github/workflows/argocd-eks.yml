@@ -139,26 +139,91 @@ jobs:
           chmod +x anime-project/scripts/argocd-eks-install.sh
           bash anime-project/scripts/argocd-eks-install.sh
 
-      - name: Helm restore (fallback)
+      - name: Helm restore (adopt Argo-created resources)
         if: ${{ inputs.helm_restore != false }}
+        id: helm
+        continue-on-error: true
         run: |
           set -euo pipefail
           DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
           DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
           ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
+
+          # Argo가 먼저 만든 오브젝트는 Helm ownership annotation 이 없어
+          # `helm install` 이 NetworkPolicy 등에서 막힘 → adopt 후 upgrade
+          echo "==> adopt existing aniverse resources for Helm"
+          kubectl -n aniverse get networkpolicy,ingress,svc,deploy,sts,hpa,sa,secret,pvc,job,cm \
+            -o name 2>/dev/null | while read -r obj; do
+            case "$obj" in
+              secret/aniverse-app-secrets) continue ;;  # live secret — ignoreDifferences
+            esac
+            kubectl -n aniverse annotate "$obj" \
+              meta.helm.sh/release-name=aniverse \
+              meta.helm.sh/release-namespace=aniverse \
+              --overwrite 2>/dev/null || true
+            kubectl -n aniverse label "$obj" app.kubernetes.io/managed-by=Helm --overwrite 2>/dev/null || true
+          done
+
+          TAKE_OWN=()
+          if helm upgrade --help 2>/dev/null | grep -q take-ownership; then
+            TAKE_OWN=(--take-ownership)
+          fi
+
           helm upgrade --install aniverse ./anime-project/deploy/helm/aniverse \
             -n aniverse --create-namespace \
             -f ./anime-project/deploy/helm/aniverse/values-eks.yaml \
             --set-string "secrets.DJANGO_SECRET_KEY=${DJANGO}" \
             --set-string "secrets.DB_PASSWORD=${DBPASS}" \
             --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
+            "${TAKE_OWN[@]}" \
             --timeout 15m
           kubectl -n aniverse get pods,ingress -o wide
+          kubectl -n aniverse get ingress aniverse-web -o yaml | sed -n '1,80p' || true
+
+      - name: Ensure public subnet ELB tags
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          CLUSTER="${EKS_CLUSTER_NAME}"
+          VPC="$(aws eks describe-cluster --name "${CLUSTER}" --region "${AWS_REGION}" \
+            --query 'cluster.resourcesVpcConfig.vpcId' --output text)"
+          # mapPublicIpOnLaunch=true 인 서브넷을 public 으로 보고 ELB 태그 부여
+          mapfile -t PUB < <(aws ec2 describe-subnets --region "${AWS_REGION}" \
+            --filters "Name=vpc-id,Values=${VPC}" "Name=map-public-ip-on-launch,Values=true" \
+            --query 'Subnets[].SubnetId' --output text | tr '\t' '\n')
+          mapfile -t PRIV < <(aws ec2 describe-subnets --region "${AWS_REGION}" \
+            --filters "Name=vpc-id,Values=${VPC}" "Name=map-public-ip-on-launch,Values=false" \
+            --query 'Subnets[].SubnetId' --output text | tr '\t' '\n')
+          for s in "${PUB[@]}"; do
+            [ -z "$s" ] && continue
+            aws ec2 create-tags --region "${AWS_REGION}" --resources "$s" --tags \
+              "Key=kubernetes.io/role/elb,Value=1" \
+              "Key=kubernetes.io/cluster/${CLUSTER},Value=shared"
+            echo "tagged public $s"
+          done
+          for s in "${PRIV[@]}"; do
+            [ -z "$s" ] && continue
+            aws ec2 create-tags --region "${AWS_REGION}" --resources "$s" --tags \
+              "Key=kubernetes.io/role/internal-elb,Value=1" \
+              "Key=kubernetes.io/cluster/${CLUSTER},Value=shared"
+            echo "tagged private $s"
+          done
 
       - name: Wait Ingress ALB
         id: alb
+        if: always()
         run: |
           set -euo pipefail
+          # Ingress 없으면 실패
+          if ! kubectl -n aniverse get ingress aniverse-web >/dev/null 2>&1; then
+            echo "::error::ingress aniverse-web 없음 (helm/argo 배포 실패)"
+            kubectl -n aniverse get all,ingress -o wide || true
+            exit 1
+          fi
+          # 컨트롤러 reconcile 유도
+          kubectl -n aniverse annotate ingress aniverse-web \
+            aniverse.force-reconcile="$(date +%s)" --overwrite || true
+
           for i in $(seq 1 60); do
             ALB="$(kubectl -n aniverse get ingress aniverse-web \
               -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
@@ -168,11 +233,14 @@ jobs:
               exit 0
             fi
             echo "waiting ALB (${i}/60)"
-            kubectl -n aniverse get ingress aniverse-web 2>&1 || true
-            kubectl -n aniverse get pods -o wide 2>&1 || true
+            kubectl -n aniverse get ingress aniverse-web -o wide 2>&1 || true
+            if [ $((i % 6)) -eq 0 ]; then
+              kubectl -n aniverse describe ingress aniverse-web 2>&1 | tail -40 || true
+              kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=40 2>&1 || true
+            fi
             sleep 15
           done
-          kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=100 || true
+          kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=150 || true
           kubectl -n aniverse describe ingress aniverse-web || true
           echo "::error::Ingress ALB 없음"
           exit 1
