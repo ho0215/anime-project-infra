@@ -107,21 +107,23 @@ jobs:
         run: terraform init -input=false
 
       # 기존 클러스터: EKS 가 자동 생성한 EC2_LINUX entry 가 있으면 충돌 방지용 import
+      # (이미 state에 있으면 import 시도하지 않음 — "already managed" 오류 소음/중단 방지)
       - name: Import node Access Entry if present
         run: |
           set +e
           ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
           CLUSTER=aniverse-eks
           PRINCIPAL="arn:aws:iam::${ACCOUNT}:role/aniverse-eks-node-role"
-          if aws eks describe-access-entry \
+          ADDR='module.eks.aws_eks_access_entry.nodes'
+          if terraform state list 2>/dev/null | grep -qx "${ADDR}"; then
+            echo "Already in state: ${ADDR} — skip import"
+          elif aws eks describe-access-entry \
             --region "${AWS_REGION}" \
             --cluster-name "${CLUSTER}" \
             --principal-arn "${PRINCIPAL}" >/dev/null 2>&1; then
-            terraform import -input=false \
-              'module.eks.aws_eks_access_entry.nodes' \
-              "${CLUSTER}:${PRINCIPAL}" \
+            terraform import -input=false "${ADDR}" "${CLUSTER}:${PRINCIPAL}" \
               && echo "Imported node access entry" \
-              || echo "Import skipped (already in state)"
+              || echo "Import failed (non-fatal)"
           else
             echo "No existing node access entry — apply will create it"
           fi
@@ -134,24 +136,38 @@ jobs:
           ROLE=aniverse-nat-ssm-role
           PROFILE=aniverse-nat-instance-profile
           POLAR="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          in_state() { terraform state list 2>/dev/null | grep -qx "$1"; }
+
           if aws iam get-role --role-name "${ROLE}" >/dev/null 2>&1; then
-            terraform import -input=false \
-              'module.nat.aws_iam_role.nat_ssm_role' "${ROLE}" \
-              && echo "Imported ${ROLE}" \
-              || echo "Role import skipped (already in state)"
-            terraform import -input=false \
-              'module.nat.aws_iam_role_policy_attachment.nat_ssm_core' \
-              "${ROLE}/${POLAR}" \
-              && echo "Imported SSM policy attachment" \
-              || echo "Attachment import skipped"
+            if in_state 'module.nat.aws_iam_role.nat_ssm_role'; then
+              echo "Already in state: NAT role — skip"
+            else
+              terraform import -input=false \
+                'module.nat.aws_iam_role.nat_ssm_role' "${ROLE}" \
+                && echo "Imported ${ROLE}" \
+                || echo "Role import failed (non-fatal)"
+            fi
+            if in_state 'module.nat.aws_iam_role_policy_attachment.nat_ssm_core'; then
+              echo "Already in state: NAT SSM attachment — skip"
+            else
+              terraform import -input=false \
+                'module.nat.aws_iam_role_policy_attachment.nat_ssm_core' \
+                "${ROLE}/${POLAR}" \
+                && echo "Imported SSM policy attachment" \
+                || echo "Attachment import failed (non-fatal)"
+            fi
           else
             echo "No orphan NAT role — apply will create it"
           fi
           if aws iam get-instance-profile --instance-profile-name "${PROFILE}" >/dev/null 2>&1; then
-            terraform import -input=false \
-              'module.nat.aws_iam_instance_profile.nat_profile' "${PROFILE}" \
-              && echo "Imported ${PROFILE}" \
-              || echo "Profile import skipped (already in state)"
+            if in_state 'module.nat.aws_iam_instance_profile.nat_profile'; then
+              echo "Already in state: NAT instance profile — skip"
+            else
+              terraform import -input=false \
+                'module.nat.aws_iam_instance_profile.nat_profile' "${PROFILE}" \
+                && echo "Imported ${PROFILE}" \
+                || echo "Profile import failed (non-fatal)"
+            fi
           fi
           set -e
 
