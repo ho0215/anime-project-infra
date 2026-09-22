@@ -127,6 +127,62 @@ jobs:
           fi
           set -e
 
+      # 부분 실패 apply 후 IAM만 AWS에 남은 경우 EntityAlreadyExists(409) 방지
+      - name: Import orphan NAT IAM if present
+        run: |
+          set +e
+          ROLE=aniverse-nat-ssm-role
+          PROFILE=aniverse-nat-instance-profile
+          POLAR="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          if aws iam get-role --role-name "${ROLE}" >/dev/null 2>&1; then
+            terraform import -input=false \
+              'module.nat.aws_iam_role.nat_ssm_role' "${ROLE}" \
+              && echo "Imported ${ROLE}" \
+              || echo "Role import skipped (already in state)"
+            terraform import -input=false \
+              'module.nat.aws_iam_role_policy_attachment.nat_ssm_core' \
+              "${ROLE}/${POLAR}" \
+              && echo "Imported SSM policy attachment" \
+              || echo "Attachment import skipped"
+          else
+            echo "No orphan NAT role — apply will create it"
+          fi
+          if aws iam get-instance-profile --instance-profile-name "${PROFILE}" >/dev/null 2>&1; then
+            terraform import -input=false \
+              'module.nat.aws_iam_instance_profile.nat_profile' "${PROFILE}" \
+              && echo "Imported ${PROFILE}" \
+              || echo "Profile import skipped (already in state)"
+          fi
+          set -e
+
+      # NAT 없이 뜬 노드그룹 CREATE_FAILED 잔여물 제거 → 다음 apply가 재생성
+      - name: Delete CREATE_FAILED node group if present
+        run: |
+          set +e
+          CLUSTER=aniverse-eks
+          NG=aniverse-nodes
+          STATUS="$(aws eks describe-nodegroup \
+            --region "${AWS_REGION}" \
+            --cluster-name "${CLUSTER}" \
+            --nodegroup-name "${NG}" \
+            --query 'nodegroup.status' --output text 2>/dev/null || true)"
+          echo "nodegroup status: ${STATUS:-absent}"
+          if [ "${STATUS}" = "CREATE_FAILED" ] || [ "${STATUS}" = "DEGRADED" ]; then
+            echo "Deleting failed node group ${NG}..."
+            aws eks delete-nodegroup \
+              --region "${AWS_REGION}" \
+              --cluster-name "${CLUSTER}" \
+              --nodegroup-name "${NG}"
+            aws eks wait nodegroup-deleted \
+              --region "${AWS_REGION}" \
+              --cluster-name "${CLUSTER}" \
+              --nodegroup-name "${NG}" \
+              || echo "wait finished with non-zero (continue)"
+            terraform state rm 'module.eks.aws_eks_node_group.default' \
+              || echo "state rm skipped"
+          fi
+          set -e
+
       - name: Terraform apply
         run: |
           terraform apply -auto-approve -input=false
