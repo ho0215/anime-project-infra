@@ -117,9 +117,10 @@ variable "eks_cluster_version" {
 variable "eks_cluster_admin_arns" {
   description = "kubectl cluster-admin IAM ARN"
   type        = list(string)
-  default = [
-    "arn:aws:iam::841535407395:user/iac-admin",
-  ]
+  # 클러스터를 실제로 apply하는 주체(지금은 SSO seoyi-developer)는
+  # bootstrap_cluster_creator_admin_permissions로 이미 자동 admin.
+  # 팀원 SSO role ARN(예: AWSReservedSSO_AdministratorAccess_xxx) 확정되면 여기 추가.
+  default = []
 }
 
 variable "eks_node_desired_size" {

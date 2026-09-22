@@ -103,7 +103,7 @@ variable "app_s3_bucket_arn" {
 # count를 이 값(정적 bool)으로 결정 — app_s3_bucket_arn(모듈 출력값이라 완전 빈 state에서
 # apply 전엔 unknown)으로 count를 계산하면 "Invalid count argument" 에러가 남.
 variable "enable_app_s3_irsa" {
-  description = "web Pod IRSA(S3) 생성 여부"
+  description = "web Pod IRSA(S3) 생성 여부. plan 시점에 알려진 bool 이어야 함 (버킷 ARN 으로 count 하지 말 것)"
   type        = bool
   default     = false
 }
@@ -128,7 +128,7 @@ variable "db_backup_s3_bucket_arn" {
 
 # count를 이 값(정적 bool)으로 결정 — 이유는 enable_app_s3_irsa 주석 참고.
 variable "enable_db_backup_irsa" {
-  description = "DB 백업 CronJob IRSA(S3) 생성 여부"
+  description = "DB 백업 CronJob IRSA(S3) 생성 여부. plan 시점에 알려진 bool 이어야 함"
   type        = bool
   default     = false
 }

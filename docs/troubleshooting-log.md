@@ -37,6 +37,71 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-18 — destroy 재실행이 state lock 으로 즉시 실패
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD destroy |
+| 증상 | [run 35325490995](https://github.com/ho0215/anime-project-infra/actions/runs/35325490995) `Error acquiring the state lock` (S3 use_lockfile PreconditionFailed). Lock ID `887a3d59-…`, Who `runner@…`, Created 이전 취소된 destroy 재시도 시각 |
+| 원인 | VPC DependencyViolation 중이던 run 을 Cancel 하면 S3 lockfile 이 남음. ENI 는 이미 없음 (`VPC has no ENIs`) — 이번 실패는 VPC가 아니라 **락** |
+| 조치 | destroy 에 `-lock-timeout` + runner 스테일 락 `force-unlock` 후 재시도. VPC delete timeout 45m·ENI permission 정리도 포함 |
+| PR · 커밋 | `cursor/vpc-timeout-eni-8e41` |
+
+### 2026-09-18 — VPC destroy 가 10분+ Still destroying
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD destroy |
+| 증상 | `module.network.aws_vpc.main: Still destroying...` 14분+ |
+| 원인 | EKS 삭제 직후 Hyperplane/ENI·SG 가 VPC 에 비동기 잔존. 빈 VPC 면 초 단위지만 EKS 직후엔 정상적으로 수~수십 분 걸리거나 DependencyViolation |
+| 조치 | preflight 에 ENI 대기/삭제·VPC endpoint·non-default SG 정리 강화 (재시도 시 효과) |
+| PR · 커밋 | `cursor/vpc-eni-cleanup-8e41` |
+
+### 2026-09-18 — 노드그룹 DELETE_FAILED: ReplaceUnhealthy suspend + premature state rm
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Terraform CD destroy |
+| 증상 | health: `AutoScalingGroupInvalidConfiguration` (ReplaceUnhealthy suspended). 클러스터 삭제 `ResourceInUseException: nodegroups attached`. 노드 IAM 롤이 노드그룹보다 먼저 Destruction complete |
+| 원인 | preflight 가 ReplaceUnhealthy 를 suspend → EKS 가 노드그룹 삭제 거부. DELETE_FAILED 인데 state rm → TF 가 노드 롤 삭제 → AccessDenied 고착 |
+| 조치 | delete 전 ASG **resume**(ReplaceUnhealthy). CFN은 ASG physical id 로 스택 조회 후 FORCE. 노드그룹 AWS 삭제 완료 전에는 state rm 거부 |
+| PR · 커밋 | `cursor/ng-resume-cfn-8e41` |
+
+### 2026-09-18 — Terraform destroy 실패 (노드그룹 DELETE_FAILED + subnet/IGW DependencyViolation)
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | 현우 / Cursor |
+| 환경 | EKS / GitHub Actions Terraform CD |
+| 관련 파트 | 네트워크 · 컴퓨트 / GitOps · CI/CD |
+| 증상 | [run 35318377695](https://github.com/ho0215/anime-project-infra/actions/runs/35318377695) destroy 실패. `aniverse-nodes`=`DELETE_FAILED` (AccessDenied / aws-auth), public subnet·IGW `DependencyViolation` (`mapped public address(es)`) |
+| 가설 | (1) 계정 Block (2) NAT EIP (3) Ingress ALB 잔여 ENI (4) API 인증 모드에서 노드 Access Entry 부재 |
+| 원인 | `authentication_mode=API` 인데 노드 `EC2_LINUX` Access Entry 를 TF 미관리 → 노드그룹 삭제 시 drain 권한 없음. Ingress ALB(`k8s-aniverse-…`)는 TF state 밖이라 LB Controller helm 삭제 후에도 퍼블릭 IP/ENI 잔존 → 서브넷·IGW 삭제 차단 |
+| 조치 | … + **ASG 강제 0/terminate + CFN `FORCE_DELETE_STACK`** (Access Entry 재시도만으로 DELETE_FAILED 루프 방지) |
+| 재발 방지 | destroy CD 가 preflight 필수. DELETE_FAILED 시 Access Entry 재시도만 하지 말고 ASG/CFN force. S3 ARN으로 count 금지 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | `cursor/fix-destroy-deps-8e41` |
+| 참고 | [terraform-destroy-preflight.sh](../scripts/terraform-destroy-preflight.sh) |
+
+### 2026-09-18 — AWS 계정 Blocked — `iac-admin` Access Key 유출
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | 현우 |
+| 환경 | AWS 계정 / GitHub Actions / EKS |
+| 관련 파트 | 보안 · 계정 / GitOps · CI/CD |
+| 증상 | Actions·콘솔 모두 `StartInstances` → `Blocked`. Support Resolved 후에도 제한 유지 → 전담팀 에스컬레이션 |
+| 가설 | GitHub Actions start가 원인? → **아님** (콘솔도 동일) |
+| 원인 | **`iac-admin` 장기 Access Key 유출**. AWS가 `AKIAZ4OSWTZ7DVWXNPH2` 도용 지목. CloudTrail **9/17** `iac-admin`이 NAT AMI가 아닌 AMI로 `RunInstances` 다수 호출. 9/16 `github-actions-terraform`은 정상 Terraform. 발표자료「GitHub .env에 iac-admin 키 노출」과 일치 |
+| 조치 | 키 삭제·무단 리소스 정리·Support 회신. CI는 **OIDC만** (장기 키 불필요) |
+| 재발 방지 | Access Key 금지, `.env`/깃에 키 금지, MFA, Budgets, OIDC Admin 권한 축소(후속) |
+| 계획 변경 | 활성화 전까지 EC2/NAT/워커 start 불가 |
+| PR · 커밋 | Actions `35291530311` 등 |
+| 참고 | 표면은 start 실패, 근본은 **키 유출 → 무단 RunInstances → 계정 Block** |
+
 ### 2026-09-16 — EKS stop Actions 성공인데 EC2 워커가 안 꺼짐
 
 | 항목 | 내용 |
@@ -251,6 +316,7 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 | 날짜 | 제목 | 담당 | 환경 |
 |------|------|------|------|
+| 2026-09-18 | AWS 계정 Blocked — iac-admin Access Key 유출 | 현우 | AWS / Actions |
 | 2026-09-16 | EKS stop Actions 성공인데 EC2 워커가 안 꺼짐 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop `maxSize=0` API 거절 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop 후 Cluster Autoscaler가 워커 재기동 | 현우 | EKS |

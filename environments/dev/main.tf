@@ -98,6 +98,7 @@ module "eks" {
   enable_cluster_autoscaler = var.eks_enable_cluster_autoscaler
 
   # web Pod IRSA — Helm values-eks serviceAccount.annotations
+  # count 는 알려진 bool 사용 (버킷 ARN 은 apply 후 확정 → Invalid count 방지)
   enable_app_s3_irsa = true
   app_s3_bucket_arn  = module.storage.s3_bucket_arn
 
