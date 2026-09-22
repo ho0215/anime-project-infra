@@ -112,14 +112,22 @@ jobs:
             echo "live secret ok"
             exit 0
           fi
-          if [ -z "${DJANGO_SECRET_KEY}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_ROOT_PASSWORD}" ]; then
-            echo "::error::aniverse-app-secrets 없음. infra/app 레포 Secrets에 DJANGO_SECRET_KEY, DB_PASSWORD, DB_ROOT_PASSWORD 필요"
-            exit 1
+          DJANGO="${DJANGO_SECRET_KEY}"
+          DBPASS="${DB_PASSWORD}"
+          ROOTPASS="${DB_ROOT_PASSWORD}"
+          SRC="github-secrets"
+          if [ -z "${DJANGO}" ] || [ -z "${DBPASS}" ] || [ -z "${ROOTPASS}" ]; then
+            DJANGO="${DJANGO:-$(openssl rand -hex 32)}"
+            DBPASS="${DBPASS:-aniversepass}"
+            ROOTPASS="${ROOTPASS:-aniversepass}"
+            SRC="lab-fallback"
+            echo "::warning::GitHub Secrets 없음 — lab fallback(aniversepass)으로 secret 생성"
           fi
           kubectl -n aniverse create secret generic aniverse-app-secrets \
-            --from-literal=DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY}" \
-            --from-literal=DB_PASSWORD="${DB_PASSWORD}" \
-            --from-literal=DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD}"
+            --from-literal=DJANGO_SECRET_KEY="${DJANGO}" \
+            --from-literal=DB_PASSWORD="${DBPASS}" \
+            --from-literal=DB_ROOT_PASSWORD="${ROOTPASS}"
+          echo "seeded via ${SRC}" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Helm upgrade aniverse (values-eks)
         run: |

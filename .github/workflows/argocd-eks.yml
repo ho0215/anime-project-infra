@@ -95,6 +95,37 @@ jobs:
           dig +short NS aniverse.my @8.8.8.8 >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Seed aniverse-app-secrets
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
+          if kubectl -n aniverse get secret aniverse-app-secrets >/dev/null 2>&1; then
+            echo "live aniverse-app-secrets already present"
+            exit 0
+          fi
+          # GitHub Secrets 우선. 없으면 lab/docker 기본값으로 시드(신 계정 빈 클러스터 복구용).
+          # 운영 비밀번호는 이후 Secrets 등록 후 secret 교체 권장.
+          DJANGO="${DJANGO_SECRET_KEY}"
+          DBPASS="${DB_PASSWORD}"
+          ROOTPASS="${DB_ROOT_PASSWORD}"
+          SRC="github-secrets"
+          if [ -z "${DJANGO}" ] || [ -z "${DBPASS}" ] || [ -z "${ROOTPASS}" ]; then
+            DJANGO="${DJANGO:-$(openssl rand -hex 32)}"
+            DBPASS="${DBPASS:-aniversepass}"
+            ROOTPASS="${ROOTPASS:-aniversepass}"
+            SRC="lab-fallback(aniversepass + random DJANGO)"
+            echo "::warning::GitHub Secrets 없음 — ${SRC} 으로 aniverse-app-secrets 생성. 운영키면 Secrets 등록 후 재생성하세요."
+          fi
+          kubectl -n aniverse create secret generic aniverse-app-secrets \
+            --from-literal=DJANGO_SECRET_KEY="${DJANGO}" \
+            --from-literal=DB_PASSWORD="${DBPASS}" \
+            --from-literal=DB_ROOT_PASSWORD="${ROOTPASS}"
+          echo "seeded aniverse-app-secrets via ${SRC}" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Install PyYAML (Application patch)
         run: pip install --quiet pyyaml
 
@@ -110,23 +141,8 @@ jobs:
 
       - name: Helm restore (fallback)
         if: ${{ inputs.helm_restore != false }}
-        env:
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
         run: |
           set -euo pipefail
-          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
-          if ! kubectl -n aniverse get secret aniverse-app-secrets >/dev/null 2>&1; then
-            if [ -z "${DJANGO_SECRET_KEY}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_ROOT_PASSWORD}" ]; then
-              echo "::error::aniverse-app-secrets 없음 — Secrets DJANGO_SECRET_KEY/DB_PASSWORD/DB_ROOT_PASSWORD 필요"
-              exit 1
-            fi
-            kubectl -n aniverse create secret generic aniverse-app-secrets \
-              --from-literal=DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY}" \
-              --from-literal=DB_PASSWORD="${DB_PASSWORD}" \
-              --from-literal=DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD}"
-          fi
           DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
           DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
           ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
@@ -153,6 +169,7 @@ jobs:
             fi
             echo "waiting ALB (${i}/60)"
             kubectl -n aniverse get ingress aniverse-web 2>&1 || true
+            kubectl -n aniverse get pods -o wide 2>&1 || true
             sleep 15
           done
           kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=100 || true
@@ -161,7 +178,7 @@ jobs:
           exit 1
 
       - name: Bind domain (Route53 + HTTPS)
-        if: ${{ inputs.bind_domain != false }}
+        if: ${{ inputs.bind_domain != false && steps.alb.outputs.alb != '' }}
         run: |
           set -euo pipefail
           chmod +x anime-project/scripts/eks-bind-domain.sh
@@ -184,5 +201,9 @@ jobs:
             curl -sS -m 20 -ko /dev/null -w "https=%{http_code}\n" https://aniverse.my/health/ || true
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          # ALB hostname 확보가 최소 성공 기준
-          test -n "${{ steps.alb.outputs.alb }}"
+          ALB="${{ steps.alb.outputs.alb }}"
+          if [ -z "${ALB}" ]; then
+            echo "::error::ALB hostname missing"
+            exit 1
+          fi
+          echo "OK ALB=${ALB}"
