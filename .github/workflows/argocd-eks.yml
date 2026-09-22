@@ -38,6 +38,8 @@ jobs:
   install:
     name: Install / restore ALB HTTPS
     runs-on: ubuntu-latest
+    # Cancel 눌러도 sleep/kubectl 루프가 안 죽으면 기본 6h 까지 버팀 → 상한 단축
+    timeout-minutes: 35
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
@@ -48,6 +50,8 @@ jobs:
 
       - name: Check OIDC Variables
         run: |
+          # Cancel(SIGINT/SIGTERM) 시 sleep 루프가 즉시 종료되도록
+          trap 'echo "::warning::workflow cancelled"; exit 130' INT TERM
           if [ -z "${{ vars.AWS_ROLE_ARN }}" ] || [ "${{ vars.AWS_USE_OIDC }}" != "true" ]; then
             echo "::error::Need AWS_ROLE_ARN + AWS_USE_OIDC=true"
             exit 1
@@ -132,10 +136,12 @@ jobs:
       - name: Run argocd-eks-install.sh
         id: argo
         continue-on-error: true
+        timeout-minutes: 12
         env:
           SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.sync || 'true' }}
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled during argocd install"; exit 130' INT TERM
           chmod +x anime-project/scripts/argocd-eks-install.sh
           bash anime-project/scripts/argocd-eks-install.sh
 
@@ -143,10 +149,12 @@ jobs:
       # → sync=Unknown / health=Missing (Job 미생성) 고착. apply 로는 배열 항목이
       # 안 지워질 수 있어 JSON replace 로 강제 제거 + hard refresh + apply sync.
       - name: Strip ServerSideApply / clear ComparisonError
-        if: always()
+        if: always() && !cancelled()
         continue-on-error: true
+        timeout-minutes: 4
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled"; exit 130' INT TERM
           if ! kubectl -n argocd get app aniverse-eks >/dev/null 2>&1; then
             echo "no aniverse-eks Application yet"
             exit 0
@@ -172,13 +180,13 @@ jobs:
           kubectl -n argocd patch application aniverse-eks --type merge -p \
             '{"operation":{"initiatedBy":{"username":"ci-strip-ssa"},"sync":{"revision":"HEAD","syncStrategy":{"apply":{"force":false}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
             || true
-          for i in $(seq 1 36); do
+          for i in $(seq 1 24); do
             SYNC_ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
             HEALTH=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' 2>/dev/null || true)
             COND=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions[*].type}' 2>/dev/null || true)
             OPTS=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.spec.syncPolicy.syncOptions}' 2>/dev/null || true)
             echo "  [$i] sync=${SYNC_ST} health=${HEALTH} opts=${OPTS}"
-            if [ "${SYNC_ST}" = "Synced" ] && [ "${HEALTH}" = "Healthy" ]; then
+            if [ "${SYNC_ST}" = "Synced" ] && [ "${HEALTH}" = "Healthy" ] || [ "${SYNC_ST}" = "Synced" ] && [ "${HEALTH}" = "Progressing" ]; then
               exit 0
             fi
             if echo "${COND}" | grep -q ComparisonError && echo "${OPTS}" | grep -q ServerSideApply; then
@@ -197,11 +205,13 @@ jobs:
           kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions}' ; echo
 
       - name: Helm restore (adopt Argo-created resources)
-        if: ${{ inputs.helm_restore != false }}
+        if: ${{ !cancelled() && inputs.helm_restore != false }}
         id: helm
         continue-on-error: true
+        timeout-minutes: 12
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled during helm"; exit 130' INT TERM
           DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
           DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
           ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
@@ -233,14 +243,17 @@ jobs:
             --set-string "secrets.DB_PASSWORD=${DBPASS}" \
             --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
             "${TAKE_OWN[@]}" \
-            --timeout 15m
+            --timeout 10m
           kubectl -n aniverse get pods,ingress -o wide
           kubectl -n aniverse get ingress aniverse-web -o yaml | sed -n '1,80p' || true
 
       - name: Ensure public subnet ELB tags
+        if: ${{ !cancelled() }}
         continue-on-error: true
+        timeout-minutes: 3
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled"; exit 130' INT TERM
           CLUSTER="${EKS_CLUSTER_NAME}"
           VPC="$(aws eks describe-cluster --name "${CLUSTER}" --region "${AWS_REGION}" \
             --query 'cluster.resourcesVpcConfig.vpcId' --output text)"
@@ -268,9 +281,11 @@ jobs:
 
       - name: Wait Ingress ALB
         id: alb
-        if: always()
+        if: ${{ !cancelled() }}
+        timeout-minutes: 12
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled during ALB wait"; exit 130' INT TERM
           # Ingress 없으면 실패
           if ! kubectl -n aniverse get ingress aniverse-web >/dev/null 2>&1; then
             echo "::error::ingress aniverse-web 없음 (helm/argo 배포 실패)"
@@ -281,7 +296,7 @@ jobs:
           kubectl -n aniverse annotate ingress aniverse-web \
             aniverse.force-reconcile="$(date +%s)" --overwrite || true
 
-          for i in $(seq 1 60); do
+          for i in $(seq 1 40); do
             ALB="$(kubectl -n aniverse get ingress aniverse-web \
               -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
             if [ -n "${ALB}" ]; then
@@ -289,13 +304,13 @@ jobs:
               echo "ALB=${ALB}" | tee -a "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "waiting ALB (${i}/60)"
+            echo "waiting ALB (${i}/40)"
             kubectl -n aniverse get ingress aniverse-web -o wide 2>&1 || true
             if [ $((i % 6)) -eq 0 ]; then
               kubectl -n aniverse describe ingress aniverse-web 2>&1 | tail -40 || true
               kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=40 2>&1 || true
             fi
-            sleep 15
+            sleep 10
           done
           kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=150 || true
           kubectl -n aniverse describe ingress aniverse-web || true
@@ -303,15 +318,18 @@ jobs:
           exit 1
 
       - name: Bind domain (Route53 + HTTPS)
-        if: ${{ inputs.bind_domain != false && steps.alb.outputs.alb != '' }}
+        if: ${{ !cancelled() && inputs.bind_domain != false && steps.alb.outputs.alb != '' }}
+        timeout-minutes: 12
         run: |
           set -euo pipefail
+          trap 'echo "::warning::cancelled during bind"; exit 130' INT TERM
           chmod +x anime-project/scripts/eks-bind-domain.sh
           ACM_CERT_ARN="${ACM_CERT_ARN}" ACM_WAIT_SEC="${ACM_WAIT_SEC}" \
             bash anime-project/scripts/eks-bind-domain.sh aniverse.my
 
       - name: Summarize / health
         if: always()
+        timeout-minutes: 2
         run: |
           set +e
           {
@@ -326,6 +344,10 @@ jobs:
             curl -sS -m 20 -ko /dev/null -w "https=%{http_code}\n" https://aniverse.my/health/ || true
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "${{ cancelled() }}" = "true" ]; then
+            echo "::warning::run was cancelled — cluster Argo selfHeal may still be syncing"
+            exit 0
+          fi
           ALB="${{ steps.alb.outputs.alb }}"
           if [ -z "${ALB}" ]; then
             echo "::error::ALB hostname missing"
