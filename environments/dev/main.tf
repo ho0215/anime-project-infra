@@ -84,6 +84,11 @@ module "eks" {
   public_subnet_ids      = module.network.public_subnet_ids
   private_app_subnet_ids = module.network.private_app_subnet_ids
 
+  # 서브넷 ID만 참조하면 private RT/NAT 완료 전에 노드그룹이 병렬 생성됨
+  # → egress 없는 프라이빗 노드가 클러스터 조인 실패로 수십 분 Stuck.
+  # module.network 전체(프라이빗 RT 포함) + NAT 완료 후 EKS 시작.
+  depends_on = [module.network, module.nat]
+
   cluster_version             = var.eks_cluster_version
   cluster_public_access_cidrs = var.admin_cidr_blocks
   cluster_admin_arns          = var.eks_cluster_admin_arns

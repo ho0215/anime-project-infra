@@ -1,5 +1,15 @@
+# 하드코딩 AMI는 계정/시간에 따라 폐기될 수 있음 → 비우면 SSM latest AL2 사용
+data "aws_ssm_parameter" "al2" {
+  count = var.nat_ami == "" ? 1 : 0
+  name  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+locals {
+  nat_ami = var.nat_ami != "" ? var.nat_ami : data.aws_ssm_parameter.al2[0].value
+}
+
 resource "aws_instance" "nat" {
-  ami                    = var.nat_ami
+  ami                    = local.nat_ami
   instance_type          = "t3.micro"
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [var.nat_sg_id]
