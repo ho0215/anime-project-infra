@@ -139,6 +139,63 @@ jobs:
           chmod +x anime-project/scripts/argocd-eks-install.sh
           bash anime-project/scripts/argocd-eks-install.sh
 
+      # live Application 에 ServerSideApply 가 남으면 terminatingReplicas ComparisonError
+      # → sync=Unknown / health=Missing (Job 미생성) 고착. apply 로는 배열 항목이
+      # 안 지워질 수 있어 JSON replace 로 강제 제거 + hard refresh + apply sync.
+      - name: Strip ServerSideApply / clear ComparisonError
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if ! kubectl -n argocd get app aniverse-eks >/dev/null 2>&1; then
+            echo "no aniverse-eks Application yet"
+            exit 0
+          fi
+          echo "==> force syncOptions without ServerSideApply"
+          kubectl -n argocd patch application aniverse-eks --type=json -p='[
+            {"op":"replace","path":"/spec/syncPolicy/syncOptions","value":["CreateNamespace=true","RespectIgnoreDifferences=true"]}
+          ]' || true
+          # terminatingReplicas ignore (구 Application 에 없을 수 있음)
+          kubectl -n argocd patch application aniverse-eks --type merge -p '{
+            "spec":{
+              "ignoreDifferences":[
+                {"group":"apps","kind":"Deployment","jqPathExpressions":[".spec.replicas",".status.terminatingReplicas"]},
+                {"group":"apps","kind":"StatefulSet","jqPathExpressions":[".status.terminatingReplicas"]},
+                {"group":"","kind":"Secret","name":"aniverse-app-secrets","jsonPointers":["/data","/stringData"]}
+              ]
+            }
+          }' || true
+          kubectl -n argocd patch application aniverse-eks --type=json \
+            -p='[{"op":"remove","path":"/operation"}]' 2>/dev/null || true
+          kubectl -n argocd annotate application aniverse-eks \
+            argocd.argoproj.io/refresh=hard --overwrite || true
+          kubectl -n argocd patch application aniverse-eks --type merge -p \
+            '{"operation":{"initiatedBy":{"username":"ci-strip-ssa"},"sync":{"revision":"HEAD","syncStrategy":{"apply":{"force":false}},"syncOptions":["CreateNamespace=true","RespectIgnoreDifferences=true"]}}}' \
+            || true
+          for i in $(seq 1 36); do
+            SYNC_ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
+            HEALTH=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' 2>/dev/null || true)
+            COND=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions[*].type}' 2>/dev/null || true)
+            OPTS=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.spec.syncPolicy.syncOptions}' 2>/dev/null || true)
+            echo "  [$i] sync=${SYNC_ST} health=${HEALTH} opts=${OPTS}"
+            if [ "${SYNC_ST}" = "Synced" ] && [ "${HEALTH}" = "Healthy" ]; then
+              exit 0
+            fi
+            if echo "${COND}" | grep -q ComparisonError && echo "${OPTS}" | grep -q ServerSideApply; then
+              kubectl -n argocd patch application aniverse-eks --type=json -p='[
+                {"op":"replace","path":"/spec/syncPolicy/syncOptions","value":["CreateNamespace=true","RespectIgnoreDifferences=true"]}
+              ]' || true
+            fi
+            if [ $((i % 6)) -eq 0 ]; then
+              kubectl -n argocd get app aniverse-eks \
+                -o jsonpath='{range .status.resources[*]}{.kind}/{.name} sync={.status} health={.health.status}{"\n"}{end}' \
+                2>/dev/null | head -40 || true
+            fi
+            sleep 5
+          done
+          kubectl -n argocd get app aniverse-eks -o wide || true
+          kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.conditions}' ; echo
+
       - name: Helm restore (adopt Argo-created resources)
         if: ${{ inputs.helm_restore != false }}
         id: helm
