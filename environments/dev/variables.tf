@@ -49,7 +49,9 @@ variable "nat_ami" {
 variable "static_bucket_name" {
   description = "정적/미디어 S3 버킷 base 이름 (뒤에 account-region 이 붙음)"
   type        = string
-  default     = "aniverse-static-ho0215-dev-2026"
+  # anime-project의 values-eks.yaml AWS_STORAGE_BUCKET_NAME, docs/scripts 전부
+  # "aniverse-static-<account>-<region>" 형태를 가정하고 있음 — base는 "aniverse-static"으로 고정.
+  default = "aniverse-static"
 }
 
 variable "domain_name" {
@@ -115,9 +117,10 @@ variable "eks_cluster_version" {
 variable "eks_cluster_admin_arns" {
   description = "kubectl cluster-admin IAM ARN"
   type        = list(string)
-  default = [
-    "arn:aws:iam::679583587966:user/iac-admin",
-  ]
+  # 클러스터를 실제로 apply하는 주체(지금은 SSO seoyi-developer)는
+  # bootstrap_cluster_creator_admin_permissions로 이미 자동 admin.
+  # 팀원 SSO role ARN(예: AWSReservedSSO_AdministratorAccess_xxx) 확정되면 여기 추가.
+  default = []
 }
 
 variable "eks_node_desired_size" {

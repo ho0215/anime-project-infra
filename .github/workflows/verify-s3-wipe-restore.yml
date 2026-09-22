@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
-      STATIC_BUCKET_NAME: aniverse-static-679583587966-ap-northeast-2
+      STATIC_BUCKET_NAME: aniverse-static-841535407395-ap-northeast-2
     steps:
       - name: Check OIDC Variables
         run: |

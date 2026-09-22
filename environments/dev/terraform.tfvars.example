@@ -3,7 +3,7 @@
 
 # EKS: 로컬 kubectl 접근이 필요하면 본인 IAM ARN을 추가
 # eks_cluster_admin_arns = [
-#   "arn:aws:iam::679583587966:user/iac-admin",
+#   "arn:aws:iam::841535407395:user/iac-admin",
 #   "arn:aws:iam::<account-id>:user/<other>",
 # ]
 

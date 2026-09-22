@@ -95,13 +95,15 @@ variable "cluster_autoscaler_chart_version" {
 }
 
 variable "app_s3_bucket_arn" {
-  description = "앱 web Pod IRSA용 S3 버킷 ARN"
+  description = "앱 web Pod IRSA용 S3 버킷 ARN — enable_app_s3_irsa일 때 정책 Resource로만 쓰임"
   type        = string
   default     = ""
 }
 
+# count를 이 값(정적 bool)으로 결정 — app_s3_bucket_arn(모듈 출력값이라 완전 빈 state에서
+# apply 전엔 unknown)으로 count를 계산하면 "Invalid count argument" 에러가 남.
 variable "enable_app_s3_irsa" {
-  description = "web Pod S3 IRSA 생성. plan 시점에 알려진 bool 이어야 함 (버킷 ARN 으로 count 하지 말 것)"
+  description = "web Pod IRSA(S3) 생성 여부. plan 시점에 알려진 bool 이어야 함 (버킷 ARN 으로 count 하지 말 것)"
   type        = bool
   default     = false
 }
@@ -119,13 +121,14 @@ variable "app_irsa_service_account" {
 }
 
 variable "db_backup_s3_bucket_arn" {
-  description = "DB 백업(mysqldump) 저장용 S3 버킷 ARN"
+  description = "DB 백업(mysqldump) 저장용 S3 버킷 ARN — enable_db_backup_irsa일 때 정책 Resource로만 쓰임"
   type        = string
   default     = ""
 }
 
+# count를 이 값(정적 bool)으로 결정 — 이유는 enable_app_s3_irsa 주석 참고.
 variable "enable_db_backup_irsa" {
-  description = "DB 백업 CronJob IRSA 생성. plan 시점에 알려진 bool"
+  description = "DB 백업 CronJob IRSA(S3) 생성 여부. plan 시점에 알려진 bool 이어야 함"
   type        = bool
   default     = false
 }

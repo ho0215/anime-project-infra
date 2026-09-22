@@ -1,3 +1,7 @@
-# 과거 수동/이전 apply 리소스 import 자리.
-# destroy 후 AWS 에 없으면 import 블록이 plan 을 깨므로 비워 둔다.
-# (ECR·Access Entry 는 모듈이 새로 생성)
+# 기존에 수동/이전 apply로 만든 리소스를 빈 state에 다시 붙일 때 사용.
+# state에 이미 있으면 import 블록은 no-op. destroy 후 AWS에 없으면 import 블록이
+# plan을 깨므로 비워 둔다 — ECR·Access Entry는 모듈이 새로 생성.
+#
+# TODO(계정 이관): 옛 계정(679583587966)에서 수동으로 만들어졌던 리소스를 가져오던
+# import 블록이 여기 있었음 — 새 계정(841535407395)엔 그 리소스 자체가 없어서 지움.
+# 새 계정에서도 수동으로 먼저 만든 게 생기면 그때 같은 패턴으로 다시 추가.
