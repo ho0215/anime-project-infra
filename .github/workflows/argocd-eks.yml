@@ -38,11 +38,15 @@ jobs:
   install:
     name: Install / restore ALB HTTPS
     runs-on: ubuntu-latest
+    # Cancel/대기 루프가 기본 6h 까지 안 가게
+    timeout-minutes: 40
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
+      # 구계정(6795…) ISSUED 인증서가 아님. 신계정 인증서는 DNS 검증 후 ISSUED 여야 ALB HTTPS 가능.
       ACM_CERT_ARN: arn:aws:acm:ap-northeast-2:841535407395:certificate/da27663b-d716-4eaa-98ba-2ea5653bdb71
       ACM_WAIT_SEC: "600"
+      DOMAIN: aniverse.my
     steps:
       - uses: actions/checkout@v4
 
@@ -53,6 +57,7 @@ jobs:
             exit 1
           fi
           echo "cluster=${EKS_CLUSTER_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "role=${{ vars.AWS_ROLE_ARN }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -84,16 +89,91 @@ jobs:
           ref: ${{ inputs.anime_ref || 'main' }}
           path: anime-project
 
-      - name: ACM + DNS snapshot
+      # 근본 원인(계정 이관 후): ACM 이 PENDING_VALIDATION 인데 values-eks 가
+      # certificate-arn + ssl-redirect 를 붙임 → ALB Controller 가 ADDRESS 를 못 줌
+      # → CI 가 매번 "ALB hostname missing". 구계정은 이미 ISSUED 라 안 터졌음.
+      - name: ACM DNS validation + wait ISSUED
+        id: acm
+        timeout-minutes: 12
         run: |
-          set +e
+          set -euo pipefail
+          trap 'echo "::warning::cancelled"; exit 130' INT TERM
+
+          echo "### ACM / DNS" >> "$GITHUB_STEP_SUMMARY"
           aws acm describe-certificate --region "${AWS_REGION}" \
             --certificate-arn "${ACM_CERT_ARN}" \
             --query 'Certificate.{Status:Status,SANs:SubjectAlternativeNames}' \
             --output json | tee -a "$GITHUB_STEP_SUMMARY"
+
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          dig +short NS aniverse.my @8.8.8.8 >> "$GITHUB_STEP_SUMMARY"
+          echo "NS:" >> "$GITHUB_STEP_SUMMARY"
+          dig +short NS "${DOMAIN}" @8.8.8.8 | tee -a "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          ZONE_ID="$(aws route53 list-hosted-zones-by-name --dns-name "${DOMAIN}." \
+            --query "HostedZones[?Name=='${DOMAIN}.'].Id | [0]" --output text 2>/dev/null || true)"
+          ZONE_ID="${ZONE_ID##*/}"
+          if [ -z "${ZONE_ID}" ] || [ "${ZONE_ID}" = "None" ]; then
+            echo "::error::Route53 호스팅 영역 없음: ${DOMAIN}. Terraform module.dns apply 후 가비아 NS 위임 필요."
+            exit 1
+          fi
+          echo "route53_zone=${ZONE_ID}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+          upsert_validation() {
+            ACM_CERT_ARN="${ACM_CERT_ARN}" ZONE_ID="${ZONE_ID}" AWS_REGION="${AWS_REGION}" \
+              python3 "${GITHUB_WORKSPACE}/scripts/upsert-acm-validation.py"
+          }
+
+          echo "==> upsert ACM validation CNAMEs into Route53"
+          upsert_validation || true
+
+          STATUS="$(aws acm describe-certificate --region "${AWS_REGION}" \
+            --certificate-arn "${ACM_CERT_ARN}" --query 'Certificate.Status' --output text)"
+          if [ "${STATUS}" = "ISSUED" ]; then
+            echo "issued=true" >> "$GITHUB_OUTPUT"
+            echo "ACM already ISSUED" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "==> wait ACM ISSUED (up to ${ACM_WAIT_SEC}s) — 구계정과 달리 신계정 인증서는 아직 PENDING"
+          END=$((SECONDS + ACM_WAIT_SEC))
+          while (( SECONDS < END )); do
+            STATUS="$(aws acm describe-certificate --region "${AWS_REGION}" \
+              --certificate-arn "${ACM_CERT_ARN}" --query 'Certificate.Status' --output text)"
+            echo "ACM=${STATUS}"
+            if [ "${STATUS}" = "ISSUED" ]; then
+              echo "issued=true" >> "$GITHUB_OUTPUT"
+              echo "ACM ISSUED" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            if [ "${STATUS}" = "FAILED" ] || [ "${STATUS}" = "VALIDATION_TIMED_OUT" ]; then
+              echo "::error::ACM ${STATUS}"
+              exit 1
+            fi
+            upsert_validation || true
+            sleep 20
+          done
+
+          echo "issued=false" >> "$GITHUB_OUTPUT"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          aws acm describe-certificate --region "${AWS_REGION}" \
+            --certificate-arn "${ACM_CERT_ARN}" \
+            --query 'Certificate.DomainValidationOptions' --output json | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat <<EOF | tee -a "$GITHUB_STEP_SUMMARY"
+          ### 왜 ALB hostname missing 이 반복되나
+          ACM=\`${STATUS}\` (ISSUED 아님).
+          \`values-eks.yaml\` 이 PENDING 인증서 ARN + ssl-redirect 를 Ingress 에 붙임
+          → AWS Load Balancer Controller 가 ALB/ADDRESS 를 못 만듦.
+          구계정은 인증서가 이미 ISSUED 라 이 증상이 없었음.
+
+          확인:
+          1. 가비아 NS = Route53 (\`dig NS ${DOMAIN}\` → awsdns-*)
+          2. Terraform \`module.dns\` cert_validation 레코드 / 위 UPSERT 성공
+          3. ACM 콘솔에서 aniverse.my / www 둘 다 Success
+          EOF
+          echo "::error::ACM still ${STATUS} after ${ACM_WAIT_SEC}s — HTTPS Ingress/ALB 복구 중단. ISSUED 되면 Argo CD on EKS 재실행."
+          exit 1
 
       - name: Seed aniverse-app-secrets
         env:
@@ -143,8 +223,9 @@ jobs:
       # → sync=Unknown / health=Missing (Job 미생성) 고착. apply 로는 배열 항목이
       # 안 지워질 수 있어 JSON replace 로 강제 제거 + hard refresh + apply sync.
       - name: Strip ServerSideApply / clear ComparisonError
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
+        timeout-minutes: 4
         run: |
           set -euo pipefail
           if ! kubectl -n argocd get app aniverse-eks >/dev/null 2>&1; then
@@ -268,7 +349,9 @@ jobs:
 
       - name: Wait Ingress ALB
         id: alb
-        if: always()
+        # ACM PENDING 이면 위에서 이미 실패 — cancel/ACM 실패 후 "ALB missing" 로 덮어쓰지 않음
+        if: ${{ !cancelled() && steps.acm.outcome == 'success' }}
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           # Ingress 없으면 실패
@@ -312,6 +395,7 @@ jobs:
 
       - name: Summarize / health
         if: always()
+        timeout-minutes: 2
         run: |
           set +e
           {
@@ -326,6 +410,14 @@ jobs:
             curl -sS -m 20 -ko /dev/null -w "https=%{http_code}\n" https://aniverse.my/health/ || true
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "${{ cancelled() }}" = "true" ]; then
+            echo "::warning::cancelled — cluster Argo selfHeal may still sync"
+            exit 0
+          fi
+          if [ "${{ steps.acm.outcome }}" != "success" ]; then
+            echo "::error::ACM not ISSUED — fix DNS validation first (see ACM / DNS summary above)"
+            exit 1
+          fi
           ALB="${{ steps.alb.outputs.alb }}"
           if [ -z "${ALB}" ]; then
             echo "::error::ALB hostname missing"
