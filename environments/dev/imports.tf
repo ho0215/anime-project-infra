@@ -1,18 +1,8 @@
 # 기존에 수동/이전 apply로 만든 리소스를 빈 state에 다시 붙일 때 사용.
 # state에 이미 있으면 import 블록은 no-op.
-
-import {
-  to = module.ecr.aws_ecr_repository.app
-  id = "aniverse"
-}
-
-# cp1에서 수동 create-access-entry 한 iac-admin (kubectl 권한)
-import {
-  to = module.eks.aws_eks_access_entry.admins["arn:aws:iam::679583587966:user/iac-admin"]
-  id = "aniverse-eks:arn:aws:iam::679583587966:user/iac-admin"
-}
-
-import {
-  to = module.eks.aws_eks_access_policy_association.admins["arn:aws:iam::679583587966:user/iac-admin"]
-  id = "aniverse-eks#arn:aws:iam::679583587966:user/iac-admin#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-}
+#
+# TODO(계정 이관): 아래는 옛 계정(679583587966)에서 수동으로 만들어졌던 리소스를
+# 가져오던 import 블록들이었음 — 새 계정(841535407395)엔 그 리소스 자체가 없어서
+# (ECR repo "aniverse", iac-admin access-entry 등 전부 미생성) import 대상이 없음.
+# 지금은 비워둠 — 일반 리소스 블록이 그냥 새로 생성하면 됨.
+# 나중에 새 계정에서도 수동으로 먼저 만든 게 생기면 그때 같은 패턴으로 다시 추가.

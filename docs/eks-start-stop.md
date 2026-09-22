@@ -69,7 +69,7 @@ S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**�
 dig +short aniverse.my
 curl -sI https://aniverse.my/health/
 # 사진 샘플
-curl -sI "https://aniverse-static-679583587966-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/goods_images/타마마.jpeg"
+curl -sI "https://aniverse-static-841535407395-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/goods_images/타마마.jpeg"
 ```
 
 가비아 NS 를 유지하려면 **반드시** keep-dns destroy 를 쓴다.  

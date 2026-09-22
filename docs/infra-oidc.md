@@ -10,7 +10,7 @@
 | 항목 | 값 |
 |------|-----|
 | Role | `aniverse-github-actions-terraform` |
-| ARN | `arn:aws:iam::679583587966:role/aniverse-github-actions-terraform` |
+| ARN | `arn:aws:iam::841535407395:role/aniverse-github-actions-terraform` |
 | trust | `repo:ho0215/anime-project-infra:*` (+ immutable ID 형식) |
 | 권한 | `AdministratorAccess` (학습용 — 나중에 축소 가능) |
 
@@ -20,7 +20,7 @@ Settings → Secrets and variables → Actions → **Variables**
 
 | Name | Value |
 |------|--------|
-| `AWS_ROLE_ARN` | `arn:aws:iam::679583587966:role/aniverse-github-actions-terraform` |
+| `AWS_ROLE_ARN` | `arn:aws:iam::841535407395:role/aniverse-github-actions-terraform` |
 | `AWS_USE_OIDC` | `true` |
 
 앱 레포(`anime-project`) Variable과 **이름이 같아도 레포마다 값이 다릅니다.**  
@@ -33,7 +33,7 @@ Actions → **OIDC smoke (infra)** → Run workflow
 성공 시 Summary에:
 
 - OIDC claims (`sub` 등)
-- `assumed: arn:aws:sts::679583587966:assumed-role/aniverse-github-actions-terraform/...`
+- `assumed: arn:aws:sts::841535407395:assumed-role/aniverse-github-actions-terraform/...`
 
 실패 시 `Not authorized to perform sts:AssumeRoleWithWebIdentity` → claims의 `sub`와 IAM trust 비교.
 

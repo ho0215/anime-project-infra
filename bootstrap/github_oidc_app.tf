@@ -60,7 +60,7 @@ resource "aws_iam_role" "github_actions_app_ecr" {
 variable "static_bucket_name_for_ci" {
   description = "앱 CI가 media/static sync 할 S3 버킷 (비우면 S3 권한 미부여)"
   type        = string
-  default     = "aniverse-static-679583587966-ap-northeast-2"
+  default     = "aniverse-static-841535407395-ap-northeast-2"
 }
 
 data "aws_iam_policy_document" "github_app_ecr" {

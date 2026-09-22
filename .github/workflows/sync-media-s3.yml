@@ -16,7 +16,7 @@ on:
         description: "static/media 버킷 이름"
         type: string
         required: false
-        default: "aniverse-static-679583587966-ap-northeast-2"
+        default: "aniverse-static-841535407395-ap-northeast-2"
 
 permissions:
   contents: read
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
-      STATIC_BUCKET_NAME: ${{ inputs.bucket || 'aniverse-static-679583587966-ap-northeast-2' }}
+      STATIC_BUCKET_NAME: ${{ inputs.bucket || 'aniverse-static-841535407395-ap-northeast-2' }}
     steps:
       - name: Check OIDC Variables
         id: auth

@@ -116,7 +116,7 @@ variable "eks_cluster_admin_arns" {
   description = "kubectl cluster-admin IAM ARN"
   type        = list(string)
   default = [
-    "arn:aws:iam::679583587966:user/iac-admin",
+    "arn:aws:iam::841535407395:user/iac-admin",
   ]
 }
 
