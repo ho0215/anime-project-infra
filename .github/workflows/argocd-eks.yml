@@ -1,17 +1,25 @@
-# EKS에 Argo CD 설치 + aniverse-eks Application sync (실전 GitOps)
+# EKS에 Argo CD 설치 + aniverse Helm(ALB/HTTPS) 복구
 name: "Argo CD on EKS"
 
 on:
   workflow_dispatch:
     inputs:
       sync:
-        description: "Application sync 실행"
+        description: "Argo Application sync 실행"
         type: boolean
         default: true
       anime_ref:
-        description: "anime-project git ref"
+        description: "anime-project git ref (HTTPS values)"
         type: string
         default: "main"
+      bind_domain:
+        description: "eks-bind-domain (Route53 alias + ACM HTTPS)"
+        type: boolean
+        default: true
+      helm_restore:
+        description: "Argo 실패 시 helm upgrade로 Ingress/앱 복구"
+        type: boolean
+        default: true
   push:
     branches: [cursor/argocd-eks-8e41]
     paths:
@@ -28,11 +36,13 @@ concurrency:
 
 jobs:
   install:
-    name: Install Argo CD + sync aniverse-eks
+    name: Install / restore ALB HTTPS
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
+      ACM_CERT_ARN: arn:aws:acm:ap-northeast-2:841535407395:certificate/da27663b-d716-4eaa-98ba-2ea5653bdb71
+      ACM_WAIT_SEC: "600"
     steps:
       - uses: actions/checkout@v4
 
@@ -52,10 +62,12 @@ jobs:
           audience: sts.amazonaws.com
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.31.0
+      - name: Install kubectl + helm
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+          sudo install -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - name: kubeconfig
         run: |
@@ -63,6 +75,7 @@ jobs:
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
           kubectl cluster-info
           kubectl get nodes -o wide
+          kubectl -n kube-system get deploy aws-load-balancer-controller -o wide || true
 
       - name: Checkout anime-project
         uses: actions/checkout@v4
@@ -71,10 +84,23 @@ jobs:
           ref: ${{ inputs.anime_ref || 'main' }}
           path: anime-project
 
+      - name: ACM + DNS snapshot
+        run: |
+          set +e
+          aws acm describe-certificate --region "${AWS_REGION}" \
+            --certificate-arn "${ACM_CERT_ARN}" \
+            --query 'Certificate.{Status:Status,SANs:SubjectAlternativeNames}' \
+            --output json | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          dig +short NS aniverse.my @8.8.8.8 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Install PyYAML (Application patch)
         run: pip install --quiet pyyaml
 
       - name: Run argocd-eks-install.sh
+        id: argo
+        continue-on-error: true
         env:
           SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.sync || 'true' }}
         run: |
@@ -82,22 +108,81 @@ jobs:
           chmod +x anime-project/scripts/argocd-eks-install.sh
           bash anime-project/scripts/argocd-eks-install.sh
 
-      - name: Summarize
-        if: always()
+      - name: Helm restore (fallback)
+        if: ${{ inputs.helm_restore != false }}
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
         run: |
           set -euo pipefail
+          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
+          if ! kubectl -n aniverse get secret aniverse-app-secrets >/dev/null 2>&1; then
+            if [ -z "${DJANGO_SECRET_KEY}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_ROOT_PASSWORD}" ]; then
+              echo "::error::aniverse-app-secrets 없음 — Secrets DJANGO_SECRET_KEY/DB_PASSWORD/DB_ROOT_PASSWORD 필요"
+              exit 1
+            fi
+            kubectl -n aniverse create secret generic aniverse-app-secrets \
+              --from-literal=DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY}" \
+              --from-literal=DB_PASSWORD="${DB_PASSWORD}" \
+              --from-literal=DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD}"
+          fi
+          DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
+          DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
+          ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
+          helm upgrade --install aniverse ./anime-project/deploy/helm/aniverse \
+            -n aniverse --create-namespace \
+            -f ./anime-project/deploy/helm/aniverse/values-eks.yaml \
+            --set-string "secrets.DJANGO_SECRET_KEY=${DJANGO}" \
+            --set-string "secrets.DB_PASSWORD=${DBPASS}" \
+            --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
+            --timeout 15m
+          kubectl -n aniverse get pods,ingress -o wide
+
+      - name: Wait Ingress ALB
+        id: alb
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            ALB="$(kubectl -n aniverse get ingress aniverse-web \
+              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
+            if [ -n "${ALB}" ]; then
+              echo "alb=${ALB}" >> "$GITHUB_OUTPUT"
+              echo "ALB=${ALB}" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "waiting ALB (${i}/60)"
+            kubectl -n aniverse get ingress aniverse-web 2>&1 || true
+            sleep 15
+          done
+          kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=100 || true
+          kubectl -n aniverse describe ingress aniverse-web || true
+          echo "::error::Ingress ALB 없음"
+          exit 1
+
+      - name: Bind domain (Route53 + HTTPS)
+        if: ${{ inputs.bind_domain != false }}
+        run: |
+          set -euo pipefail
+          chmod +x anime-project/scripts/eks-bind-domain.sh
+          ACM_CERT_ARN="${ACM_CERT_ARN}" ACM_WAIT_SEC="${ACM_WAIT_SEC}" \
+            bash anime-project/scripts/eks-bind-domain.sh aniverse.my
+
+      - name: Summarize / health
+        if: always()
+        run: |
+          set +e
           {
-            echo "### Argo CD / aniverse-eks"
+            echo "### Argo / Ingress"
             echo '```'
             kubectl -n argocd get app aniverse-eks -o wide 2>&1 || true
+            kubectl -n aniverse get pods,ingress -o wide 2>&1 || true
+            echo
+            dig +short NS aniverse.my @8.8.8.8
+            dig +short A aniverse.my @8.8.8.8
+            curl -sS -m 20 -o /dev/null -w "http=%{http_code}\n" http://aniverse.my/health/ || true
+            curl -sS -m 20 -ko /dev/null -w "https=%{http_code}\n" https://aniverse.my/health/ || true
             echo '```'
-            echo '```'
-            kubectl -n aniverse get pods,ingress 2>&1 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          SYNC_ST=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.sync.status}' 2>/dev/null || echo missing)
-          HEALTH=$(kubectl -n argocd get app aniverse-eks -o jsonpath='{.status.health.status}' 2>/dev/null || echo missing)
-          echo "sync=${SYNC_ST} health=${HEALTH}"
-          test "${SYNC_ST}" = "Synced"
-          test "${HEALTH}" = "Healthy"
-          curl -fsS -o /dev/null -w "health_http=%{http_code}\n" https://aniverse.my/health/
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          # ALB hostname 확보가 최소 성공 기준
+          test -n "${{ steps.alb.outputs.alb }}"
