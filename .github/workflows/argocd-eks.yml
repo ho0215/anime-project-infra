@@ -412,7 +412,7 @@ jobs:
             bash anime-project/scripts/eks-bind-domain.sh aniverse.my
 
       - name: Summarize / health
-        if: always()
+        if: ${{ always() && !cancelled() }}
         timeout-minutes: 2
         run: |
           set +e
@@ -428,10 +428,6 @@ jobs:
             curl -sS -m 20 -ko /dev/null -w "https=%{http_code}\n" https://aniverse.my/health/ || true
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          if [ "${{ cancelled() }}" = "true" ]; then
-            echo "::warning::cancelled — cluster Argo selfHeal may still sync"
-            exit 0
-          fi
           if [ "${{ steps.acm.outcome }}" != "success" ]; then
             echo "::error::ACM not ISSUED — fix DNS validation first (see ACM / DNS summary above)"
             exit 1
@@ -442,3 +438,7 @@ jobs:
             exit 1
           fi
           echo "OK ALB=${ALB}"
+
+      - name: Note cancelled
+        if: ${{ cancelled() }}
+        run: echo "::warning::cancelled — cluster Argo selfHeal may still sync"
