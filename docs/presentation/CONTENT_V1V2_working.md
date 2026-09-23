@@ -1,12 +1,9 @@
 # Aniverse V1V2 발표 — 작업 기준본 분석
 
 **기준 파일 (앞으로 여기 기준):**
-- `docs/presentation/ppt/Aniverse_V1V2_발표_working.pptx` ← 사용자 업로드 `Aniverse_V1V2_발표_v5 (1).pptx`
-- 생성 스크립트: `make_aniverse_v1v2_ppt.py` (이 구조에 맞춤)
-- 슬라이드: **10장** · 13.333×7.5 in
-
-업로드본은 자동 생성 v5를 사람이 편집한 버전입니다.  
-(슬라이드 수 12→10, 순서 변경, 팀명·문구·향후계획 AIOps 추가)
+- `docs/presentation/ppt/Aniverse_V1V2_발표_working.pptx`
+- 생성 스크립트: `make_aniverse_v1v2_ppt.py` · 다이어그램: `make_hybrid_diagrams.py`
+- 슬라이드: **11장** · 13.333×7.5 in
 
 ---
 
@@ -22,8 +19,9 @@
 | 6 | 시스템 구성도 · V2 | 이미지 | `hybrid_02_arch_v2_vpc.png` |
 | 7 | Architecture V2의 강점 | 행 리스트 | 재현·스케일·DB·보안·관측 |
 | 8 | 기능 · 운영 검증 기준 | 6카드 | health~알림 |
-| 9 | 기술 스택 · 데이터 흐름 | 2열 | |
-| 10 | 향후 계획 · 3UP | 3열+AIOps | Unique에 AIOps |
+| 9 | 기술 스택 · V2 | **이미지** | `hybrid_09_tech_stack.png` |
+| 10 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
+| 11 | 향후 계획 · 3UP | 3열+AIOps | Unique에 AIOps |
 
 ---
 
@@ -90,33 +88,31 @@
 | 관측 | 대시보드 조회 | 클러스터 메트릭 | 구성 |
 | 알림/트레이싱 | AlertManager·Tempo | 다음 단계 | 예정 |
 
-### 9. Tech Stack / Data Flow
-- Stack: Django+Nginx, Docker/Helm, EKS, MariaDB STS+PVC, S3, Actions/ECR/Argo, OIDC, Prom/Grafana/Loki, Terraform
-- Flow: Users→ALB→web→db→PVC / media→S3 / 시드·CronJob 백업 / eks-stop vs destroy
+### 9. 기술 스택 (이미지)
+6칸 아이콘 맵:
+- 앱·런타임: Django · Nginx · Docker/Helm
+- 오케스트레이션: EKS · MariaDB STS · EBS PVC
+- 스토리지: S3 media / static / db-backups
+- CI/CD·GitOps: Actions · ECR · Argo CD
+- 인증·IaC: GitHub OIDC · Terraform · Secrets/IRSA
+- 관측: Prometheus · Grafana · Loki
 
-### 10. 향후 3UP
-- **Unique Up (차별성):** 관측 고도화(Alert·Tempo/OTel), OIDC 권한 축소, 백업 드릴, **AIOps(self-healing, auto-remediation) 구현**
-- Complete / Performance 칸은 업로드본에 헤더만 있고 Unique 쪽이 본문 중심 (편집 상태 유지)
+### 10. 데이터 흐름 (이미지)
+1. 서비스: Users → ALB → web Pod → MariaDB → EBS PVC (eks-stop 시 PVC 유지)
+2. destroy 후 시드: GitHub SQL → restore Job → MariaDB
+3. 주기 백업: MariaDB → CronJob → S3 db-backups/
+4. 미디어: web Pod → S3 media/ (DB 아님 · destroy 시 Sync media)
+주의: terraform destroy = PVC+S3 삭제
 
----
-
-## 이전 자동생성(12장)과 차이
-
-| 항목 | 옛 12장 | **현재 작업본 10장** |
-|------|---------|---------------------|
-| 슬라이드 수 | 12 | **10** |
-| 가치/시나리오 장 | 있음 | **삭제됨** |
-| 구성도 위치 | 끝쪽(10–11) | **V1 정의 직후 / V2 정의 직후** |
-| 팀 | 역할별 표기 | **이름 나열 4명** |
-| V1 배경 | 클라우드 실습 톤 | **온프렘→AWS** 명시 |
-| 향후 | 3열 각각 3불릿 | **AIOps 포함 Unique 중심** |
-| footer | n/12 | 번호가 옛 번호 잔존(3→3, 구성도→10/11) — **재생성 시 1–10으로 정리** |
+### 11. 향후 3UP
+- **Unique Up:** 관측 고도화 · OIDC 축소 · 백업 드릴 · **AIOps(self-healing)**
+- Complete / Performance: Loki·시드 게이트·런북 / start-stop·대비 설명·장애 데모
 
 ---
 
 ## 앞으로 작업 규칙
 
-1. 편집·재생성은 **이 10장 구조·문구**를 기준으로 한다.
+1. 편집·재생성은 **이 11장 구조·문구**를 기준으로 한다.
 2. 소스 오브 트루스 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 3. 버전 올리면 `Aniverse_V1V2_발표_vN.pptx`로 쌓되, working도 같이 갱신한다.
-4. 구성도 PNG는 `images/hybrid/hybrid_01_arch_v1_vpc.png`, `hybrid_02_arch_v2_vpc.png`
+4. 구성도·스택·흐름 PNG: `images/hybrid/hybrid_01_*`, `hybrid_02_*`, `hybrid_09_tech_stack.png`, `hybrid_10_data_flow.png`

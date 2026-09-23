@@ -7,7 +7,7 @@
 | 파일 | 용도 |
 |------|------|
 | **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (온프렘→AWS 강사용) |
-| **`ppt/Aniverse_V1V2_발표_working.pptx`** | **V1→V2 작업 기준본 (10장)** · 내용=`CONTENT_V1V2_working.md` |
+| **`ppt/Aniverse_V1V2_발표_working.pptx`** | **V1→V2 작업 기준본 (11장)** · 내용=`CONTENT_V1V2_working.md` |
 | **`ppt/Aniverse_V1V2_발표_vN.pptx`** | V1→V2 버전 스냅샷 (working과 동기) |
 | **`ppt/Aniverse_하이브리드_EKS_vN.pptx`** | 이전 하이브리드 상세판 |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
