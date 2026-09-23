@@ -37,6 +37,38 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 <!-- 새 항목은 이 선 바로 아래에 추가 -->
 
+### 2026-09-23 — db-restore Actions 초록인데 시드 데이터 없음 (migrate Skip)
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Actions (신계정 841535407395) |
+| 관련 파트 | 컨테이너 · DB / GitOps · CI/CD |
+| 증상 | 사이트 `/deal/`·`/works/` 「등록된 … 없습니다」. [Verify DB restore #35804566982](https://github.com/ho0215/anime-project-infra/actions/runs/35804566982) 는 **success** (54s) |
+| 가설 | 덤프 경로 잘못 · Job 미실행 · raw URL 404 |
+| 원인 | Job 로그 `table_count=25 (min=20)` → **`Skip restore — schema already present.`** 웹 Pod `migrate`가 빈 테이블만 먼저 생성. Job은 테이블 수만 보고 exit 0. Kubernetes Job은 Complete 후 덤프 갱신만으로 **재실행되지 않음**. (덤프·raw URL·`dbRestore.enabled`는 정상) |
+| 조치 | Skip 조건을「테이블 ≥ min **그리고** `anime_anime` 행 > 0」으로 변경. 시드 0이면 force SQL import (`DROP TABLE IF EXISTS` 덤프). Verify는 Skip-only 성공을 시드 검증으로 보강, `APP_REF` stale 브랜치 → `main`/`app_ref` input |
+| 재발 방지 | Verify step summary/로그에 `Restore complete`·`seed_rows` 필수. 「Actions 초록 ≠ 데이터 복구」. DB만 비면 **Verify DB restore**만; Argo CD on EKS는 ALB/HTTPS/전체용. EC2 SSH 복구 경로 없음(EKS Pod+PVC). 런북: anime [db-restore.md](https://github.com/ho0215/anime-project/blob/main/docs/db-restore.md) |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #55, anime-project-infra #100 |
+| 참고 | Job Complete 16h·5s 실행 → Skip 전형. media는 SQL과 별도 → Sync media → S3 |
+
+### 2026-09-23 — OutOfSync만으로 「사이트 다운」으로 오인 / image.tag drift
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Argo CD / Docker build |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | Argo `OutOfSync` + (가끔) install wait 실패/경고. HTTPS·health는 200 |
+| 가설 | sync 실패 = 장애 |
+| 원인 | Docker build가 Helm `image.tag` 만 Git bump하고 Argo sync가 안 따라가면 Deployment drift → OutOfSync. Missing=0·Healthy면 페이지는 살아 있음 |
+| 조치 | docker-build에 bump 직후 Argo apply sync (`continue-on-error`). argocd-eks-install wait는 Healthy/Progressing+Missing=0이면 OutOfSync여도 OK |
+| 재발 방지 | OutOfSync ≠ Missing. Missing/ComparisonError만 차단으로 볼 것 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #54 |
+| 참고 | ECR/OIDC 역할에 EKS 없으면 sync step warning 후 skip — infra 역할·Access Entry 필요 시 별도 |
+
 ### 2026-09-18 — destroy 재실행이 state lock 으로 즉시 실패
 
 | 항목 | 내용 |
@@ -316,6 +348,8 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 
 | 날짜 | 제목 | 담당 | 환경 |
 |------|------|------|------|
+| 2026-09-23 | db-restore Actions 초록인데 시드 데이터 없음 (migrate Skip) | Cursor | EKS / Actions |
+| 2026-09-23 | OutOfSync만으로 사이트 다운 오인 / image.tag drift | Cursor | Argo / Docker build |
 | 2026-09-18 | AWS 계정 Blocked — iac-admin Access Key 유출 | 현우 | AWS / Actions |
 | 2026-09-16 | EKS stop Actions 성공인데 EC2 워커가 안 꺼짐 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop `maxSize=0` API 거절 | 현우 | EKS / Actions |

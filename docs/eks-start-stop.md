@@ -61,6 +61,8 @@ S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**�
 ./scripts/terraform-rebind-eks-dns.sh
 # 4) DB PVC 도 날아감 → Helm dbRestore Job 이 SQL 자동 복구
 #    (anime-project values-eks.yaml dbRestore.enabled, docs/db-restore.md)
+#    migrate만 먼저 돌면 빈 스키마 Skip 이력이 있음 → Actions **Verify DB restore**
+#    로그에 Restore complete + seed_rows≥1 인지 반드시 확인 (초록 ≠ 시드 복구)
 # 5) (CD 실패·수동 시) S3 자산 재업로드
 #    Actions → Sync media → S3  또는
 #    APP_DIR=../anime-project STATIC_BUCKET_NAME=aniverse-static-... \
@@ -68,6 +70,8 @@ S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**�
 
 dig +short aniverse.my
 curl -sI https://aniverse.my/health/
+# 시드(목록) — 비어 있으면 Verify DB restore 로그 확인
+# curl -sL https://aniverse.my/deal/ | head
 # 사진 샘플
 curl -sI "https://aniverse-static-841535407395-ap-northeast-2.s3.ap-northeast-2.amazonaws.com/goods_images/타마마.jpeg"
 ```
@@ -82,7 +86,7 @@ curl -sI "https://aniverse-static-841535407395-ap-northeast-2.s3.ap-northeast-2.
 | Route53 존 / ACM | 유지 | 재발급 불필요 |
 | S3 버킷·객체 | 삭제 | apply + **media/static sync** |
 | EKS / ALB | 삭제 | apply + helm + DNS rebind |
-| DB (EBS PVC) | 삭제 | Argo/Helm **dbRestore Job** (SQL) |
+| DB (EBS PVC) | 삭제 | Argo/Helm **dbRestore Job** (SQL). 시드 확인은 **Verify DB restore** 로그 (`seed_rows`). EC2 SSH 아님 |
 | ECR 이미지 | 모듈에 있으면 삭제될 수 있음 | CI 재 push |
 
 검증용: Actions **Verify S3 wipe → restore** (버킷 비우기 시뮬레이션 → sync → HTTP 200).
