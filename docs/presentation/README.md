@@ -6,10 +6,11 @@
 
 | 파일 | 용도 |
 |------|------|
-| **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT |
+| **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (온프렘→AWS 강사용) |
+| **`ppt/Aniverse_하이브리드_EKS.pptx`** | 프로젝트 + EKS 전환 하이브리드 |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
-| **`SPEAKER_NOTES_강사.md`** | 슬라이드별 멘트·시간 |
-| **`PPT_트러블슈팅_계정이관.md`** | 계정 Block·이관 오류 PPT용 요약 |
+| **`SPEAKER_NOTES_강사.md`** | 강사용 멘트 |
+| **`SPEAKER_NOTES_하이브리드.md`** | 하이브리드 멘트 |
 
 EKS AS-IS 한 장 구성도: `docs/aniverse-eks-architecture-as-is.png` (별도 문서)
 
@@ -22,8 +23,10 @@ python3 make_terraform_modules_diagram.py  # 03 모듈 맵
 python3 make_instructor_diagrams.py        # 01, 05~09 (+ 02/03 호출)
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
+python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS.pptx (images/hybrid)
 ```
 
+하이브리드 구성도 이미지는 `images/hybrid/hybrid_*.png` (AI 생성). 재생성이 필요하면 이미지를 교체한 뒤 `make_hybrid_ppt.py`만 다시 실행.
 ## 이미지 (`images/instructor/`)
 
 | 파일 | 내용 |
