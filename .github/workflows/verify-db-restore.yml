@@ -3,8 +3,13 @@ name: "Verify DB restore Job"
 
 on:
   workflow_dispatch:
+    inputs:
+      app_ref:
+        description: "anime-project git ref for Helm chart (branch/sha)"
+        required: false
+        default: "main"
   push:
-    branches: [cursor/db-restore-auto-8e41]
+    branches: [cursor/db-restore-auto-8e41, cursor/db-restore-force-empty-8e41]
     paths:
       - ".github/workflows/verify-db-restore.yml"
 
@@ -23,8 +28,8 @@ jobs:
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
-      # main 의 values-eks + db-restore Job (시드 없으면 force import)
-      APP_REF: ${{ vars.ANIME_APP_REF || 'main' }}
+      # dispatch input > var > main. 빈 스키마 force import 수정은 anime PR 머지 후 main.
+      APP_REF: ${{ inputs.app_ref || vars.ANIME_APP_REF || 'main' }}
     steps:
       - name: Check OIDC
         run: |
