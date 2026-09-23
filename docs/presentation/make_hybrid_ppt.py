@@ -2,9 +2,10 @@
 """하이브리드 발표 PPT — 프로젝트 소개 + EKS 전환 + 윤주(관측/DB) 반영.
 
 구조도는 images/hybrid/*.png (AI 생성) 사용.
-출력: ppt/Aniverse_하이브리드_EKS.pptx
+출력: ppt/Aniverse_하이브리드_EKS_vN.pptx (생성할 때마다 버전 +1)
 """
 from pathlib import Path
+import re
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -30,7 +31,18 @@ GREEN = RGBColor(22, 163, 74)
 ORANGE = RGBColor(234, 88, 12)
 SOFT = RGBColor(239, 246, 255)
 
-TOTAL = 17
+TOTAL = 18
+STEM = "Aniverse_하이브리드_EKS"
+
+
+def next_version_path() -> Path:
+    """ppt/Aniverse_하이브리드_EKS_vN.pptx — 기존 최대 N+1, 없으면 v1."""
+    best = 0
+    for p in OUT.glob(f"{STEM}_v*.pptx"):
+        m = re.search(r"_v(\d+)\.pptx$", p.name)
+        if m:
+            best = max(best, int(m.group(1)))
+    return OUT / f"{STEM}_v{best + 1}.pptx"
 
 
 def font(run, size=16, bold=False, color=NAVY):
@@ -157,7 +169,7 @@ def agenda(prs):
     header(s, "목차", "프로젝트 소개 → EKS 전환 → 데이터·관측 → 트러블 → 교훈")
     items = [
         "01  서비스 · 팀 역할",
-        "02  As-Is → To-Be · 왜 EKS인가",
+        "02  아키텍처 v1 · v2 · 왜 EKS",
         "03  랩 → EKS 경로 · 워크로드",
         "04  GitOps · 데이터 백업/복구",
         "05  관측 (Prom / Grafana / Loki)",
@@ -198,18 +210,33 @@ def roles(prs):
     footer(s, 4)
 
 
-def asis(prs):
+def arch_v1_overview(prs):
     s = blank(prs)
-    header(s, "2. As-Is (v1)", "EC2 · ASG · CodeDeploy · RDS — 서버에 설치하는 배포")
-    put_img(s, "hybrid_01_asis.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    header(
+        s,
+        "2. 아키텍처 v1 (1) — 전체 구조",
+        "User → ALB → ASG/EC2(Nginx+Django) → RDS · EFS · S3",
+    )
+    put_img(s, "hybrid_01_arch_v1_overview.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
     footer(s, 5)
 
 
-def tobe(prs):
+def arch_v1_flow(prs):
     s = blank(prs)
-    header(s, "2. To-Be (v2 EKS)", "Ingress/ALB · Pod · DB StatefulSet · ECR · Argo GitOps")
-    put_img(s, "hybrid_02_tobe.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    header(
+        s,
+        "2. 아키텍처 v1 (2) — 요청 · 배포가 흐르는 방식",
+        "상단: 트래픽 경로 · 하단: Actions → CodeDeploy → EC2",
+    )
+    put_img(s, "hybrid_01_arch_v1_flow.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
     footer(s, 6)
+
+
+def arch_v2(prs):
+    s = blank(prs)
+    header(s, "2. 아키텍처 v2 — EKS", "Ingress/ALB · Pod · DB StatefulSet · ECR · Argo GitOps")
+    put_img(s, "hybrid_02_arch_v2.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    footer(s, 7)
 
 
 def why_eks(prs):
@@ -226,42 +253,42 @@ def why_eks(prs):
         card = rect(s, Inches(0.6), y, Inches(12.1), Inches(1.15), SOFT, TEAL)
         set_text(card.text_frame, t, 16, True, TEAL)
         add_para(card.text_frame, b, 14, False, NAVY, 8)
-    footer(s, 7)
+    footer(s, 8)
 
 
 def migration(prs):
     s = blank(prs)
     header(s, "3. 랩 → EKS 전환 경로", "Compose → Lab K8s(Helm) → EKS + Argo")
     put_img(s, "hybrid_03_migration_path.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 8)
+    footer(s, 9)
 
 
 def workloads(prs):
     s = blank(prs)
     header(s, "3. 앱 · DB 워크로드", "윤주: Docker · Helm · StatefulSet — EKS에서 web/db 1/1")
     put_img(s, "hybrid_04_workloads.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 9)
+    footer(s, 10)
 
 
 def gitops(prs):
     s = blank(prs)
     header(s, "4. GitOps · CI/CD", "Actions → ECR(sha-*) → values bump → Argo sync · OIDC")
     put_img(s, "hybrid_05_gitops.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 10)
+    footer(s, 11)
 
 
 def data(prs):
     s = blank(prs)
     header(s, "4. 데이터 — 백업 · 복구", "윤주: restore Job · CronJob → S3 db-backups/ · media는 S3 sync")
     put_img(s, "hybrid_06_data.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 11)
+    footer(s, 12)
 
 
 def observability(prs):
     s = blank(prs)
     header(s, "5. 관측", "완료: Prom+Grafana · Loki/Alloy 구성 — 예정: AlertManager · Tempo/OTel")
     put_img(s, "hybrid_07_observability.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 12)
+    footer(s, 13)
 
 
 def ops(prs):
@@ -280,7 +307,7 @@ def ops(prs):
         card = rect(s, x, y, Inches(6.05), Inches(2.35), LIGHT, BLUE)
         set_text(card.text_frame, t, 18, True, BLUE)
         add_para(card.text_frame, b, 14, False, NAVY, 14)
-    footer(s, 13)
+    footer(s, 14)
 
 
 def issue_tech(prs):
@@ -304,14 +331,14 @@ def issue_tech(prs):
         "install 후 syncOptions strip",
     ]:
         add_para(right.text_frame, "· " + line, 13, False, NAVY, 10)
-    footer(s, 14)
+    footer(s, 15)
 
 
 def issue_account(prs):
     s = blank(prs)
     header(s, "6. 계정 Block → 이관", "표면은 start 실패 · 근본은 키 유출")
     put_img(s, "hybrid_08_account.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
-    footer(s, 15)
+    footer(s, 16)
 
 
 def before_after(prs):
@@ -335,7 +362,7 @@ def before_after(prs):
         "Prom/Grafana · Loki 관측",
     ]:
         add_para(right.text_frame, "· " + line, 14, False, NAVY, 12)
-    footer(s, 16)
+    footer(s, 17)
 
 
 def closing(prs):
@@ -359,7 +386,7 @@ def closing(prs):
         set_text(card.text_frame, title, 18, True, BLUE if i == 0 else TEAL)
         for line in lines:
             add_para(card.text_frame, "· " + line, 14, False, NAVY, 14)
-    footer(s, 17)
+    footer(s, 18)
 
 
 def main():
@@ -371,8 +398,9 @@ def main():
     agenda(prs)
     service(prs)
     roles(prs)
-    asis(prs)
-    tobe(prs)
+    arch_v1_overview(prs)
+    arch_v1_flow(prs)
+    arch_v2(prs)
     why_eks(prs)
     migration(prs)
     workloads(prs)
@@ -385,7 +413,7 @@ def main():
     before_after(prs)
     closing(prs)
 
-    out = OUT / "Aniverse_하이브리드_EKS.pptx"
+    out = next_version_path()
     prs.save(out)
     print(f"Wrote {out} ({TOTAL} slides)")
 

@@ -23,10 +23,12 @@ python3 make_terraform_modules_diagram.py  # 03 모듈 맵
 python3 make_instructor_diagrams.py        # 01, 05~09 (+ 02/03 호출)
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
-python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS.pptx (images/hybrid)
+python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (버전 자동 +1)
 ```
 
-하이브리드 구성도 이미지는 `images/hybrid/hybrid_*.png` (AI 생성). 재생성이 필요하면 이미지를 교체한 뒤 `make_hybrid_ppt.py`만 다시 실행.
+하이브리드 구성도: `images/hybrid/hybrid_*.png` (AI).  
+아키텍처 **v1은 2장** — (1) 전체 구조 · (2) 요청/배포 흐름. **v2**는 EKS 한 장.  
+재생성 시 파일명은 `Aniverse_하이브리드_EKS_v1.pptx`, `v2` … 로 쌓입니다.
 ## 이미지 (`images/instructor/`)
 
 | 파일 | 내용 |
