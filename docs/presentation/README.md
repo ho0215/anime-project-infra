@@ -7,7 +7,8 @@
 | 파일 | 용도 |
 |------|------|
 | **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (온프렘→AWS 강사용) |
-| **`ppt/Aniverse_V1V2_발표_vN.pptx`** | NunSub 구조 참고 · V1→V2 발표용 (권장) |
+| **`ppt/Aniverse_V1V2_발표_working.pptx`** | **V1→V2 작업 기준본 (10장)** · 내용=`CONTENT_V1V2_working.md` |
+| **`ppt/Aniverse_V1V2_발표_vN.pptx`** | V1→V2 버전 스냅샷 (working과 동기) |
 | **`ppt/Aniverse_하이브리드_EKS_vN.pptx`** | 이전 하이브리드 상세판 |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
 | **`SPEAKER_NOTES_강사.md`** | 강사용 멘트 |
@@ -25,7 +26,8 @@ python3 make_instructor_diagrams.py        # 01, 05~09 (+ 02/03 호출)
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
 python3 make_hybrid_diagrams.py            # images/hybrid/*.png (PIL+한글 폰트)
-python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (버전 자동 +1)
+python3 make_aniverse_v1v2_ppt.py          # ppt/Aniverse_V1V2_발표_working.pptx + vN (10장 기준)
+python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (상세판)
 ```
 
 하이브리드 구성도: `images/hybrid/hybrid_*.png` (`make_hybrid_diagrams.py`, 시스템 한글 폰트).  
