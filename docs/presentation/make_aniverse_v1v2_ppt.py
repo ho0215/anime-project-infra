@@ -271,19 +271,46 @@ def slide_v1_to_v2(prs):
         set_text(h.text_frame, text, 16, True, WHITE, PP_ALIGN.CENTER)
 
     left = [
-        ("수동·에이전트 배포", "CodeDeploy/EC2 중심이라 환경 재현과 롤백이 어렵고, 배포 경로가 한곳에 묶여 있었습니다."),
-        ("상시 인프라 비용", "RDS·ASG를 상시 유지해야 해 학습/실험 환경에서 비용 부담이 컸습니다."),
-        ("확장·관측 분리 한계", "노드/앱 스케일과 로그·메트릭 관측을 한 흐름으로 묶기 어려웠습니다."),
+        (
+            "모니터링이 한눈에 안 보임",
+            "메트릭·로그·배포 상태가 흩어져 있어, 장애/부하를 한 화면에서 파악하기 어려웠습니다.",
+        ),
+        (
+            "수정 → 서비스 반영이 어려움",
+            "인프라·앱을 바꿔도 EC2/에이전트 경로에 묶여, 변경이 서비스에 빠르게·일관되게 반영되기 어려웠습니다.",
+        ),
+        (
+            "ASG만으로 늘렸다 줄이기",
+            "스케일이 ASG(인스턴스) 단위에 의존해, 필요할 때만 줄이기 어렵고 상시 용량으로 비용 낭비가 생길 수 있었습니다.",
+        ),
     ]
     mid = [
-        ("배포 · 재현성", "이미지 + GitOps로 동일 환경을 재현하고, Actions→ECR→Argo로 배포를 자동화합니다."),
-        ("비용 · 학습 효율", "DB를 StatefulSet+PVC로 두어 RDS 상시 비용 대신 학습·2차에 맞는 구성을 택했습니다."),
-        ("운영 · 관측", "Prom/Grafana · Loki를 붙이고 start/stop으로 미사용 비용을 줄입니다."),
+        (
+            "관측을 한곳에",
+            "Prom/Grafana · Loki로 메트릭·로그를 모아, 클러스터·앱 상태를 한눈에 보는 것을 목표로 합니다.",
+        ),
+        (
+            "변경이 곧 배포",
+            "이미지 빌드 + GitOps(Argo)로 인프라/앱 수정이 Synced 상태로 서비스에 반영되게 합니다.",
+        ),
+        (
+            "필요한 만큼만 스케일",
+            "노드·파드 단위로 스케일을 나누고, start/stop으로 미사용 구간 비용을 줄이는 구성을 목표로 합니다.",
+        ),
     ]
     right = [
-        ("EKS + Argo CD", "선언적 배포로 OutOfSync/Sync를 기준으로 상태를 관리합니다."),
-        ("OIDC · 시크릿 이관", "장기 Access Key 대신 GitHub OIDC, 계정 이관 시 ARN 전수 교체를 원칙으로 합니다."),
-        ("데이터 복구 경로", "Git SQL 시드 · CronJob→S3 백업 · media sync로 파괴/복구를 분리합니다."),
+        (
+            "관측 스택",
+            "Prometheus · Grafana · Loki를 V2 기본 구성에 두고, 이후 Alert/Tempo로 확장합니다.",
+        ),
+        (
+            "Actions → ECR → Argo",
+            "sha-* 태그 bump 후 Argo sync로, 코드/차트 변경이 클러스터에 선언적으로 반영됩니다.",
+        ),
+        (
+            "EKS + DB Pod",
+            "ASG만의 인스턴스 스케일 대신 EKS 노드/파드 스케일과 PVC 기반 DB로 낭비를 줄입니다.",
+        ),
     ]
     for i, (t, b) in enumerate(left):
         accent_item(s, Inches(0.45), Inches(1.95) + i * Inches(1.55), Inches(3.95), Inches(1.4), RED, t, b)
