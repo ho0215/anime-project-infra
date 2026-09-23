@@ -102,7 +102,6 @@
 2. destroy 후 시드: GitHub SQL → restore Job → MariaDB
 3. 주기 백업: MariaDB → CronJob → S3 db-backups/
 4. 미디어: web Pod → S3 media/ (DB 아님 · destroy 시 Sync media)
-주의: terraform destroy = PVC+S3 삭제
 
 ### 11. 향후 3UP
 - **Unique Up:** 관측 고도화 · OIDC 축소 · 백업 드릴 · **AIOps(self-healing)**
