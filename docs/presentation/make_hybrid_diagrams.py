@@ -510,73 +510,61 @@ def make_tech_stack_v2():
 
 
 def make_data_flow_v2():
-    """데이터 흐름 전용 장 — 서비스/시드/백업/미디어를 크게."""
+    """데이터 흐름 전용 장 — 서비스/시드/백업/미디어 (주의 칸 없음)."""
     img = Image.new("RGBA", (W, H), BG + (255,))
 
-    # 1) service path
-    soft_card(img, (40, 30, 1560, 250), r=16, fill=SOFT_BLUE, shadow=False)
+    # 1) service path — full width top
+    soft_card(img, (40, 30, 1560, 290), r=16, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 30, 1560, 250), radius=16, outline=CYAN, width=3)
-    d.text((60, 42), "1) 서비스 중 — 글 / 데이터", font=fnt(20, True), fill=CYAN)
-    tile(img, 70, 85, 150, 145, "users", "Users", "", CYAN, WHITE, 44)
-    tile(img, 260, 85, 150, 145, "alb", "ALB", "Ingress", GREEN, WHITE, 44)
-    tile(img, 450, 85, 190, 145, "django", "web Pod", "Django", CYAN, WHITE, 48)
-    tile(img, 680, 85, 210, 145, "rds_maria", "MariaDB Pod", "StatefulSet", PURPLE, WHITE, 48)
-    tile(img, 930, 85, 190, 145, "efs", "EBS PVC", "영구 저장", TEAL, WHITE, 48)
+    d.rounded_rectangle((40, 30, 1560, 290), radius=16, outline=CYAN, width=3)
+    d.text((60, 42), "1) 서비스 중 — 글 / 데이터", font=fnt(22, True), fill=CYAN)
+    tile(img, 70, 95, 170, 170, "users", "Users", "", CYAN, WHITE, 52)
+    tile(img, 290, 95, 170, 170, "alb", "ALB", "Ingress", GREEN, WHITE, 52)
+    tile(img, 510, 95, 210, 170, "django", "web Pod", "Django", CYAN, WHITE, 56)
+    tile(img, 770, 95, 230, 170, "rds_maria", "MariaDB Pod", "StatefulSet", PURPLE, WHITE, 56)
+    tile(img, 1050, 95, 210, 170, "efs", "EBS PVC", "영구 저장", TEAL, WHITE, 56)
     d = ImageDraw.Draw(img)
-    for x0, x1 in [(220, 260), (410, 450), (640, 680), (890, 930)]:
-        arrow_h(d, x0, 157, x1, NAVY)
-    d.text((1150, 140), "eks-stop → PVC 유지", font=fnt(18, True), fill=GREEN)
+    for x0, x1 in [(240, 290), (460, 510), (720, 770), (1000, 1050)]:
+        arrow_h(d, x0, 180, x1, NAVY)
+    d.text((1290, 145), "eks-stop", font=fnt(18, True), fill=GREEN)
+    d.text((1290, 175), "→ PVC 유지", font=fnt(18, True), fill=GREEN)
 
-    # 2) seed
-    soft_card(img, (40, 270, 780, 500), r=16, fill=SOFT_GREEN, shadow=False)
+    # 2) seed  ·  3) backup — mid row
+    soft_card(img, (40, 320, 780, 590), r=16, fill=SOFT_GREEN, shadow=False)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 270, 780, 500), radius=16, outline=GREEN, width=3)
-    d.text((60, 282), "2) destroy 후 시드 복구", font=fnt(20, True), fill=GREEN)
-    tile(img, 70, 325, 175, 150, "github", "GitHub", "backup.sql", NAVY, WHITE, 48)
-    tile(img, 290, 325, 195, 150, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 48)
-    tile(img, 530, 325, 195, 150, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 48)
+    d.rounded_rectangle((40, 320, 780, 590), radius=16, outline=GREEN, width=3)
+    d.text((60, 335), "2) destroy 후 시드 복구", font=fnt(22, True), fill=GREEN)
+    tile(img, 70, 385, 185, 175, "github", "GitHub", "backup.sql", NAVY, WHITE, 56)
+    tile(img, 300, 385, 205, 175, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 56)
+    tile(img, 550, 385, 185, 175, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 56)
     d = ImageDraw.Draw(img)
-    arrow_h(d, 245, 400, 290, NAVY)
-    arrow_h(d, 485, 400, 530, NAVY)
+    arrow_h(d, 255, 470, 300, NAVY)
+    arrow_h(d, 505, 470, 550, NAVY)
 
-    # 3) backup
-    soft_card(img, (820, 270, 1560, 500), r=16, fill=SOFT_ORANGE, shadow=False)
+    soft_card(img, (820, 320, 1560, 590), r=16, fill=SOFT_ORANGE, shadow=False)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((820, 270, 1560, 500), radius=16, outline=ORANGE, width=3)
-    d.text((840, 282), "3) 주기 백업 (CronJob)", font=fnt(20, True), fill=ORANGE)
-    tile(img, 860, 325, 175, 150, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 48)
-    tile(img, 1085, 325, 175, 150, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 48)
-    tile(img, 1310, 325, 195, 150, "s3", "S3", "db-backups/", ORANGE, WHITE, 48)
+    d.rounded_rectangle((820, 320, 1560, 590), radius=16, outline=ORANGE, width=3)
+    d.text((840, 335), "3) 주기 백업 (CronJob)", font=fnt(22, True), fill=ORANGE)
+    tile(img, 860, 385, 185, 175, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 56)
+    tile(img, 1090, 385, 185, 175, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 56)
+    tile(img, 1320, 385, 195, 175, "s3", "S3", "db-backups/", ORANGE, WHITE, 56)
     d = ImageDraw.Draw(img)
-    arrow_h(d, 1035, 400, 1085, NAVY)
-    arrow_h(d, 1260, 400, 1310, NAVY)
+    arrow_h(d, 1045, 470, 1090, NAVY)
+    arrow_h(d, 1275, 470, 1320, NAVY)
 
-    # 4) media
-    soft_card(img, (40, 520, 1560, 700), r=16, fill=SOFT_PURPLE, shadow=False)
+    # 4) media — bottom full width
+    soft_card(img, (40, 620, 1560, 870), r=16, fill=SOFT_PURPLE, shadow=False)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 520, 1560, 700), radius=16, outline=PURPLE, width=3)
-    d.text((60, 535), "4) 사진 / 미디어 — DB가 아님", font=fnt(20, True), fill=PURPLE)
-    tile(img, 70, 580, 230, 95, "django", "web Pod", "upload", CYAN, WHITE, 40)
-    d.text((330, 615), "→", font=fnt(24, True), fill=NAVY)
-    tile(img, 380, 580, 280, 95, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 40)
+    d.rounded_rectangle((40, 620, 1560, 870), radius=16, outline=PURPLE, width=3)
+    d.text((60, 638), "4) 사진 / 미디어 — DB가 아님", font=fnt(22, True), fill=PURPLE)
+    tile(img, 70, 690, 260, 145, "django", "web Pod", "upload", CYAN, WHITE, 52)
+    d.text((370, 750), "→", font=fnt(28, True), fill=NAVY)
+    tile(img, 420, 690, 300, 145, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 52)
     d.text(
-        (700, 612),
+        (760, 745),
         "destroy 시 S3도 삭제 → Sync media 로 재업로드",
-        font=fnt(18),
+        font=fnt(20),
         fill=RED,
-    )
-
-    # note
-    soft_card(img, (40, 720, 1560, 870), r=14, fill=SOFT_RED, shadow=False)
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 720, 1560, 870), radius=14, outline=RED, width=3)
-    d.text((60, 755), "주의", font=fnt(20, True), fill=RED)
-    d.text(
-        (60, 805),
-        "eks-stop: PVC 유지  |  terraform destroy: PVC + S3 삭제  |  Git SQL 이후 새 글은 덤프 갱신 없으면 미복구",
-        font=fnt(17),
-        fill=NAVY,
     )
     save(img, "hybrid_10_data_flow.png")
 
