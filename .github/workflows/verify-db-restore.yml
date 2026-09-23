@@ -23,7 +23,8 @@ jobs:
     env:
       AWS_REGION: ap-northeast-2
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'aniverse-eks' }}
-      APP_REF: cursor/db-restore-auto-8e41
+      # main 의 values-eks + db-restore Job (시드 없으면 force import)
+      APP_REF: ${{ vars.ANIME_APP_REF || 'main' }}
     steps:
       - name: Check OIDC
         run: |
@@ -121,13 +122,30 @@ jobs:
             exit 1
           fi
           echo "==== logs ===="
-          kubectl -n aniverse logs job/aniverse-db-restore --tail=100
+          LOGS="$(kubectl -n aniverse logs job/aniverse-db-restore --tail=100)"
+          echo "${LOGS}"
           SUCC=$(kubectl -n aniverse get job aniverse-db-restore -o jsonpath='{.status.succeeded}')
           test "${SUCC}" = "1"
+          if echo "${LOGS}" | grep -q 'Skip restore'; then
+            echo "::warning::Job skipped import (seed already present). Site may already have data."
+          fi
+          if ! echo "${LOGS}" | grep -qE 'Restore complete\.|Skip restore'; then
+            echo "::error::Unexpected Job logs — neither Restore complete nor Skip"
+            exit 1
+          fi
+          if echo "${LOGS}" | grep -q 'Restore complete'; then
+            if ! echo "${LOGS}" | grep -qE 'seed_rows=[1-9]'; then
+              echo "::error::Restore finished but seed_rows still 0"
+              exit 1
+            fi
+          fi
           {
             echo "### DB restore Job"
             echo "- applied via helm template from \`${APP_REF}\`"
             echo "- succeeded=1"
+            echo '```'
+            echo "${LOGS}" | tail -20
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke site + Argo status
