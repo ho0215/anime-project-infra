@@ -60,8 +60,8 @@ S3 버킷은 `force_destroy=true` 라 **객체(사진·css·img)까지 삭제**�
 # 3) Route53 alias 를 새 ALB 에 재바인딩 (태그로 ALB 자동 조회)
 ./scripts/terraform-rebind-eks-dns.sh
 # 4) DB PVC 도 날아감 → Helm dbRestore Job 이 SQL 자동 복구
-#    (anime-project values-eks.yaml dbRestore.enabled, docs/db-restore.md)
-#    migrate만 먼저 돌면 빈 스키마 Skip 이력이 있음 → Actions **Verify DB restore**
+#    런북·트러블슈팅: docs/db-restore.md · docs/troubleshooting-log.md
+#    migrate만 먼저 돌면 빈 스키마 Skip 이력 → Actions **Verify DB restore**
 #    로그에 Restore complete + seed_rows≥1 인지 반드시 확인 (초록 ≠ 시드 복구)
 # 5) (CD 실패·수동 시) S3 자산 재업로드
 #    Actions → Sync media → S3  또는

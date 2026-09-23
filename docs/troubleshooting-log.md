@@ -1,12 +1,13 @@
 # Aniverse 트러블슈팅 로그
 
-이 문서는 프로젝트 진행 중 발생한 장애·이슈를 기록한다.  
-Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「로그에 남겨줘」)
+이 문서는 프로젝트 진행 중 발생한 장애·이슈의 **단일 기록 위치**(infra 레포)다.  
+앱 레포에는 중복 로그를 두지 않고 여기로 링크한다.
 
 | 항목 | 내용 |
 |------|------|
 | 프로젝트 | Aniverse |
 | 관련 계획 | [EKS 전환 계획서](./eks-migration-plan.md) |
+| DB 복구 런북 | [db-restore.md](./db-restore.md) |
 | 기록 규칙 | 최신 항목을 **위쪽**에 추가 · 계획 변경 시 `계획 변경`란 작성 |
 
 ---
@@ -48,7 +49,7 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | 가설 | 덤프 경로 잘못 · Job 미실행 · raw URL 404 |
 | 원인 | Job 로그 `table_count=25 (min=20)` → **`Skip restore — schema already present.`** 웹 Pod `migrate`가 빈 테이블만 먼저 생성. Job은 테이블 수만 보고 exit 0. Kubernetes Job은 Complete 후 덤프 갱신만으로 **재실행되지 않음**. (덤프·raw URL·`dbRestore.enabled`는 정상) |
 | 조치 | Skip 조건을「테이블 ≥ min **그리고** `anime_anime` 행 > 0」으로 변경. 시드 0이면 force SQL import (`DROP TABLE IF EXISTS` 덤프). Verify는 Skip-only 성공을 시드 검증으로 보강, `APP_REF` stale 브랜치 → `main`/`app_ref` input |
-| 재발 방지 | Verify step summary/로그에 `Restore complete`·`seed_rows` 필수. 「Actions 초록 ≠ 데이터 복구」. DB만 비면 **Verify DB restore**만; Argo CD on EKS는 ALB/HTTPS/전체용. EC2 SSH 복구 경로 없음(EKS Pod+PVC). 런북: anime [db-restore.md](https://github.com/ho0215/anime-project/blob/main/docs/db-restore.md) |
+| 재발 방지 | Verify step summary/로그에 `Restore complete`·`seed_rows` 필수. 「Actions 초록 ≠ 데이터 복구」. DB만 비면 **Verify DB restore**만; Argo CD on EKS는 ALB/HTTPS/전체용. EC2 SSH 복구 경로 없음(EKS Pod+PVC). 런북: [db-restore.md](./db-restore.md) |
 | 계획 변경 | 없음 |
 | PR · 커밋 | anime-project #55, anime-project-infra #100 |
 | 참고 | Job Complete 16h·5s 실행 → Skip 전형. media는 SQL과 별도 → Sync media → S3 |
@@ -457,7 +458,7 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | 재발 방지 | MariaDB 이미지 기준으로 클라이언트 바이너리 확인할 것. CI verify 워크플로 유지 |
 | 계획 변경 | 없음 |
 | PR · 커밋 | anime-project #44 ( #43 미머지 후 재시도 ), infra verify #73 |
-| 참고 | [db-restore.md](https://github.com/ho0215/anime-project/blob/main/docs/db-restore.md) |
+| 참고 | [db-restore.md](./db-restore.md) |
 
 ### 2026-09-16 — db-restore: Argo Sync hook hang / ConfigMap 한도
 
@@ -607,6 +608,12 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | 2026-09-22 | kubernetes/helm 15분 토큰 만료 Unauthorized | Cursor | Terraform |
 | 2026-09-22 | NAT·프라이빗 RT 전에 노드그룹 생성 | Cursor | EKS / NAT |
 | 2026-09-22 | 계정 이관 후 ECR/ACM/values 불일치 | Cursor | AWS 계정 |
+| 2026-09-22 | state에 있는데 Access Entry/NAT IAM import 재시도 | Cursor | Terraform CD |
+| 2026-09-22 | Terraform CI 역할에 EKS ClusterAdmin 없음 | Cursor | EKS / Actions |
+| 2026-09-18 | destroy 재실행이 state lock 으로 즉시 실패 | Cursor | Terraform CD |
+| 2026-09-18 | VPC destroy Still destroying / ENI | Cursor | Terraform CD |
+| 2026-09-18 | 노드그룹 DELETE_FAILED (ReplaceUnhealthy·CFN) | Cursor | EKS destroy |
+| 2026-09-18 | destroy 실패 (Access Entry·잔여 ALB ENI) | 현우/Cursor | EKS destroy |
 | 2026-09-18 | AWS 계정 Blocked — iac-admin Access Key 유출 | 현우 | AWS / Actions |
 | 2026-09-16 | EKS stop Actions 성공인데 EC2 워커가 안 꺼짐 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop `maxSize=0` API 거절 | 현우 | EKS / Actions |
@@ -620,4 +627,6 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | 2026-09-16 | `/health/` DisallowedHost (probe Host) | 현우 | EKS |
 | 2026-09-16 | ECR AlreadyExists (state에 없음) | 현우 | Terraform |
 | 2026-09-16 | kubectl 클러스터 권한 없음 (Access Entry) | 서이/현우 | EKS |
+| 2026-08-26 | ALB HTTPS 뒤 X-Forwarded-Proto 미보존 | Cursor | Nginx / ALB |
 | 2026-08-26 | CodeDeploy ApplicationStop / agent 미기동 | 현우 | AWS ASG |
+| 2026-08-25 | S3 static destroy BucketNotEmpty | Cursor | Terraform / S3 |
