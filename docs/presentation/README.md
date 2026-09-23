@@ -23,10 +23,11 @@ python3 make_terraform_modules_diagram.py  # 03 모듈 맵
 python3 make_instructor_diagrams.py        # 01, 05~09 (+ 02/03 호출)
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
+python3 make_hybrid_diagrams.py            # images/hybrid/*.png (PIL+한글 폰트)
 python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (버전 자동 +1)
 ```
 
-하이브리드 구성도: `images/hybrid/hybrid_*.png` (AI).  
+하이브리드 구성도: `images/hybrid/hybrid_*.png` (`make_hybrid_diagrams.py`, 시스템 한글 폰트 — 깨짐 없음).  
 아키텍처 **v1·v2는 각 1장** (VPC 스타일 AWS 아이콘 구성도 — 강사용 Terraform 인프라 구성 (1)과 동일 톤).  
 재생성 시 파일명은 `Aniverse_하이브리드_EKS_v1.pptx`, `v2` … 로 쌓입니다.
 ## 이미지 (`images/instructor/`)
