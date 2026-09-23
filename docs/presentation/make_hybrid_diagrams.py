@@ -27,7 +27,7 @@ FONT_R, FONT_B = next(
     ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
 )
 
-W, H = 1600, 900
+W, H = 1700, 780
 BG = (248, 250, 252)
 NAVY = (10, 17, 40)
 SLATE = (71, 85, 105)
@@ -115,9 +115,23 @@ def tile(img, x, y, w, h, icon, title, sub, border=CYAN, bg=SOFT_BLUE, icon_size
         center_text(d, sub, x + w // 2, y + h - 24, fnt(15), MUTED)
 
 
+def normalize(name: str):
+    """Export flat 1800x700 so PPT can pin images to the lower half."""
+    path = OUT / name
+    im = Image.open(path).convert("RGB")
+    tw, th = 1800, 700
+    scale = min(tw / im.width, th / im.height) * 0.88
+    nw, nh = int(im.width * scale), int(im.height * scale)
+    im2 = im.resize((nw, nh), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (tw, th), BG)
+    canvas.paste(im2, ((tw - nw) // 2, th - nh))
+    canvas.save(path, "PNG", optimize=True)
+
+
 def save(img: Image.Image, name: str):
     path = OUT / name
     img.convert("RGB").save(path, "PNG", optimize=True)
+    normalize(name)
     print("Wrote", path)
 
 

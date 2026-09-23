@@ -158,20 +158,15 @@ def footer(slide, n):
     p.alignment = PP_ALIGN.RIGHT
 
 
-def put_img(slide, name, top=Inches(2.4), bottom=Inches(7.05), side=0.5, fill=0.74):
-    """Place diagram low on the slide (strong bottom bias).
-
-    Large gap under title, then image height capped and bottom-aligned
-    so diagrams sit in the lower half of the slide.
-    """
+def put_img(slide, name, top=Inches(3.5), bottom=Inches(7.05), side=0.35):
+    """Pin diagrams to the lower half — start at ~3.5in, bottom at footer."""
     path = IMG / name
     if not path.exists():
         return False
     iw, ih = Image.open(path).size
     aspect = ih / float(iw)
     max_w = SW - side * 2
-    band_h = bottom.inches - top.inches
-    max_h = band_h * fill
+    max_h = bottom.inches - top.inches
     w_in = max_w
     h_in = w_in * aspect
     if h_in > max_h:
@@ -179,10 +174,13 @@ def put_img(slide, name, top=Inches(2.4), bottom=Inches(7.05), side=0.5, fill=0.
         w_in = h_in / aspect
     x_in = (SW - w_in) / 2.0
     y_in = bottom.inches - h_in
+    if y_in < top.inches:
+        y_in = top.inches
     slide.shapes.add_picture(
         str(path), Inches(x_in), Inches(y_in), width=Inches(w_in), height=Inches(h_in)
     )
     return True
+
 
 
 # ---------------------------------------------------------------------------
