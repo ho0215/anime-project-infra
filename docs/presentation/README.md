@@ -27,9 +27,9 @@ python3 make_hybrid_diagrams.py            # images/hybrid/*.png (PIL+한글 폰
 python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (버전 자동 +1)
 ```
 
-하이브리드 구성도: `images/hybrid/hybrid_*.png` (`make_hybrid_diagrams.py`, 시스템 한글 폰트 — 깨짐 없음).  
-아키텍처 **v1·v2는 각 1장** (VPC 스타일 AWS 아이콘 구성도 — 강사용 Terraform 인프라 구성 (1)과 동일 톤).  
-재생성 시 파일명은 `Aniverse_하이브리드_EKS_v1.pptx`, `v2` … 로 쌓입니다.
+하이브리드 구성도: `images/hybrid/hybrid_*.png` (`make_hybrid_diagrams.py`, 시스템 한글 폰트).  
+PPT 템플릿: navy(#0A1128) + cyan(#00AEEF) 액센트 라인 · 큰 제목 · 구성도는 콘텐츠 영역 중앙 배치.  
+아키텍처 **v1·v2는 각 1장**. 재생성 시 `Aniverse_하이브리드_EKS_vN.pptx` 로 버전 증가.
 ## 이미지 (`images/instructor/`)
 
 | 파일 | 내용 |
