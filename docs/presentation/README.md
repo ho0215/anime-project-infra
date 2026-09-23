@@ -9,6 +9,7 @@
 | **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
 | **`SPEAKER_NOTES_강사.md`** | 슬라이드별 멘트·시간 |
+| **`PPT_트러블슈팅_계정이관.md`** | 계정 Block·이관 오류 PPT용 요약 |
 
 EKS AS-IS 한 장 구성도: `docs/aniverse-eks-architecture-as-is.png` (별도 문서)
 
