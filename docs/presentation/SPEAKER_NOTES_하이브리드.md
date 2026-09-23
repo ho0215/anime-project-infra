@@ -7,15 +7,16 @@ PPT: `ppt/Aniverse_하이브리드_EKS.pptx`
 | 구간 | 시간 | 슬라이드 |
 |------|------|----------|
 | 표지·목차·서비스·역할 | 1분 | 1–4 |
-| As-Is 전체구조 2장 · To-Be · 왜 EKS | 1분 40초 | 5–8 |
+| 아키텍처 v1 2장 · v2 · 왜 EKS | 1분 40초 | 5–8 |
 | 전환 경로 · 워크로드 · GitOps · 데이터 | 2분 | 9–12 |
 | 관측 · 운영 | 50초 | 13–14 |
 | 이슈 (Missing · Block/이관) | 1분 10초 | 15–16 |
 | Before/After · 다음 | 40초 | 17–18 |
 
 ## 멘트 포인트
-- **5 As-Is (1):** 손가락으로 User→ALB→EC2→RDS/EFS/S3 전체 한 바퀴
-- **6 As-Is (2):** 위=요청 처리, 아래=Actions→CodeDeploy 배포 흐름
+- **5 아키텍처 v1 (1):** 손가락으로 User→ALB→EC2→RDS/EFS/S3 전체 한 바퀴
+- **6 아키텍처 v1 (2):** 위=요청 처리, 아래=Actions→CodeDeploy 배포 흐름
+- **7 아키텍처 v2:** EKS · Ingress · Pod · Argo 한 바퀴
 - **4 역할:** 윤주=Docker/Helm/DB/관측, 현우=Actions/Argo/OIDC
 - **8 왜 EKS:** DB Pod는 비용·학습 — RDS 대체가 목표였음
 - **10 워크로드:** entrypoint migrate · EKS 1/1 Running

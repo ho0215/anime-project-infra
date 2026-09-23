@@ -169,7 +169,7 @@ def agenda(prs):
     header(s, "목차", "프로젝트 소개 → EKS 전환 → 데이터·관측 → 트러블 → 교훈")
     items = [
         "01  서비스 · 팀 역할",
-        "02  As-Is 전체구조 · To-Be · 왜 EKS",
+        "02  아키텍처 v1 · v2 · 왜 EKS",
         "03  랩 → EKS 경로 · 워크로드",
         "04  GitOps · 데이터 백업/복구",
         "05  관측 (Prom / Grafana / Loki)",
@@ -210,32 +210,32 @@ def roles(prs):
     footer(s, 4)
 
 
-def asis_overview(prs):
+def arch_v1_overview(prs):
     s = blank(prs)
     header(
         s,
-        "2. As-Is (1) — 전체 구조",
+        "2. 아키텍처 v1 (1) — 전체 구조",
         "User → ALB → ASG/EC2(Nginx+Django) → RDS · EFS · S3",
     )
-    put_img(s, "hybrid_01_asis_overview.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    put_img(s, "hybrid_01_arch_v1_overview.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
     footer(s, 5)
 
 
-def asis_flow(prs):
+def arch_v1_flow(prs):
     s = blank(prs)
     header(
         s,
-        "2. As-Is (2) — 요청 · 배포가 흐르는 방식",
+        "2. 아키텍처 v1 (2) — 요청 · 배포가 흐르는 방식",
         "상단: 트래픽 경로 · 하단: Actions → CodeDeploy → EC2",
     )
-    put_img(s, "hybrid_01_asis_flow.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    put_img(s, "hybrid_01_arch_v1_flow.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
     footer(s, 6)
 
 
-def tobe(prs):
+def arch_v2(prs):
     s = blank(prs)
-    header(s, "2. To-Be (v2 EKS)", "Ingress/ALB · Pod · DB StatefulSet · ECR · Argo GitOps")
-    put_img(s, "hybrid_02_tobe.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
+    header(s, "2. 아키텍처 v2 — EKS", "Ingress/ALB · Pod · DB StatefulSet · ECR · Argo GitOps")
+    put_img(s, "hybrid_02_arch_v2.png", Inches(0.35), Inches(0.95), w=Inches(12.6))
     footer(s, 7)
 
 
@@ -398,9 +398,9 @@ def main():
     agenda(prs)
     service(prs)
     roles(prs)
-    asis_overview(prs)
-    asis_flow(prs)
-    tobe(prs)
+    arch_v1_overview(prs)
+    arch_v1_flow(prs)
+    arch_v2(prs)
     why_eks(prs)
     migration(prs)
     workloads(prs)

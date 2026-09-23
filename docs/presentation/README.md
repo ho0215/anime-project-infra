@@ -27,7 +27,7 @@ python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN
 ```
 
 하이브리드 구성도: `images/hybrid/hybrid_*.png` (AI).  
-As-Is는 **2장** — (1) 전체 구조 overview · (2) 요청/배포 흐름.  
+아키텍처 **v1은 2장** — (1) 전체 구조 · (2) 요청/배포 흐름. **v2**는 EKS 한 장.  
 재생성 시 파일명은 `Aniverse_하이브리드_EKS_v1.pptx`, `v2` … 로 쌓입니다.
 ## 이미지 (`images/instructor/`)
 
