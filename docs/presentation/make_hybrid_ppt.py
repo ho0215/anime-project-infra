@@ -158,17 +158,17 @@ def cover(prs):
     t = s.shapes.add_textbox(Inches(0.7), Inches(1.6), Inches(12), Inches(4))
     tf = t.text_frame
     set_text(tf, "Aniverse", 42, True, WHITE)
-    add_para(tf, "프로젝트 소개 + EKS · GitOps 전환", 24, False, RGBColor(191, 219, 254), 14)
-    add_para(tf, "EC2 / CodeDeploy → EKS / Argo CD · DB Pod · 관측", 15, False, RGBColor(147, 197, 253), 14)
+    add_para(tf, "프로젝트 개요 · EKS · GitOps 전환", 22, False, RGBColor(191, 219, 254), 14)
+    add_para(tf, "통합 서브컬처 커뮤니티 사이트", 16, False, RGBColor(147, 197, 253), 12)
     add_para(tf, "https://aniverse.my", 14, False, RGBColor(125, 211, 252), 18)
-    add_para(tf, "발표 5~7분 · 하이브리드 구성", 12, False, RGBColor(148, 163, 184), 20)
+    add_para(tf, "발표 5~7분", 12, False, RGBColor(148, 163, 184), 20)
 
 
 def agenda(prs):
     s = blank(prs)
-    header(s, "목차", "프로젝트 소개 → EKS 전환 → 데이터·관측 → 트러블 → 교훈")
+    header(s, "목차", "프로젝트 개요 → 아키텍처 · EKS 전환 → 관측 · 트러블 → 교훈")
     items = [
-        "01  서비스 · 팀 역할",
+        "01  프로젝트 개요 · 팀 역할",
         "02  아키텍처 v1 · v2 · 왜 EKS",
         "03  랩 → EKS 경로 · 워크로드",
         "04  GitOps · 데이터 백업/복구",
@@ -185,21 +185,31 @@ def agenda(prs):
 
 def service(prs):
     s = blank(prs)
-    header(s, "1. Aniverse — 무엇을 만들었나", "서브컬처 커뮤니티 · 거래 · 창작")
+    header(s, "1. 프로젝트 개요", "Aniverse — 통합 서브컬처 사이트")
+    # goal banner
+    goal = rect(s, Inches(0.5), Inches(1.15), Inches(12.3), Inches(1.55), SOFT, TEAL)
+    set_text(goal.text_frame, "목표", 16, True, TEAL)
+    add_para(
+        goal.text_frame,
+        "애니·굿즈·창작·커뮤니티를 한곳에서 쓰는 통합 서브컬처 사이트를 만드는 것",
+        15,
+        False,
+        NAVY,
+        10,
+    )
     cards = [
-        ("서비스", ["장터(굿즈) · 창작 마당", "커뮤니티 · 회원", "https://aniverse.my"]),
-        ("인프라 목표", ["재현 가능한 배포", "비용 통제 (start/stop)", "문서·트러블슈팅"]),
-        ("이번 발표 포인트", ["프로젝트 전체 구조", "EKS·GitOps 전환", "DB Pod · 관측 · 이관"]),
+        ("제공하는 것", ["장터(굿즈 거래)", "창작 마당", "커뮤니티 · 회원", "https://aniverse.my"]),
+        ("왜 만들었나", ["흩어진 서브컬처 활동을 한 플랫폼으로", "웹 서비스 + 클라우드 인프라 실습", "배포·운영까지 한 사이클로"]),
+        ("이 발표에서", ["프로젝트 구조 (아키텍처 v1→v2)", "EKS · GitOps 전환", "데이터·관측 · 트러블슈팅"]),
     ]
     colors = [BLUE, TEAL, ORANGE]
     for i, (title, lines) in enumerate(cards):
         x = Inches(0.5) + i * Inches(4.15)
-        card = rect(s, x, Inches(1.2), Inches(3.95), Inches(5.2), LIGHT, colors[i])
-        set_text(card.text_frame, title, 18, True, colors[i])
+        card = rect(s, x, Inches(2.95), Inches(3.95), Inches(3.55), LIGHT, colors[i])
+        set_text(card.text_frame, title, 16, True, colors[i])
         for line in lines:
-            add_para(card.text_frame, "· " + line, 14, False, NAVY, 12)
+            add_para(card.text_frame, "· " + line, 13, False, NAVY, 8)
     footer(s, 3)
-
 
 def roles(prs):
     s = blank(prs)
