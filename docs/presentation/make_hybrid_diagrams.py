@@ -146,32 +146,32 @@ def make_arch_v1():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((60, 310, 420, 690), radius=14, outline=GREEN, width=3)
     d.text((80, 322), "Public Subnet", font=fnt(16, True), fill=GREEN)
-    tile(img, 85, 400, 150, 250, "alb", "ALB", "HTTPS / ACM", GREEN, WHITE, 56)
-    tile(img, 255, 400, 150, 250, "nat", "NAT", "Outbound", ORANGE, WHITE, 56)
+    tile(img, 85, 430, 150, 230, "alb", "ALB", "HTTPS / ACM", GREEN, WHITE, 56)
+    tile(img, 255, 430, 150, 230, "nat", "NAT", "Outbound", ORANGE, WHITE, 56)
 
     soft_card(img, (440, 310, 1040, 690), r=14, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((440, 310, 1040, 690), radius=14, outline=CYAN, width=3)
     d.text((460, 322), "Private App Subnet", font=fnt(16, True), fill=CYAN)
-    tile(img, 465, 400, 170, 250, "asg", "ASG / EC2", "Nginx + Django", CYAN, WHITE, 56)
-    tile(img, 655, 400, 160, 250, "elasticache", "Redis", "Cache / Session", RED, WHITE, 56)
-    tile(img, 835, 400, 180, 250, "efs", "EFS", "Shared files", TEAL, WHITE, 56)
+    tile(img, 465, 430, 170, 230, "asg", "ASG / EC2", "Nginx + Django", CYAN, WHITE, 56)
+    tile(img, 655, 430, 160, 230, "elasticache", "Redis", "Cache / Session", RED, WHITE, 56)
+    tile(img, 835, 430, 180, 230, "efs", "EFS", "Shared files", TEAL, WHITE, 56)
 
     soft_card(img, (1060, 310, 1330, 690), r=14, fill=SOFT_PURPLE, shadow=False)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((1060, 310, 1330, 690), radius=14, outline=PURPLE, width=3)
     d.text((1080, 322), "Private DB", font=fnt(16, True), fill=PURPLE)
-    tile(img, 1090, 400, 210, 250, "rds_maria", "RDS MariaDB", "Primary DB", PURPLE, WHITE, 64)
+    tile(img, 1090, 430, 210, 230, "rds_maria", "RDS MariaDB", "Primary DB", PURPLE, WHITE, 64)
 
-    tile(img, 1360, 370, 180, 140, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
-    tile(img, 1360, 530, 180, 140, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 48)
+    tile(img, 1360, 380, 180, 140, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
+    tile(img, 1360, 540, 180, 130, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 48)
 
     d = ImageDraw.Draw(img)
     arrow_h(d, 220, 145, 260, NAVY)
     arrow_h(d, 420, 145, 460, NAVY)
     arrow_v(d, 540, 220, 250, NAVY)
-    arrow_h(d, 420, 525, 440, NAVY)
-    arrow_h(d, 1040, 525, 1060, NAVY)
+    arrow_h(d, 420, 545, 440, NAVY)
+    arrow_h(d, 1040, 545, 1060, NAVY)
 
     soft_card(img, (40, 740, 1560, 870), r=14, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
@@ -313,8 +313,8 @@ def make_roles():
         d.rounded_rectangle((x, y0, x + 350, y1), radius=20, outline=color, width=4)
         icon_size = 88
         block_h = icon_size + 55 + 45 + 55 + 3 * 78
-        # pin content toward lower half of panel
-        top = y0 + int((y1 - y0 - block_h) * 0.62)
+        # lower half of panel
+        top = y0 + int((y1 - y0 - block_h) * 0.72)
         paste_icon(img, icon, x + 175, top + icon_size // 2, icon_size)
         center_text(d, title, x + 175, top + icon_size + 42, fnt(19, True), color)
         center_text(d, who, x + 175, top + icon_size + 100, fnt(32, True), NAVY)
