@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """하이브리드 발표 PPT — 프로젝트 소개 + EKS 전환 + 윤주(관측/DB) 반영.
 
-구조도는 images/hybrid/*.png (AI 생성) 사용.
+구조도는 images/hybrid/*.png (make_hybrid_diagrams.py — PIL+시스템 한글 폰트) 사용.
 출력: ppt/Aniverse_하이브리드_EKS_vN.pptx (생성할 때마다 버전 +1)
 """
 from pathlib import Path
