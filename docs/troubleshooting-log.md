@@ -69,6 +69,251 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 | PR · 커밋 | anime-project #54 |
 | 참고 | ECR/OIDC 역할에 EKS 없으면 sync step warning 후 skip — infra 역할·Access Entry 필요 시 별도 |
 
+### 2026-09-23 — Bind domain: helm upgrade가 빈 secrets로 Secret 덮어씀
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Actions (Argo CD on EKS → Bind domain) |
+| 관련 파트 | GitOps · CI/CD / 컨테이너 |
+| 증상 | Bind/helm upgrade 실패 또는 앱 Secret이 깨짐. `secrets.DJANGO_SECRET_KEY required` |
+| 가설 | values에 secrets 없음 · Argo parameters만 있음 |
+| 원인 | `eks-bind-domain`/helm upgrade가 **live Secret을 `--set-string`으로 안 주입**한 채 chart 기본(빈 값)으로 upgrade → Secret 덮어쓰기 또는 required 에러 |
+| 조치 | live `aniverse-app-secrets` 를 읽어 helm에 주입. Argo seed secrets 스텝과 정합 |
+| 재발 방지 | helm upgrade 경로마다 live secret 주입 필수. Secret 없는 adopt/bind 금지 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #53, infra seed #94 |
+| 참고 | 신계정 이관 직후 Bind 단계에서 재발 |
+
+### 2026-09-23 — `cancelled()`를 run 스크립트에 넣으면 workflow startup_failure
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | GitHub Actions (Argo CD on EKS) |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | 워크플로가 본문 실행 전에 **startup_failure** (1s). Cancel이 안 먹는 것과 별개로 “취소 개선” 커밋 후 즉시 실패 |
+| 가설 | concurrency/cancel 설정 문제 |
+| 원인 | GitHub Actions **`cancelled()` 는 `if:` 컨텍스트 전용**. `run: \|` 셸 안에서 쓰면 표현식 평가 단계에서 워크플로가 기동 실패 |
+| 조치 | `cancelled()` 를 run 본문에서 제거. 취소를 쓰려면 `if: ${{ !cancelled() }}` 등 **step if** 만 사용 |
+| 재발 방지 | Actions 문서: 함수는 if/환경 제한 문맥만. 셸에 넣지 말 것 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #99 |
+| 참고 | #96 concurrency cancel 과 구분해서 볼 것 |
+
+### 2026-09-22 — ACM PENDING인데 HTTPS Ingress → ALB ADDRESS 영구 없음
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / ACM / ALB |
+| 관련 파트 | 네트워크 · 컴퓨트 / GitOps |
+| 증상 | Ingress에 ALB hostname(ADDRESS) 안 생김. HTTPS 복구·Wait Ingress 실패 |
+| 가설 | subnet tag · LB Controller · security group |
+| 원인 | 인증서 **PENDING_VALIDATION** 인데 Ingress에 `certificate-arn` HTTPS 어노테이션 적용 → ALB Controller가 리스너/ADDRESS를 못 만듦 |
+| 조치 | Argo/HTTPS 복구 전 **ACM ISSUED** 게이트 (DNS validation upsert + wait). ISSUED 후에야 HTTPS Ingress. values에 주석 |
+| 재발 방지 | ACM 상태 확인 없이 HTTPS 어노테이션 넣지 말 것. PENDING=ALB 없음으로 먼저 의 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #98, anime-project #51·#46 |
+| 참고 | 계정 이관 후 새 ACM이 PENDING인 동안 반복 실패 |
+
+### 2026-09-22 — Argo Missing: Job sync-wave가 Ingress Progressing에 막힘
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Argo CD |
+| 관련 파트 | GitOps / 컨테이너 · DB |
+| 증상 | Application health=`Missing`. `aniverse-db-restore` Job이 클러스터에 안 보이거나 영구 Missing |
+| 가설 | SSA · Job 실패 · helm 미적용 |
+| 원인 | Job에 **sync-wave(예: 5)** 를 두면, Argo는 이전 wave가 Healthy일 때만 다음 wave 적용. Ingress(ALB)는 ADDRESS 전까지 **Progressing** → Job wave가 영구 차단 |
+| 조치 | Job에서 높은 sync-wave 제거(DB ready는 Job 내부 `mariadb-admin ping`). Ingress ignore-healthcheck 등 보조 |
+| 재발 방지 | ALB 의존 리소스보다 **뒤 wave에 Job 두지 말 것**. Missing이면 wave/Ingress health부터 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #50 |
+| 참고 | SSA Missing(#49·#97)과 증상이 비슷해 원인 혼동하기 쉬움 |
+
+### 2026-09-22 — ComparisonError `terminatingReplicas` / live ServerSideApply 잔존
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Argo CD |
+| 관련 파트 | GitOps |
+| 증상 | Application `ComparisonError`, health=`Missing` 또는 sync 불가. 리소스는 있는데 Argo가 비교 실패 |
+| 가설 | CRD/스키마 · OutOfSync |
+| 원인 | syncOptions에 **ServerSideApply** 쓰면 Deployment 등에서 `terminatingReplicas` 필드 비교 오류. live Application에 SSA가 남아 sanitize 후에도 재발 |
+| 조치 | SSA 제거, client-side apply sync. install 후 syncOptions를 `CreateNamespace`+`RespectIgnoreDifferences`로 **강제 replace**. strip SSA CI 스텝 |
+| 재발 방지 | 이 차트/버전 조합에서 SSA 기본 사용 금지. Missing이면 `syncOptions`에 ServerSideApply 있는지 먼저 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #48·#49, infra #97 |
+| 참고 | sync-wave Missing(#50)과 병행 디버깅했음 |
+
+### 2026-09-22 — Missing 대기 ~8분 → 짧게 끊고 helm fallback
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Actions / argocd-eks-install |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | Argo CD on EKS가 Missing에서 수 분~십수 분 대기. Cancel도 잘 안 먹힘 |
+| 원인 | wait 루프가 Synced만 고집하고 Missing을 오래 재시도 |
+| 조치 | `ARGO_SYNC_MAX_WAIT`·`EARLY_MISSING`(연속 Missing N회면 즉시 중단) 후 helm fallback/진단 덤프 |
+| 재발 방지 | Missing은 “기다리면 낫는” 상태가 아님. 짧게 실패·덤프 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project #52, infra wait env |
+| 참고 | #96 cancel-in-progress 와 함께 체감 개선 |
+
+### 2026-09-22 — Argo 워크플로 재실행 시 이전 런이 안 죽음 (`cancel-in-progress: false`)
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | GitHub Actions |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | Actions Cancel / 재실행해도 이전 Argo 설치 잡이 계속 돌거나 큐만 쌓임 |
+| 원인 | concurrency `cancel-in-progress: **false**` |
+| 조치 | 해당 워크플로 그룹에서 재실행 시 이전 런 취소하도록 변경 (`true`) |
+| 재발 방지 | 장시간 wait 워크플로는 cancel-in-progress 기본 검토. UI Cancel ≠ concurrency 설정 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #96 |
+| 참고 | #99 `cancelled()` 오용 startup_failure 와 별개 |
+
+### 2026-09-22 — Helm adopt / ALB 대기 ownership 충돌
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Helm / Argo |
+| 관련 파트 | GitOps · 네트워크 |
+| 증상 | helm upgrade 실패(리소스 already exists / ownership). ALB 대기와 복구 순서 꼬임 |
+| 원인 | Argo가 만든 리소스를 Helm이 소유권 없이 adopt하려다 충돌. ALB 생성 전 bind |
+| 조치 | Helm adopt 옵션·레이블/annotation 정리 + ALB ADDRESS 대기 후 bind. Restore ALB HTTPS 워크플로와 정렬 |
+| 재발 방지 | Argo 관리 리소스에 무보정 helm upgrade 금지. adopt 명시 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #95·#93 |
+| 참고 | secrets 시드(#94) 이후 단계 |
+
+### 2026-09-22 — 앱 Secret 없이 Argo/Helm 복구 시작
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS (신계정 apply 직후) |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | chart `secrets.* required` 로 sync/helm 실패. 빈 클러스터에 Application만 적용 |
+| 원인 | Argo helm.parameters / K8s Secret 시드 전에 sync |
+| 조치 | Argo CD on EKS에 **Seed aniverse-app-secrets** 스텝 후 install/sync |
+| 재발 방지 | 신규 계정·namespace 재생성 시 secrets 시드가 선행 체크리스트 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #94 |
+| 참고 | #53 bind live secrets 와 쌍 |
+
+### 2026-09-22 — kubernetes/helm provider 15분 토큰 만료 → Unauthorized
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform (EKS kubernetes/helm provider) |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | apply 중반 `Unauthorized` / exec 인증 실패 |
+| 원인 | EKS 토큰(~15분)을 provider가 재발급하지 않음 |
+| 조치 | exec 인증으로 토큰 갱신되게 provider 설정 |
+| 재발 방지 | 장시간 apply는 exec auth. 정적 kubeconfig 토큰 금지 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #90 |
+| 참고 | 계정 이관 직후 장시간 apply에서 노출 |
+
+### 2026-09-22 — NAT·프라이빗 RT 전에 노드그룹 생성
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform EKS |
+| 관련 파트 | 네트워크 · 컴퓨트 |
+| 증상 | 노드 NotReady / 이미지 pull·egress 실패. 노드그룹 생성은 됐지만 프라이빗 경로 없음 |
+| 원인 | NAT·프라이빗 라우트 완료 전 노드그룹 의존성 부족 |
+| 조치 | NAT·RT 완료 후 노드그룹. NAT AMI SSM |
+| 재발 방지 | module depends_on / 순서 문서화. start 시에도 NAT 먼저(#78) |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #89 |
+| 참고 | stop/start NAT 이슈(#78)와 동일 계열 |
+
+### 2026-09-22 — 계정 이관(6795…→8415…) 후 ECR/ACM/values 불일치
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor / 팀 |
+| 환경 | AWS 신계정 841535407395 |
+| 관련 파트 | 전체 (ECR · ACM · Route53 · EKS) |
+| 증상 | 이미지 pull 실패(구 ECR), HTTPS/ALB 안 됨(구 ACM ARN), Actions OIDC 역할 불일치 |
+| 원인 | 계정 이전 후 리소스 ARN·레지스트리·인증서가 새 계정 것인데 Git values/CI vars가 구계정 잔존 |
+| 조치 | values-eks ECR·ACM 신계정으로 복구(#46). Terraform CI Access Entry(#92). OIDC 역할 신계정. migration PR #88 |
+| 재발 방지 | 계정 이관 체크리스트: ECR URL, ACM ARN, Route53, OIDC trust, Access Entry, S3 버킷명 |
+| 계획 변경 | 운영 계정 = 841535407395 |
+| PR · 커밋 | infra #88·#92, anime #46 |
+| 참고 | 이후 ACM PENDING(#98)·secrets(#94)·Missing 연쇄의 배경 |
+
+### 2026-09-22 — Terraform CD: state에 있는데도 Access Entry/NAT IAM import 재시도
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | import 단계 실패 또는 불필요 재import |
+| 원인 | state에 리소스가 있어도 import 스크립트가 무조건 시도 |
+| 조치 | state에 있으면 import 스킵 |
+| 재발 방지 | import 헬퍼에 `terraform state list` 가드 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #91 |
+| 참고 | 계정 이관·재apply 시 |
+
+### 2026-09-22 — Terraform CI 역할에 EKS ClusterAdmin 없음
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Actions |
+| 관련 파트 | GitOps · CI/CD |
+| 증상 | CI `kubectl`/`helm` Unauthorized 또는 forbidden |
+| 원인 | `aniverse-github-actions-terraform` 등에 Access Entry(ClusterAdmin) 미부여 |
+| 조치 | Terraform으로 CI 역할 Access Entry 고정 |
+| 재발 방지 | 클러스터 재생성 후 Access Entry를 코드로 재적용 (#61·#62 iac-admin과 동일 패턴) |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #92 |
+| 참고 | 로컬 kubectl 권한 이슈(2026-09-16)의 CI 버전 |
+
+### 2026-08-26 — ALB HTTPS 뒤 Nginx가 X-Forwarded-Proto 미보존
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | EKS / Nginx sidecar (또는 컨테이너 Nginx) |
+| 관련 파트 | 네트워크 / 컨테이너 |
+| 증상 | HTTPS로 들어오는데 리다이렉트 루프·혼합 콘텐츠·Django `is_secure()` false |
+| 원인 | ALB가 종료한 TLS 뒤 앱/Nginx가 `X-Forwarded-Proto` 를 신뢰·전달하지 않음 |
+| 조치 | Nginx에서 `X-Forwarded-Proto` 보존·전달, 로컬 health는 예외 |
+| 재발 방지 | USE_HTTPS=True + ALB 구성 시 프록시 헤더 체크리스트 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project (nginx-https-forwarded-proto) |
+| 참고 | ACM/ALB 복구와 함께 볼 것 |
+
+### 2026-08-25 — S3 static 버킷 destroy 시 BucketNotEmpty
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform destroy |
+| 관련 파트 | 스토리지 |
+| 증상 | static S3 버킷 삭제 실패 `BucketNotEmpty` |
+| 원인 | 객체 남은 버킷은 기본으로 destroy 불가 |
+| 조치 | `force_destroy` (또는 사전 비우기) 로 destroy 가능하게 |
+| 재발 방지 | lab/dev 버킷은 force_destroy 명시. 운영은 정책 합의 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | anime-project-infra #17 |
+| 참고 | media wipe→restore 검증(#70)과 계열 |
+
 ### 2026-09-18 — destroy 재실행이 state lock 으로 즉시 실패
 
 | 항목 | 내용 |
@@ -350,6 +595,18 @@ Cursor 에이전트와 함께 해결할 때 항목을 추가한다. (요청: 「
 |------|------|------|------|
 | 2026-09-23 | db-restore Actions 초록인데 시드 데이터 없음 (migrate Skip) | Cursor | EKS / Actions |
 | 2026-09-23 | OutOfSync만으로 사이트 다운 오인 / image.tag drift | Cursor | Argo / Docker build |
+| 2026-09-23 | Bind domain: helm이 빈 secrets로 Secret 덮어씀 | Cursor | EKS / Actions |
+| 2026-09-23 | cancelled()를 run에 넣으면 startup_failure | Cursor | Actions |
+| 2026-09-22 | ACM PENDING인데 HTTPS Ingress → ALB ADDRESS 없음 | Cursor | ACM / ALB |
+| 2026-09-22 | Argo Missing: Job sync-wave가 Ingress Progressing에 막힘 | Cursor | Argo / EKS |
+| 2026-09-22 | ComparisonError terminatingReplicas / SSA 잔존 | Cursor | Argo |
+| 2026-09-22 | Missing 대기 과다 → 짧게 끊고 helm fallback | Cursor | Actions |
+| 2026-09-22 | cancel-in-progress:false 로 이전 런 안 죽음 | Cursor | Actions |
+| 2026-09-22 | Helm adopt / ALB ownership 충돌 | Cursor | Helm / Argo |
+| 2026-09-22 | 앱 Secret 없이 Argo/Helm 복구 시작 | Cursor | EKS |
+| 2026-09-22 | kubernetes/helm 15분 토큰 만료 Unauthorized | Cursor | Terraform |
+| 2026-09-22 | NAT·프라이빗 RT 전에 노드그룹 생성 | Cursor | EKS / NAT |
+| 2026-09-22 | 계정 이관 후 ECR/ACM/values 불일치 | Cursor | AWS 계정 |
 | 2026-09-18 | AWS 계정 Blocked — iac-admin Access Key 유출 | 현우 | AWS / Actions |
 | 2026-09-16 | EKS stop Actions 성공인데 EC2 워커가 안 꺼짐 | 현우 | EKS / Actions |
 | 2026-09-16 | EKS stop `maxSize=0` API 거절 | 현우 | EKS / Actions |
