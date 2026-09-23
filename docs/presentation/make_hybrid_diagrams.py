@@ -430,6 +430,157 @@ def make_account():
     save(img, "hybrid_08_account.png")
 
 
+def make_tech_stack_v2():
+    """V2 기술 스택 한 장 — 카테고리 카드 + 아이콘 (가독성용)."""
+    img = Image.new("RGBA", (W, H), BG + (255,))
+
+    groups = [
+        (
+            40,
+            40,
+            "앱 · 런타임",
+            CYAN,
+            SOFT_BLUE,
+            [("django", "Django"), ("nginx", "Nginx"), ("servers", "Docker · Helm")],
+        ),
+        (
+            545,
+            40,
+            "오케스트레이션",
+            PURPLE,
+            SOFT_PURPLE,
+            [("servers", "EKS"), ("rds_maria", "MariaDB STS"), ("efs", "EBS PVC")],
+        ),
+        (
+            1050,
+            40,
+            "스토리지",
+            ORANGE,
+            SOFT_ORANGE,
+            [("s3", "S3 media"), ("s3", "S3 static"), ("s3", "S3 db-backups")],
+        ),
+        (
+            40,
+            470,
+            "CI/CD · GitOps",
+            TEAL,
+            SOFT_TEAL,
+            [
+                ("githubactions", "Actions"),
+                ("s3", "ECR"),
+                ("terraform", "Argo CD"),
+            ],
+        ),
+        (
+            545,
+            470,
+            "인증 · IaC",
+            GREEN,
+            SOFT_GREEN,
+            [("iam", "GitHub OIDC"), ("terraform", "Terraform"), ("secrets", "Secrets/IRSA")],
+        ),
+        (
+            1050,
+            470,
+            "관측",
+            RED,
+            SOFT_RED,
+            [
+                ("cloudwatch", "Prometheus"),
+                ("cloudwatch", "Grafana"),
+                ("cloudwatch", "Loki"),
+            ],
+        ),
+    ]
+    for gx, gy, title, color, fill, items in groups:
+        soft_card(img, (gx, gy, gx + 490, gy + 400), r=18, fill=fill, shadow=True)
+        d = ImageDraw.Draw(img)
+        d.rounded_rectangle((gx, gy, gx + 490, gy + 400), radius=18, outline=color, width=3)
+        d.text((gx + 22, gy + 18), title, font=fnt(22, True), fill=color)
+        for i, (icon, label) in enumerate(items):
+            ix = gx + 28 + i * 155
+            iy = gy + 70
+            soft_card(img, (ix, iy, ix + 140, iy + 300), r=14, fill=WHITE, shadow=False)
+            d = ImageDraw.Draw(img)
+            d.rounded_rectangle((ix, iy, ix + 140, iy + 300), radius=14, outline=color, width=2)
+            paste_icon(img, icon, ix + 70, iy + 110, 80)
+            center_text(d, label, ix + 70, iy + 230, fnt(17, True), NAVY)
+
+    save(img, "hybrid_09_tech_stack.png")
+
+
+def make_data_flow_v2():
+    """데이터 흐름 전용 장 — 서비스/시드/백업/미디어를 크게."""
+    img = Image.new("RGBA", (W, H), BG + (255,))
+
+    # 1) service path
+    soft_card(img, (40, 30, 1560, 250), r=16, fill=SOFT_BLUE, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((40, 30, 1560, 250), radius=16, outline=CYAN, width=3)
+    d.text((60, 42), "1) 서비스 중 — 글 / 데이터", font=fnt(20, True), fill=CYAN)
+    tile(img, 70, 85, 150, 145, "users", "Users", "", CYAN, WHITE, 44)
+    tile(img, 260, 85, 150, 145, "alb", "ALB", "Ingress", GREEN, WHITE, 44)
+    tile(img, 450, 85, 190, 145, "django", "web Pod", "Django", CYAN, WHITE, 48)
+    tile(img, 680, 85, 210, 145, "rds_maria", "MariaDB Pod", "StatefulSet", PURPLE, WHITE, 48)
+    tile(img, 930, 85, 190, 145, "efs", "EBS PVC", "영구 저장", TEAL, WHITE, 48)
+    d = ImageDraw.Draw(img)
+    for x0, x1 in [(220, 260), (410, 450), (640, 680), (890, 930)]:
+        arrow_h(d, x0, 157, x1, NAVY)
+    d.text((1150, 140), "eks-stop → PVC 유지", font=fnt(18, True), fill=GREEN)
+
+    # 2) seed
+    soft_card(img, (40, 270, 780, 500), r=16, fill=SOFT_GREEN, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((40, 270, 780, 500), radius=16, outline=GREEN, width=3)
+    d.text((60, 282), "2) destroy 후 시드 복구", font=fnt(20, True), fill=GREEN)
+    tile(img, 70, 325, 175, 150, "github", "GitHub", "backup.sql", NAVY, WHITE, 48)
+    tile(img, 290, 325, 195, 150, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 48)
+    tile(img, 530, 325, 195, 150, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 48)
+    d = ImageDraw.Draw(img)
+    arrow_h(d, 245, 400, 290, NAVY)
+    arrow_h(d, 485, 400, 530, NAVY)
+
+    # 3) backup
+    soft_card(img, (820, 270, 1560, 500), r=16, fill=SOFT_ORANGE, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((820, 270, 1560, 500), radius=16, outline=ORANGE, width=3)
+    d.text((840, 282), "3) 주기 백업 (CronJob)", font=fnt(20, True), fill=ORANGE)
+    tile(img, 860, 325, 175, 150, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 48)
+    tile(img, 1085, 325, 175, 150, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 48)
+    tile(img, 1310, 325, 195, 150, "s3", "S3", "db-backups/", ORANGE, WHITE, 48)
+    d = ImageDraw.Draw(img)
+    arrow_h(d, 1035, 400, 1085, NAVY)
+    arrow_h(d, 1260, 400, 1310, NAVY)
+
+    # 4) media
+    soft_card(img, (40, 520, 1560, 700), r=16, fill=SOFT_PURPLE, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((40, 520, 1560, 700), radius=16, outline=PURPLE, width=3)
+    d.text((60, 535), "4) 사진 / 미디어 — DB가 아님", font=fnt(20, True), fill=PURPLE)
+    tile(img, 70, 580, 230, 95, "django", "web Pod", "upload", CYAN, WHITE, 40)
+    d.text((330, 615), "→", font=fnt(24, True), fill=NAVY)
+    tile(img, 380, 580, 280, 95, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 40)
+    d.text(
+        (700, 612),
+        "destroy 시 S3도 삭제 → Sync media 로 재업로드",
+        font=fnt(18),
+        fill=RED,
+    )
+
+    # note
+    soft_card(img, (40, 720, 1560, 870), r=14, fill=SOFT_RED, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((40, 720, 1560, 870), radius=14, outline=RED, width=3)
+    d.text((60, 755), "주의", font=fnt(20, True), fill=RED)
+    d.text(
+        (60, 805),
+        "eks-stop: PVC 유지  |  terraform destroy: PVC + S3 삭제  |  Git SQL 이후 새 글은 덤프 갱신 없으면 미복구",
+        font=fnt(17),
+        fill=NAVY,
+    )
+    save(img, "hybrid_10_data_flow.png")
+
+
 def main():
     make_roles()
     make_arch_v1()
@@ -440,6 +591,8 @@ def main():
     make_gitops()
     make_observability()
     make_account()
+    make_tech_stack_v2()
+    make_data_flow_v2()
     print("All hybrid diagrams written to", OUT)
 
 
