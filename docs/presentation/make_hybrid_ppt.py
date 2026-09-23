@@ -158,8 +158,8 @@ def footer(slide, n):
     p.alignment = PP_ALIGN.RIGHT
 
 
-def put_img(slide, name, top=Inches(3.5), bottom=Inches(7.05), side=0.35):
-    """Pin diagrams to the lower half — start at ~3.5in, bottom at footer."""
+def put_img(slide, name, top=Inches(1.45), bottom=Inches(7.05), side=0.4):
+    """Fit diagram under header — full usable area, centered."""
     path = IMG / name
     if not path.exists():
         return False
@@ -173,9 +173,7 @@ def put_img(slide, name, top=Inches(3.5), bottom=Inches(7.05), side=0.35):
         h_in = max_h
         w_in = h_in / aspect
     x_in = (SW - w_in) / 2.0
-    y_in = bottom.inches - h_in
-    if y_in < top.inches:
-        y_in = top.inches
+    y_in = top.inches + (max_h - h_in) / 2.0
     slide.shapes.add_picture(
         str(path), Inches(x_in), Inches(y_in), width=Inches(w_in), height=Inches(h_in)
     )
