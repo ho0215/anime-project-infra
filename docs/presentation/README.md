@@ -7,7 +7,8 @@
 | 파일 | 용도 |
 |------|------|
 | **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (온프렘→AWS 강사용) |
-| **`ppt/Aniverse_하이브리드_EKS.pptx`** | 프로젝트 + EKS 전환 하이브리드 |
+| **`ppt/Aniverse_V1V2_발표_vN.pptx`** | NunSub 구조 참고 · V1→V2 발표용 (권장) |
+| **`ppt/Aniverse_하이브리드_EKS_vN.pptx`** | 이전 하이브리드 상세판 |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
 | **`SPEAKER_NOTES_강사.md`** | 강사용 멘트 |
 | **`SPEAKER_NOTES_하이브리드.md`** | 하이브리드 멘트 |
