@@ -158,8 +158,8 @@ def footer(slide, n):
     p.alignment = PP_ALIGN.RIGHT
 
 
-def put_img(slide, name, top=Inches(1.5), bottom=Inches(7.05), side=0.4):
-    """Fit image into content band and center horizontally + vertically."""
+def put_img(slide, name, top=Inches(1.45), bottom=Inches(7.05), side=0.4):
+    """Fit diagram under header — full usable area, centered."""
     path = IMG / name
     if not path.exists():
         return False
@@ -178,6 +178,7 @@ def put_img(slide, name, top=Inches(1.5), bottom=Inches(7.05), side=0.4):
         str(path), Inches(x_in), Inches(y_in), width=Inches(w_in), height=Inches(h_in)
     )
     return True
+
 
 
 # ---------------------------------------------------------------------------
