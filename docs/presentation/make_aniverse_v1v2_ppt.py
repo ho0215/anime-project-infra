@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 11
+TOTAL = 12
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -316,23 +316,54 @@ def slide_arch_v2(prs):
     footer(s, 6)
 
 
-def slide_v2_strengths(prs):
+def slide_v2_detail_1(prs):
+    """V2 상세내용 ① — DB · 이미지 태그 · 시드 복구."""
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V2의 강점")
+    title_center(s, "Architecture V2 상세내용 ①")
     rows = [
-        ("배포 재현", "동일 이미지·매니페스트로 환경을 다시 올릴 것   →   Actions → ECR → Argo"),
-        ("스케일 분리", "노드 스케일과 파드 HPA를 분리 설계   →   EKS + HPA 여지"),
-        ("DB 비용", "RDS 상시 대신 학습용 영구 볼륨   →   StatefulSet + PVC"),
-        ("보안", "장기 키 금지 · 이관 시 ARN 전수 교체   →   GitHub OIDC · IRSA"),
-        ("관측", "메트릭·로그를 기본 구성에 포함   →   Prom / Grafana / Loki"),
+        (
+            "RDS 대신 EKS 안 DB",
+            "학습·발표용이라 RDS를 상시로 두지 않고, MariaDB Pod + 디스크(PVC)로 돌립니다.",
+        ),
+        (
+            "이미지 태그까지 Git에 맞춤",
+            "빌드하면 ECR에 sha-* 이미지를 올리고 Helm values 태그도 같이 바꿔, Git과 클러스터가 어긋나지 않게 합니다.",
+        ),
+        (
+            "지워도 글이 다시 채워짐",
+            "인프라를 싹 지운 뒤에도 Git에 둔 SQL을 restore Job이 받아 DB에 넣어, 목록이 다시 보이게 합니다.",
+        ),
     ]
     for i, (a, b) in enumerate(rows):
-        y = Inches(1.2) + i * Inches(1.05)
-        c = card(s, Inches(0.6), y, Inches(12.1), Inches(0.92), LIGHT if i % 2 == 0 else SOFT)
-        set_text(c.text_frame, a, 18, True, BLUE)
-        add_para(c.text_frame, b, 16, False, NAVY, 4)
+        y = Inches(1.25) + i * Inches(1.75)
+        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.55), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, a, 22, True, BLUE)
+        add_para(c.text_frame, b, 18, False, NAVY, 10)
     footer(s, 7)
+
+
+def slide_v2_detail_2(prs):
+    """V2 상세내용 ② — OIDC · DNS 유지."""
+    s = blank(prs)
+    bg(s)
+    title_center(s, "Architecture V2 상세내용 ②")
+    rows = [
+        (
+            "장기 Access Key를 쓰지 않음",
+            "키 유출로 계정이 막힌 경험이 있어, GitHub가 한시 권한(OIDC)으로만 AWS에 붙도록 바꿨습니다.",
+        ),
+        (
+            "인프라를 지워도 도메인은 남김",
+            "destroy해도 가비아에 연결한 DNS(Route53)는 남겨, 네임서버를 매번 다시 등록하지 않습니다.",
+        ),
+    ]
+    for i, (a, b) in enumerate(rows):
+        y = Inches(1.6) + i * Inches(2.2)
+        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.9), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, a, 24, True, BLUE)
+        add_para(c.text_frame, b, 20, False, NAVY, 14)
+    footer(s, 8)
 
 
 def slide_verify(prs):
@@ -356,7 +387,7 @@ def slide_verify(prs):
         add_para(c.text_frame, "검증: " + check, 17, False, NAVY, 10)
         add_para(c.text_frame, "방법: " + method, 16, False, GRAY, 8)
         add_para(c.text_frame, "결과: " + result, 17, True, GREEN if result == "충족" else ORANGE, 10)
-    footer(s, 8)
+    footer(s, 9)
 
 
 def slide_stack(prs):
@@ -364,7 +395,7 @@ def slide_stack(prs):
     bg(s)
     title_center(s, "기술 스택  ·  Architecture V2", size=34)
     put_img(s, "hybrid_09_tech_stack.png")
-    footer(s, 9)
+    footer(s, 10)
 
 
 def slide_data_flow(prs):
@@ -372,7 +403,7 @@ def slide_data_flow(prs):
     bg(s)
     title_center(s, "데이터 흐름  ·  Architecture V2", size=34)
     put_img(s, "hybrid_10_data_flow.png")
-    footer(s, 10)
+    footer(s, 11)
 
 
 def slide_next(prs):
@@ -427,7 +458,7 @@ def slide_next(prs):
                 first = False
             else:
                 add_para(body.text_frame, "·  " + line, 17, False, NAVY, 12)
-    footer(s, 11)
+    footer(s, 12)
 
 
 def main():
@@ -441,7 +472,8 @@ def main():
     slide_v1_to_v2(prs)
     slide_v2_def(prs)
     slide_arch_v2(prs)
-    slide_v2_strengths(prs)
+    slide_v2_detail_1(prs)
+    slide_v2_detail_2(prs)
     slide_verify(prs)
     slide_stack(prs)
     slide_data_flow(prs)
