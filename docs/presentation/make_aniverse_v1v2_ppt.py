@@ -136,8 +136,8 @@ def circle_icon(slide, x, y, size, fill, glyph="●"):
     return sh
 
 
-def title_center(slide, text, y=0.35, size=28):
-    box = slide.shapes.add_textbox(Inches(0.5), Inches(y), Inches(12.3), Inches(0.6))
+def title_center(slide, text, y=0.28, size=32):
+    box = slide.shapes.add_textbox(Inches(0.5), Inches(y), Inches(12.3), Inches(0.65))
     set_text(box.text_frame, text, size, True, BLACK, PP_ALIGN.CENTER)
 
 
@@ -184,8 +184,8 @@ def accent_item(slide, x, y, w, h, color, title, body):
     bar.line.fill.background()
     box = slide.shapes.add_textbox(x + Inches(0.22), y, w - Inches(0.3), h)
     tf = box.text_frame
-    set_text(tf, title, 15, True, BLACK)
-    add_para(tf, body, 12, False, GRAY, 6)
+    set_text(tf, title, 18, True, BLACK)
+    add_para(tf, body, 15, False, GRAY, 8)
 
 
 # ---------------------------------------------------------------------------
@@ -250,15 +250,15 @@ def slide_v1_def(prs):
     ]
     for (x, y), (title, body) in zip(positions, items):
         c = card(s, Inches(x), Inches(y), Inches(5.95), Inches(2.6), LIGHT)
-        set_text(c.text_frame, title, 18, True, BLUE)
-        add_para(c.text_frame, body, 14, False, NAVY, 12)
+        set_text(c.text_frame, title, 20, True, BLUE)
+        add_para(c.text_frame, body, 16, False, NAVY, 12)
     footer(s, 2)
 
 
 def slide_v1_to_v2(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "V1의 한계  ·  V2 목표  ·  V2 차별점", size=26)
+    title_center(s, "V1의 한계  ·  V2 목표  ·  V2 차별점", size=30)
 
     # column headers
     headers = [
@@ -267,8 +267,8 @@ def slide_v1_to_v2(prs):
         (8.95, BLUE, "V2 차별점"),
     ]
     for x, color, text in headers:
-        h = card(s, Inches(x), Inches(1.15), Inches(3.95), Inches(0.55), color)
-        set_text(h.text_frame, text, 16, True, WHITE, PP_ALIGN.CENTER)
+        h = card(s, Inches(x), Inches(1.1), Inches(3.95), Inches(0.6), color)
+        set_text(h.text_frame, text, 18, True, WHITE, PP_ALIGN.CENTER)
 
     left = [
         (
@@ -313,11 +313,11 @@ def slide_v1_to_v2(prs):
         ),
     ]
     for i, (t, b) in enumerate(left):
-        accent_item(s, Inches(0.45), Inches(1.95) + i * Inches(1.55), Inches(3.95), Inches(1.4), RED, t, b)
+        accent_item(s, Inches(0.45), Inches(1.9) + i * Inches(1.6), Inches(3.95), Inches(1.45), RED, t, b)
     for i, (t, b) in enumerate(mid):
-        accent_item(s, Inches(4.7), Inches(1.95) + i * Inches(1.55), Inches(3.95), Inches(1.4), GREEN, t, b)
+        accent_item(s, Inches(4.7), Inches(1.9) + i * Inches(1.6), Inches(3.95), Inches(1.45), GREEN, t, b)
     for i, (t, b) in enumerate(right):
-        accent_item(s, Inches(8.95), Inches(1.95) + i * Inches(1.55), Inches(3.95), Inches(1.4), BLUE, t, b)
+        accent_item(s, Inches(8.95), Inches(1.9) + i * Inches(1.6), Inches(3.95), Inches(1.45), BLUE, t, b)
     footer(s, 3)
 
 
@@ -327,19 +327,19 @@ def slide_v2_def(prs):
     title_center(s, "Architecture V2 (최종) 정의")
 
     vision = card(s, Inches(0.55), Inches(1.15), Inches(12.2), Inches(1.45), LIGHT, BLUE)
-    set_text(vision.text_frame, "비전", 16, True, BLUE)
+    set_text(vision.text_frame, "비전", 18, True, BLUE)
     add_para(
         vision.text_frame,
         "Aniverse를 EKS 위에서 GitOps로 재현 가능하게 운영하고, "
         "데이터·관측·보안까지 한 사이클로 다루는 최종 아키텍처를 목표로 합니다.",
-        14,
+        16,
         False,
         NAVY,
         8,
     )
 
     label = s.shapes.add_textbox(Inches(0.55), Inches(2.8), Inches(4), Inches(0.4))
-    set_text(label.text_frame, "주요 기능", 16, True, BLACK)
+    set_text(label.text_frame, "주요 기능", 18, True, BLACK)
 
     feats = [
         (BLUE, "ALB Ingress · HTTPS", "ACM ISSUED 후 Ingress ALB + Route53으로 외부 진입을 구성합니다."),
@@ -354,8 +354,8 @@ def slide_v2_def(prs):
         c = card(s, x, y, Inches(6.0), Inches(1.5), SOFT)
         circle_icon(s, x + Inches(0.2), y + Inches(0.4), Inches(0.55), color)
         box = s.shapes.add_textbox(x + Inches(0.95), y + Inches(0.2), Inches(4.8), Inches(1.2))
-        set_text(box.text_frame, title, 16, True, BLACK)
-        add_para(box.text_frame, body, 13, False, GRAY, 6)
+        set_text(box.text_frame, title, 18, True, BLACK)
+        add_para(box.text_frame, body, 15, False, GRAY, 6)
     footer(s, 4)
 
 
@@ -373,8 +373,8 @@ def slide_value(prs):
     for i, ((t, b), color) in enumerate(zip(values, colors)):
         y = Inches(1.4) + i * Inches(1.3)
         c = card(s, Inches(1.2), y, Inches(10.9), Inches(1.15), LIGHT, color)
-        set_text(c.text_frame, t, 20, True, color)
-        add_para(c.text_frame, b, 15, False, NAVY, 6)
+        set_text(c.text_frame, t, 22, True, color)
+        add_para(c.text_frame, b, 17, False, NAVY, 6)
     footer(s, 5)
 
 
@@ -384,7 +384,7 @@ def slide_scenario(prs):
     title_center(s, "전환 시나리오  ·  Local → Lab → EKS")
 
     left = card(s, Inches(0.5), Inches(1.2), Inches(5.8), Inches(5.5), LIGHT)
-    set_text(left.text_frame, "대상 · 맥락", 18, True, BLUE)
+    set_text(left.text_frame, "대상 · 맥락", 20, True, BLUE)
     for line in [
         "웹 서비스 + 클라우드 인프라를 한 사이클로 실습",
         "1차로 EC2 기반 V1을 완성한 뒤 EKS로 전환",
@@ -392,7 +392,7 @@ def slide_scenario(prs):
         "현우: Actions · Argo · OIDC · 이관",
         "네트워크/컴퓨트: VPC · Ingress · 노드",
     ]:
-        add_para(left.text_frame, "·  " + line, 14, False, NAVY, 12)
+        add_para(left.text_frame, "·  " + line, 16, False, NAVY, 12)
 
     steps = [
         ("1", "문제 인식", "배포 재현·비용·관측이 V1에서 병목"),
