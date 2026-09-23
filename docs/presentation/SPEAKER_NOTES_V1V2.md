@@ -1,36 +1,34 @@
-# Aniverse V1→V2 발표 대본 (NunSub 구조)
+# Aniverse V1→V2 발표 대본 (작업 기준본 · 10장)
 
-PPT: `ppt/Aniverse_V1V2_발표_vN.pptx`  
-생성: `python3 make_aniverse_v1v2_ppt.py`  
-참고: NunSub `1_Final` — P시스템→**V1**, F시스템→**V2**
+PPT: `ppt/Aniverse_V1V2_발표_working.pptx` (업로드 확정본)  
+내용 문서: `CONTENT_V1V2_working.md`  
+생성: `python3 make_aniverse_v1v2_ppt.py` (재생성 시 working·vN 갱신)
 
-## 12장 구성
+## 10장 구성
 
-| # | 슬라이드 | 대응 (NunSub) | 멘트 |
-|---|----------|---------------|------|
-| 1 | 표지 | 표지 | Aniverse · 팀 역할 |
-| 2 | V1 정의 | P시스템 정의 | EC2/ASG/RDS 초기 구성 |
-| 3 | V1 한계·V2 목표·차별 | P한계 / F목표 / F차별 | 3열 비교 |
-| 4 | V2 정의 | F시스템 정의 | 비전 + 주요 기능 4칸 |
-| 5 | 가치 | 사용자가 얻는 가치 | 서비스·재현·비용·운영 |
-| 6 | 전환 시나리오 | 사용자 시나리오 | Local→Lab→EKS |
-| 7 | 요구사항 | 요구사항 분석 | 왜 EKS인가 |
-| 8 | 검증 기준 | 기능별 검증 | health·시드·GitOps |
-| 9 | 스택·데이터 흐름 | 데이터흐름·스택 | 기술 나열 + PVC/S3 |
-| 10 | 구성도 V1 | 시스템 구성도 | VPC 아이콘 구성도 |
-| 11 | 구성도 V2 | (F 최종) | EKS GitOps 구성도 |
-| 12 | 향후 3UP | 향후 계획 | Unique/Complete/Performance |
+| # | 슬라이드 | 멘트 |
+|---|----------|------|
+| 1 | 표지 | Aniverse · 팀 김현우/박서이/김윤주/강유민 · aniverse.my |
+| 2 | V1 정의 | ALB→ASG/EC2→RDS · 온프렘→AWS · Terraform+CodeDeploy |
+| 3 | 구성도 V1 | VPC 스타일 한 장으로 V1 흐름 |
+| 4 | V1 한계·V2 목표·차별 | 관측 / 반영 지연 / ASG 비용 → V2로 대응 |
+| 5 | V2 정의 | EKS+GitOps 재현 · 데이터·관측·보안 한 사이클 |
+| 6 | 구성도 V2 | EKS · Argo · PVC · S3 |
+| 7 | V2 강점 | 재현·스케일·DB·OIDC·관측 |
+| 8 | 검증 기준 | health·시드·GitOps·미디어 충족 / 관측·알림 예정 |
+| 9 | 스택·데이터 흐름 | Django/Helm/EKS · Users→ALB→web→db/PVC |
+| 10 | 향후 3UP | Unique: 관측·OIDC·백업 + **AIOps(self-healing)** |
 
 ## 5~7분 배분
 
-- 1–4: 1분 40초 (정의·전환 논리)
-- 5–8: 1분 40초 (가치·시나리오·검증)
-- 9–11: 2분 (스택·구성도 V1/V2)
-- 12: 40초 (다음)
+- 1–4: ~2분 (V1·한계·전환 논리)
+- 5–7: ~2분 (V2 정의·구성도·강점)
+- 8–9: ~1분 30초 (검증·스택)
+- 10: ~30초 (AIOps·다음)
 
 ## 포인트
 
-- **V1** = 익숙한 EC2 3-tier로 먼저 서비스
-- **V2** = 재현·비용·관측을 위해 EKS + Argo
-- 구성도는 각 버전 **1장**
+- **V1** = EC2 3-tier로 먼저 서비스 (온프렘→AWS)
+- **V2** = 재현·비용·관측을 위해 EKS + Argo + PVC
+- 구성도는 각 버전 **정의 직후 1장**
 - Actions 초록 ≠ 시드/목록 검증
