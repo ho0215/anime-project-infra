@@ -1,10 +1,10 @@
-# Aniverse V1→V2 발표 대본 (작업 기준본 · 10장)
+# Aniverse V1→V2 발표 대본 (작업 기준본 · 11장)
 
-PPT: `ppt/Aniverse_V1V2_발표_working.pptx` (업로드 확정본)  
+PPT: `ppt/Aniverse_V1V2_발표_working.pptx`  
 내용 문서: `CONTENT_V1V2_working.md`  
-생성: `python3 make_aniverse_v1v2_ppt.py` (재생성 시 working·vN 갱신)
+생성: `python3 make_hybrid_diagrams.py` → `python3 make_aniverse_v1v2_ppt.py`
 
-## 10장 구성
+## 11장 구성
 
 | # | 슬라이드 | 멘트 |
 |---|----------|------|
@@ -16,19 +16,20 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx` (업로드 확정본)
 | 6 | 구성도 V2 | EKS · Argo · PVC · S3 |
 | 7 | V2 강점 | 재현·스케일·DB·OIDC·관측 |
 | 8 | 검증 기준 | health·시드·GitOps·미디어 충족 / 관측·알림 예정 |
-| 9 | 스택·데이터 흐름 | Django/Helm/EKS · Users→ALB→web→db/PVC |
-| 10 | 향후 3UP | Unique: 관측·OIDC·백업 + **AIOps(self-healing)** |
+| 9 | 기술 스택 | 6칸 아이콘 맵 (앱~관측) |
+| 10 | 데이터 흐름 | PVC vs S3 · 시드/백업/미디어 경로 |
+| 11 | 향후 3UP | Unique: 관측·OIDC·백업 + **AIOps(self-healing)** |
 
 ## 5~7분 배분
 
 - 1–4: ~2분 (V1·한계·전환 논리)
 - 5–7: ~2분 (V2 정의·구성도·강점)
-- 8–9: ~1분 30초 (검증·스택)
-- 10: ~30초 (AIOps·다음)
+- 8–10: ~1분 40초 (검증·스택·데이터 흐름)
+- 11: ~30초 (AIOps·다음)
 
 ## 포인트
 
 - **V1** = EC2 3-tier로 먼저 서비스 (온프렘→AWS)
 - **V2** = 재현·비용·관측을 위해 EKS + Argo + PVC
-- 구성도는 각 버전 **정의 직후 1장**
+- 구성도·스택·흐름은 **이미지 장**으로 가독성 확보
 - Actions 초록 ≠ 시드/목록 검증

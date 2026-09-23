@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 10
+TOTAL = 11
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -362,39 +362,17 @@ def slide_verify(prs):
 def slide_stack(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "기술 스택  ·  데이터 흐름")
-    stack = card(s, Inches(0.5), Inches(1.15), Inches(5.9), Inches(5.5), LIGHT)
-    set_text(stack.text_frame, "Tech Stack", 22, True, BLUE)
-    for line in [
-        "App: Django + Nginx",
-        "Container: Docker · Helm",
-        "Orchestration: EKS (V2)",
-        "DB: MariaDB StatefulSet + EBS PVC",
-        "Storage: S3 (media / static / db-backups)",
-        "CI/CD: GitHub Actions · ECR · Argo CD",
-        "Auth to AWS: GitHub OIDC",
-        "Observability: Prometheus · Grafana · Loki",
-        "IaC: Terraform (anime-project-infra)",
-    ]:
-        add_para(stack.text_frame, "·  " + line, 18, False, NAVY, 10)
-
-    flow = card(s, Inches(6.7), Inches(1.15), Inches(6.1), Inches(5.5), SOFT, TEAL)
-    set_text(flow.text_frame, "Data Flow (V2)", 22, True, TEAL)
-    for line in [
-        "Users → Route53/ACM → ALB Ingress",
-        "→ web Pod (Django) → MariaDB Pod",
-        "→ EBS PVC (글/데이터 영구 저장)",
-        "",
-        "사진/미디어 → S3 media/ (DB 아님)",
-        "",
-        "destroy 후: Git SQL 시드 import",
-        "운영 중: CronJob → S3 db-backups/",
-        "",
-        "eks-stop: PVC 유지",
-        "terraform destroy: PVC + S3 삭제",
-    ]:
-        add_para(flow.text_frame, line, 18, False, NAVY, 8)
+    title_center(s, "기술 스택  ·  Architecture V2", size=34)
+    put_img(s, "hybrid_09_tech_stack.png")
     footer(s, 9)
+
+
+def slide_data_flow(prs):
+    s = blank(prs)
+    bg(s)
+    title_center(s, "데이터 흐름  ·  Architecture V2", size=34)
+    put_img(s, "hybrid_10_data_flow.png")
+    footer(s, 10)
 
 
 def slide_next(prs):
@@ -449,7 +427,7 @@ def slide_next(prs):
                 first = False
             else:
                 add_para(body.text_frame, "·  " + line, 17, False, NAVY, 12)
-    footer(s, 10)
+    footer(s, 11)
 
 
 def main():
@@ -466,6 +444,7 @@ def main():
     slide_v2_strengths(prs)
     slide_verify(prs)
     slide_stack(prs)
+    slide_data_flow(prs)
     slide_next(prs)
 
     out = next_path()
