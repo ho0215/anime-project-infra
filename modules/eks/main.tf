@@ -47,17 +47,25 @@ resource "aws_eks_cluster" "this" {
   }
 
   access_config {
-    authentication_mode                         = "API"
-    bootstrap_cluster_creator_admin_permissions = true
+    authentication_mode = "API"
+    # false: TF 가 terraform_runner Access Entry 를 직접 관리 (bootstrap=true 면
+    # 생성자 역할 entry 가 먼저 생겨 ResourceInUse 로 apply 가 깨짐).
+    # 기존 클러스터는 아래 ignore_changes 로 교체(ForceNew)를 막는다.
+    bootstrap_cluster_creator_admin_permissions = false
   }
 
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 
   tags = { Name = "${var.project_name}-eks" }
+
+  lifecycle {
+    ignore_changes = [access_config[0].bootstrap_cluster_creator_admin_permissions]
+  }
 }
 
 # GitHub Actions Terraform 역할 등 — 현재 apply principal 에 kube admin
-# (클러스터 생성 시 bootstrap 이 같은 ARN 을 이미 넣었으면 CD 가 import)
+# bootstrap_cluster_creator=false 이므로 여기서 생성. (기존 클러스터에
+# bootstrap 으로 이미 있으면 CD 가 import 후 apply)
 resource "aws_eks_access_entry" "terraform_runner" {
   cluster_name  = aws_eks_cluster.this.name
   principal_arn = data.aws_iam_session_context.current.issuer_arn

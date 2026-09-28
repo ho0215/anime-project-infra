@@ -255,6 +255,21 @@
 | PR · 커밋 | infra #88·#92, anime #46 |
 | 참고 | 이후 ACM PENDING(#98)·secrets(#94)·Missing 연쇄의 배경 |
 
+### 2026-09-28 — Terraform apply: Access Entry ResourceInUse (bootstrap vs TF)
+
+| 항목 | 내용 |
+|------|------|
+| 담당 | Cursor |
+| 환경 | Terraform CD apply (destroy 후 재생성) |
+| 관련 파트 | EKS · Access Entry |
+| 증상 | `CreateAccessEntry` 409 `ResourceInUseException` — `aniverse-github-actions-terraform` |
+| 원인 | `bootstrap_cluster_creator_admin_permissions=true` 가 생성자 역할 entry를 만든 뒤, TF `terraform_runner` 가 같은 ARN을 다시 create. pre-apply import는 클러스터가 아직 없어 스킵됨 |
+| 조치 | bootstrap=false + 기존 클러스터 `ignore_changes`. apply 실패 시 CI entry import 후 1회 재시도 |
+| 재발 방지 | 신규 클러스터는 bootstrap 끄고 TF가 entry 관리 |
+| 계획 변경 | 없음 |
+| PR · 커밋 | (이 PR) |
+| 참고 | run [36359386943](https://github.com/ho0215/anime-project-infra/actions/runs/36359386943) |
+
 ### 2026-09-22 — Terraform CD: state에 있는데도 Access Entry/NAT IAM import 재시도
 
 | 항목 | 내용 |

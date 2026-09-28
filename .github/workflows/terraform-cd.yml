@@ -241,8 +241,55 @@ jobs:
 
       - name: Terraform apply
         run: |
+          set +e
           terraform apply -auto-approve -input=false
-          echo "### Terraform Outputs" >> "$GITHUB_STEP_SUMMARY"
+          rc=$?
+          set -e
+          if [ "${rc}" -eq 0 ]; then
+            echo "### Terraform Outputs" >> "$GITHUB_STEP_SUMMARY"
+            terraform output >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Fresh create + 과거 bootstrap=true: 생성자 Access Entry 가 이미 있어
+          # terraform_runner create 가 ResourceInUse(409) → import 후 1회 재시도
+          echo "==> apply failed (rc=${rc}); trying CI Access Entry import + retry"
+          ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+          CLUSTER=aniverse-eks
+          PRINCIPAL="arn:aws:iam::${ACCOUNT}:role/aniverse-github-actions-terraform"
+          ENTRY='module.eks.aws_eks_access_entry.terraform_runner'
+          ASSOC='module.eks.aws_eks_access_policy_association.terraform_runner'
+          POLICY='arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+          in_state() { terraform state list 2>/dev/null | grep -qx "$1"; }
+
+          if ! aws eks describe-access-entry \
+            --region "${AWS_REGION}" \
+            --cluster-name "${CLUSTER}" \
+            --principal-arn "${PRINCIPAL}" >/dev/null 2>&1; then
+            echo "No CI access entry to import — not a ResourceInUse recovery case"
+            exit "${rc}"
+          fi
+
+          set +e
+          if ! in_state "${ENTRY}"; then
+            terraform import -input=false "${ENTRY}" "${CLUSTER}:${PRINCIPAL}" \
+              && echo "Imported ${ENTRY}" \
+              || echo "Entry import failed"
+          else
+            echo "Already in state: ${ENTRY}"
+          fi
+          if ! in_state "${ASSOC}"; then
+            terraform import -input=false "${ASSOC}" \
+              "${CLUSTER}#${PRINCIPAL}#${POLICY}" \
+              && echo "Imported ${ASSOC}" \
+              || echo "Assoc import failed"
+          else
+            echo "Already in state: ${ASSOC}"
+          fi
+          set -e
+
+          terraform apply -auto-approve -input=false
+          echo "### Terraform Outputs (after Access Entry import retry)" >> "$GITHUB_STEP_SUMMARY"
           terraform output >> "$GITHUB_STEP_SUMMARY"
 
       - name: Print values for app / ops
