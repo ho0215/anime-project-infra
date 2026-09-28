@@ -1,0 +1,28 @@
+tempo:
+  enabled: true
+  
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+  retention: 24h  # 트레이스 24시간 보관
+
+tempoQuery:
+  enabled: true   # Grafana에서 조회 가능하게
+
+service:
+  type: ClusterIP
+  port: 4317      # OpenTelemetry gRPC 포트
+
+persistence:
+  enabled: false  # 테스트용이라 비활성화 (EKS 비용 절감)
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
