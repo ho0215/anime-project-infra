@@ -150,3 +150,36 @@ variable "db_backup_irsa_service_account" {
   type        = string
   default     = "aniverse-db-backup"
 }
+
+# ==========================================
+# External Secrets Operator
+# ==========================================
+variable "enable_external_secrets" {
+  description = "External Secrets Operator Helm 설치 + IRSA 생성 여부"
+  type        = bool
+  default     = false
+}
+
+variable "eso_chart_version" {
+  description = "external-secrets Helm chart 버전 (2026-09 기준 최신 안정 릴리스 고정) — 업그레이드 시 https://github.com/external-secrets/external-secrets/releases 확인"
+  type        = string
+  default     = "2.11.0"
+}
+
+variable "eso_namespace" {
+  description = "External Secrets Operator 컨트롤러가 뜨는 네임스페이스"
+  type        = string
+  default     = "external-secrets"
+}
+
+variable "eso_service_account" {
+  description = "ESO 컨트롤러 ServiceAccount 이름 — helm chart의 serviceAccount.name과 일치해야 함"
+  type        = string
+  default     = "external-secrets"
+}
+
+variable "eso_secret_arn" {
+  description = "ESO 가 읽을 AWS Secrets Manager 시크릿 ARN — IAM 정책 Resource로만 쓰임"
+  type        = string
+  default     = ""
+}

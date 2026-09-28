@@ -707,3 +707,85 @@ resource "aws_iam_role_policy" "db_backup" {
     ]
   })
 }
+
+# ==========================================
+# External Secrets Operator — Secrets Manager 의 app secret 1개를
+# ClusterSecretStore 를 통해 K8s Secret(aniverse-app-secrets)으로 동기화.
+# 컨트롤러 자체 IRSA 로 인증(네임스페이스별 SecretStore 불필요, 지금은
+# 앱 네임스페이스가 하나뿐이라 이게 더 단순).
+# ==========================================
+data "aws_iam_policy_document" "external_secrets_assume" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:sub"
+      values   = ["system:serviceaccount:${var.eso_namespace}:${var.eso_service_account}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_provider}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "external_secrets" {
+  count              = var.enable_external_secrets ? 1 : 0
+  name               = "${var.project_name}-external-secrets-irsa"
+  assume_role_policy = data.aws_iam_policy_document.external_secrets_assume[0].json
+}
+
+resource "aws_iam_role_policy" "external_secrets" {
+  count = var.enable_external_secrets ? 1 : 0
+  name  = "${var.project_name}-external-secrets"
+  role  = aws_iam_role.external_secrets[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ReadAppSecret"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+        Resource = [var.eso_secret_arn]
+      },
+    ]
+  })
+}
+
+resource "helm_release" "external_secrets" {
+  count            = var.enable_external_secrets ? 1 : 0
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  namespace        = var.eso_namespace
+  create_namespace = true
+  version          = var.eso_chart_version
+
+  set {
+    name  = "serviceAccount.name"
+    value = var.eso_service_account
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.external_secrets[0].arn
+  }
+
+  depends_on = [
+    aws_eks_node_group.default,
+    aws_eks_addon.vpc_cni,
+    aws_eks_access_policy_association.terraform_runner,
+  ]
+}

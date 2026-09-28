@@ -60,3 +60,8 @@ output "db_backup_irsa_role_arn" {
   description = "윤주 백업 CronJob ServiceAccount(aniverse-db-backup)에 붙일 role-arn"
   value       = module.eks.db_backup_irsa_role_arn
 }
+
+output "eso_secret_name" {
+  description = "docs/external-secrets.md 전환 절차에서 값 주입할 Secrets Manager 시크릿 이름"
+  value       = aws_secretsmanager_secret.app_secrets.name
+}
