@@ -44,6 +44,11 @@ output "db_backup_irsa_role_arn" {
   value       = var.enable_db_backup_irsa ? aws_iam_role.db_backup[0].arn : null
 }
 
+output "eso_irsa_role_arn" {
+  description = "External Secrets Operator 컨트롤러 ServiceAccount에 붙는 IAM role"
+  value       = var.enable_external_secrets ? aws_iam_role.external_secrets[0].arn : null
+}
+
 output "kubeconfig_hint" {
   description = "로컬에서 kubectl 붙일 때"
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${aws_eks_cluster.this.name}"

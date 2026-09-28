@@ -110,4 +110,9 @@ module "eks" {
   # DB 백업(mysqldump) CronJob IRSA — 같은 버킷의 db-backups/ prefix로만 권한 제한
   enable_db_backup_irsa   = true
   db_backup_s3_bucket_arn = module.storage.s3_bucket_arn
+
+  # External Secrets Operator — aws_secretsmanager_secret.app_secrets(secrets.tf) 하나만
+  # 읽을 수 있게 스코핑. 값 주입/전환 절차는 docs/external-secrets.md.
+  enable_external_secrets = true
+  eso_secret_arn          = aws_secretsmanager_secret.app_secrets.arn
 }
