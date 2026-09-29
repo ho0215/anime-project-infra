@@ -60,6 +60,15 @@ variable "node_instance_types" {
   default = ["t3.medium"]
 }
 
+# t3.medium 기본(ENI 기반, prefix delegation 미사용)은 17개뿐 — CNI addon의
+# ENABLE_PREFIX_DELEGATION과 반드시 같이 켜야 함(modules/eks/main.tf 주석 참고).
+# 110은 prefix delegation 활성 시 AWS가 문서에서 예시로 드는 표준값.
+variable "node_max_pods" {
+  description = "노드당 최대 파드 수 (nodeadm NodeConfig maxPods) — ENABLE_PREFIX_DELEGATION과 세트로 적용"
+  type        = number
+  default     = 110
+}
+
 variable "node_capacity_type" {
   description = "ON_DEMAND | SPOT"
   type        = string

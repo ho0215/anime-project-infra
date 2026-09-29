@@ -177,6 +177,45 @@ resource "aws_iam_role_policy_attachment" "node_ssm" {
 # desired_size는 eks-start.sh/eks-stop.sh가 AWS API로 직접 바꾸므로,
 # terraform apply(CD가 main push마다 돎)가 그 값을 되돌리지 않도록 ignore_changes 처리
 # ==========================================
+# t3.medium 기본 max-pods(ENI 기반 계산)는 17개뿐 — DaemonSet(alloy, node-exporter,
+# loki-canary, aws-node, kube-proxy) + 일반 워크로드를 합치면 금방 찬다. AL2023은
+# bootstrap.sh 대신 nodeadm 방식이라 --kubelet-extra-args 대신 /etc/eks/nodeadm.d/
+# 에 NodeConfig YAML을 드롭인하는 방식으로 max-pods를 올린다. drop-in 방식은 nodeadm이
+# 자동 발견하는 클러스터 메타데이터(API endpoint/CA/CIDR)와 병합되므로 여기서 따로
+# 명시할 필요 없음(커스텀 AMI를 launch template에 지정한 게 아니라서).
+resource "aws_launch_template" "node" {
+  name_prefix = "${var.project_name}-node-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    cat > /etc/eks/nodeadm.d/max-pods.yaml << 'INNEREOF'
+    ---
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      kubelet:
+        config:
+          maxPods: ${var.node_max_pods}
+    INNEREOF
+  EOF
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "${var.project_name}-node" }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_eks_node_group" "default" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.project_name}-nodes"
@@ -186,6 +225,13 @@ resource "aws_eks_node_group" "default" {
   instance_types = var.node_instance_types
   capacity_type  = var.node_capacity_type
   ami_type       = "AL2023_x86_64_STANDARD"
+
+  # AMI는 여전히 ami_type이 고름(launch template엔 image_id 미지정) — max-pods
+  # 오버라이드용 user_data만 여기서 얹는다.
+  launch_template {
+    id      = aws_launch_template.node.id
+    version = aws_launch_template.node.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_desired_size
@@ -262,8 +308,17 @@ resource "aws_eks_addon" "vpc_cni" {
   # anime-project deploy/k8s/base/networkpolicy.yaml(aniverse-db-allow-web-only)가
   # EKS에서도 그대로 강제될 거라 가정하고 있음. VPC CNI는 기본값으로는 NetworkPolicy를
   # 무시(미강제)하므로 명시적으로 켜야 그 가정이 맞음.
+  #
+  # ENABLE_PREFIX_DELEGATION: t3.medium 기본 max-pods(17)가 DaemonSet 몇 개만
+  # 더해도 꽉 찬다. ENI당 개별 IP 대신 /28 prefix를 할당해 노드당 실제 공급
+  # 가능한 IP 수를 늘림 — aws_launch_template.node의 max-pods(nodeadm.d) 상향과
+  # 반드시 같이 가야 함(하나만 하면 스케줄은 되는데 IP 할당 실패로 옮겨감).
   configuration_values = jsonencode({
     enableNetworkPolicy = "true"
+    env = {
+      ENABLE_PREFIX_DELEGATION = "true"
+      WARM_PREFIX_TARGET       = "1"
+    }
   })
 }
 
