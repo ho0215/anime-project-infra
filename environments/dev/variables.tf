@@ -117,7 +117,22 @@ variable "eks_cluster_version" {
 variable "eks_cluster_admin_arns" {
   description = "kubectl cluster-admin 추가 IAM ARN (로컬 SSO 사용자 등). CI Terraform 역할은 모듈이 자동 부여"
   type        = list(string)
-  default     = []
+  # AWSReservedSSO_AdministratorAccess 역할 — 서이(계정 소유/네트워크/보안/EKS), 현우(총괄/CI-CD)
+  # 둘 다 이 권한 세트 공유. SSO 역할 하나당 access entry 하나라 두 사람이 같은 entry를 씀.
+  default = ["arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_AdministratorAccess_e2fb8e5aead25e6d"]
+}
+
+variable "eks_edit_arns" {
+  description = "aniverse_edit_namespaces로 범위 제한된 edit 등급 IAM ARN"
+  type        = list(string)
+  # AWSReservedSSO_aniverse-app-edit 역할 — 윤주(모니터링/DB), 유민(컴퓨트)
+  default = ["arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_aniverse-app-edit_fbef725212ce072a"]
+}
+
+variable "eks_edit_namespaces" {
+  description = "eks_edit_arns 접근 범위"
+  type        = list(string)
+  default     = ["aniverse", "monitoring"]
 }
 
 variable "eks_node_desired_size" {

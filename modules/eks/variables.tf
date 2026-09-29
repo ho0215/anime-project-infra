@@ -39,6 +39,18 @@ variable "cluster_admin_arns" {
   default     = []
 }
 
+variable "eks_edit_arns" {
+  description = "cluster-admin 아닌 edit 등급(AmazonEKSEditPolicy) 부여할 IAM 역할 ARN — eks_edit_namespaces로 범위 제한됨"
+  type        = list(string)
+  default     = []
+}
+
+variable "eks_edit_namespaces" {
+  description = "eks_edit_arns가 접근 가능한 네임스페이스"
+  type        = list(string)
+  default     = []
+}
+
 # scripts/eks-start.sh · .github/workflows/eks-start-stop.yml 기본값과 반드시 일치
 variable "node_desired_size" {
   type    = number

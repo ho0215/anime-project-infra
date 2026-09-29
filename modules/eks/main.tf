@@ -107,6 +107,30 @@ resource "aws_eks_access_policy_association" "admins" {
   depends_on = [aws_eks_access_entry.admins]
 }
 
+# 차등 권한 — cluster_admin_arns(전체 admin)와 별개로, 특정 네임스페이스만
+# 배포/디버깅 가능한 edit 등급. AWS SSO 쪽에서 별도 Permission Set(다른 IAM
+# 역할)으로 분리해야 여기서 구분 가능 — 같은 role을 공유하면 access entry로
+# 사람 단위 차등을 못 줌.
+resource "aws_eks_access_entry" "editors" {
+  for_each      = toset(var.eks_edit_arns)
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+}
+
+resource "aws_eks_access_policy_association" "editors" {
+  for_each      = toset(var.eks_edit_arns)
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+
+  access_scope {
+    type       = "namespace"
+    namespaces = var.eks_edit_namespaces
+  }
+
+  depends_on = [aws_eks_access_entry.editors]
+}
+
 # authentication_mode=API 전용: 매니지드 노드그룹이 클러스터에 join/drain 하려면
 # EC2_LINUX Access Entry 가 필요. TF 밖에서 EKS 가 자동 생성만 하면 destroy 시
 # 엔트리가 없거나 순서가 꼬여 DELETE_FAILED(AccessDenied / aws-auth) 가 난다.
