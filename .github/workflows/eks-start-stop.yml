@@ -88,22 +88,35 @@ jobs:
         if: inputs.action == 'stop'
         run: |
           set -euo pipefail
+          # Terminating:Wait 등이 남아 있으면 짧게 더 기다림 (eks-stop wait와 동일 기준)
+          deadline=$((SECONDS + 300))
           fail=0
           for ng in ${EKS_NODEGROUP_NAME}; do
             ASG=$(aws eks describe-nodegroup --region "${AWS_REGION}" \
               --cluster-name "${EKS_CLUSTER_NAME}" --nodegroup-name "${ng}" \
               --query 'nodegroup.resources.autoScalingGroups[0].name' --output text)
-            DESIRED=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
-              --auto-scaling-group-names "${ASG}" \
-              --query 'AutoScalingGroups[0].DesiredCapacity' --output text)
-            INST=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
-              --auto-scaling-group-names "${ASG}" \
-              --query 'length(AutoScalingGroups[0].Instances)' --output text)
-            echo "ASG ${ASG}: Desired=${DESIRED} Instances=${INST}" | tee -a "$GITHUB_STEP_SUMMARY"
-            if [ "${DESIRED}" != "0" ] || [ "${INST}" != "0" ]; then
-              echo "::error::ASG not empty Desired=${DESIRED} Instances=${INST}"
-              fail=1
-            fi
+            while true; do
+              DESIRED=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
+                --auto-scaling-group-names "${ASG}" \
+                --query 'AutoScalingGroups[0].DesiredCapacity' --output text)
+              INST=$(aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
+                --auto-scaling-group-names "${ASG}" \
+                --query 'length(AutoScalingGroups[0].Instances)' --output text)
+              echo "ASG ${ASG}: Desired=${DESIRED} Instances=${INST}" | tee -a "$GITHUB_STEP_SUMMARY"
+              if [ "${DESIRED}" = "0" ] && { [ "${INST}" = "0" ] || [ "${INST}" = "None" ]; }; then
+                break
+              fi
+              if (( SECONDS >= deadline )); then
+                echo "::error::ASG not empty Desired=${DESIRED} Instances=${INST}"
+                aws autoscaling describe-auto-scaling-groups --region "${AWS_REGION}" \
+                  --auto-scaling-group-names "${ASG}" \
+                  --query 'AutoScalingGroups[0].Instances[].{Id:InstanceId,State:LifecycleState}' \
+                  --output table || true
+                fail=1
+                break
+              fi
+              sleep 15
+            done
           done
           NAT_JSON=$(aws ec2 describe-instances --region "${AWS_REGION}" \
             --filters "Name=tag:Name,Values=${EKS_NAT_NAME}" \

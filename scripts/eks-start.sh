@@ -89,13 +89,18 @@ set_asg_desired() {
     --desired-capacity "${desired}"
 }
 
-asg_running_count() {
+asg_instance_count() {
+  # Terminating:Wait / Terminating:Proceed 등도 포함 — 부분 필터면 조기 0 오인
   local asg="$1"
   aws autoscaling describe-auto-scaling-groups \
     --region "${REGION}" \
     --auto-scaling-group-names "${asg}" \
-    --query 'length(AutoScalingGroups[0].Instances[?LifecycleState==`InService` || LifecycleState==`Pending` || LifecycleState==`Terminating`])' \
+    --query 'length(AutoScalingGroups[0].Instances)' \
     --output text 2>/dev/null || echo "0"
+}
+
+asg_running_count() {
+  asg_instance_count "$@"
 }
 
 wait_asg_empty() {
