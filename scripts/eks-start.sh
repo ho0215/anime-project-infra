@@ -218,10 +218,45 @@ start_nat() {
   sleep 20
 }
 
+asg_inservice_count() {
+  local asg="$1"
+  aws autoscaling describe-auto-scaling-groups     --region "${REGION}"     --auto-scaling-group-names "${asg}"     --query 'length(AutoScalingGroups[0].Instances[?LifecycleState==`InService`])'     --output text 2>/dev/null || echo "0"
+}
+
+wait_asg_inservice() {
+  local asg="$1" want="$2"
+  echo "==> waiting for ASG ${asg} InService >= ${want} (timeout ${WAIT_TIMEOUT}s)"
+  local deadline=$((SECONDS + WAIT_TIMEOUT))
+  while (( SECONDS < deadline )); do
+    local n desired
+    n="$(asg_inservice_count "${asg}")"
+    desired="$(aws autoscaling describe-auto-scaling-groups --region "${REGION}"       --auto-scaling-group-names "${asg}"       --query 'AutoScalingGroups[0].DesiredCapacity' --output text 2>/dev/null || echo "?")"
+    echo "  InService=${n} Desired=${desired} (want>=${want})"
+    if [ "${n}" != "None" ] && [ "${n}" -ge "${want}" ] 2>/dev/null; then
+      echo "OK — ASG ${asg} has ${n} InService"
+      return 0
+    fi
+    sleep 15
+  done
+  echo "ERROR: ASG ${asg} InService < ${want} after ${WAIT_TIMEOUT}s" >&2
+  aws autoscaling describe-auto-scaling-groups --region "${REGION}"     --auto-scaling-group-names "${asg}"     --query 'AutoScalingGroups[0].{Desired:DesiredCapacity,Instances:Instances[].{Id:InstanceId,State:LifecycleState}}'     --output json >&2 || true
+  return 1
+}
+
 wait_nodes_ready() {
+  # kubectl 은 선택. CI runner 는 kubeconfig/Access Entry 없어 pipefail 로 즉시 실패했음.
   [ "${WAIT_NODES}" = "1" ] || return 0
   if ! command -v kubectl >/dev/null; then
-    echo "kubectl 없음 — Ready 대기 스킵. kubeconfig: aws eks update-kubeconfig --name ${CLUSTER}"
+    echo "kubectl 없음 — Ready 대기 스킵 (ASG InService 대기로 충분)"
+    return 0
+  fi
+  # kubeconfig 없으면 갱신 시도 (실패해도 계속)
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    echo "==> kubectl 미인증 — aws eks update-kubeconfig 시도"
+    aws eks update-kubeconfig --region "${REGION}" --name "${CLUSTER}" >/dev/null 2>&1 || true
+  fi
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    echo "WARN: kubectl 여전히 실패 — ASG InService 만으로 start 판정 (Access Entry 필요할 수 있음)"
     return 0
   fi
   echo "==> waiting for ${DESIRED} node(s) Ready (timeout ${WAIT_TIMEOUT}s)"
@@ -229,6 +264,7 @@ wait_nodes_ready() {
   while (( SECONDS < deadline )); do
     local ready
     ready="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2 ~ /^Ready/ {c++} END {print c+0}')"
+    ready="${ready:-0}"
     if [ "${ready}" -ge "${DESIRED}" ]; then
       echo "OK — ${ready} node(s) Ready"
       kubectl get nodes -o wide 2>/dev/null || true
@@ -237,7 +273,7 @@ wait_nodes_ready() {
     echo "  ready=${ready}/${DESIRED} ..."
     sleep 15
   done
-  echo "WARN: timeout waiting for nodes — ./scripts/eks-status.sh 로 확인" >&2
+  echo "WARN: timeout waiting for Ready nodes — ASG InService 는 이미 확인했을 수 있음" >&2
   return 0
 }
 
@@ -277,9 +313,13 @@ case "${cmd}" in
       resume_asg "${asg}"
       scale_ng "${ng}" "${MIN_START}" "${MAX_SIZE}" "${DESIRED}"
       wait_ng_active "${ng}"
+      # EKS API 반영이 느리면 ASG 를 직접 desired 로 — Launch resume 후 EC2 기동의 핵심
+      set_asg_desired "${asg}" "${DESIRED}"
+      wait_asg_inservice "${asg}" "${DESIRED}"
     done
     wait_nodes_ready
-    echo "OK — curl -sI https://aniverse.my/health/"
+    echo "OK — workers up. curl -sI https://aniverse.my/health/"
+    echo "Note: eks-stop 만 한 경우 Argo 재설치 불필요. Pod 가 노드에 다시 스케줄되면 됨."
     ;;
   eks-status.sh)
     echo "Cluster: ${CLUSTER} (${REGION})"
