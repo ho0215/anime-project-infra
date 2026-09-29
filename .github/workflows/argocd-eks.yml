@@ -177,36 +177,10 @@ jobs:
           echo "::error::ACM still ${STATUS} after ${ACM_WAIT_SEC}s — HTTPS Ingress/ALB 복구 중단. ISSUED 되면 Argo CD on EKS 재실행."
           exit 1
 
-      - name: Seed aniverse-app-secrets
-        env:
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-        run: |
-          set -euo pipefail
-          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
-          if kubectl -n aniverse get secret aniverse-app-secrets >/dev/null 2>&1; then
-            echo "live aniverse-app-secrets already present"
-            exit 0
-          fi
-          # GitHub Secrets 우선. 없으면 lab/docker 기본값으로 시드(신 계정 빈 클러스터 복구용).
-          # 운영 비밀번호는 이후 Secrets 등록 후 secret 교체 권장.
-          DJANGO="${DJANGO_SECRET_KEY}"
-          DBPASS="${DB_PASSWORD}"
-          ROOTPASS="${DB_ROOT_PASSWORD}"
-          SRC="github-secrets"
-          if [ -z "${DJANGO}" ] || [ -z "${DBPASS}" ] || [ -z "${ROOTPASS}" ]; then
-            DJANGO="${DJANGO:-$(openssl rand -hex 32)}"
-            DBPASS="${DBPASS:-aniversepass}"
-            ROOTPASS="${ROOTPASS:-aniversepass}"
-            SRC="lab-fallback(aniversepass + random DJANGO)"
-            echo "::warning::GitHub Secrets 없음 — ${SRC} 으로 aniverse-app-secrets 생성. 운영키면 Secrets 등록 후 재생성하세요."
-          fi
-          kubectl -n aniverse create secret generic aniverse-app-secrets \
-            --from-literal=DJANGO_SECRET_KEY="${DJANGO}" \
-            --from-literal=DB_PASSWORD="${DBPASS}" \
-            --from-literal=DB_ROOT_PASSWORD="${ROOTPASS}"
-          echo "seeded aniverse-app-secrets via ${SRC}" | tee -a "$GITHUB_STEP_SUMMARY"
+      # 시크릿은 External Secrets Operator가 AWS Secrets Manager에서 직접
+      # 동기화한다(docs/external-secrets.md) — 여기서 kubectl create secret으로
+      # 시드하지 않음. (이 스텝이 예전엔 GitHub Secrets 미설정 시 DB_PASSWORD를
+      # "aniversepass"로 조용히 폴백시키던 지점이었음 — 제거로 그 경로 자체가 없어짐)
 
       - name: Install PyYAML (Application patch)
         run: pip install --quiet pyyaml
@@ -247,8 +221,7 @@ jobs:
             "spec":{
               "ignoreDifferences":[
                 {"group":"apps","kind":"Deployment","jqPathExpressions":[".spec.replicas",".status.terminatingReplicas"]},
-                {"group":"apps","kind":"StatefulSet","jqPathExpressions":[".status.terminatingReplicas"]},
-                {"group":"","kind":"Secret","name":"aniverse-app-secrets","jsonPointers":["/data","/stringData"]}
+                {"group":"apps","kind":"StatefulSet","jqPathExpressions":[".status.terminatingReplicas"]}
               ]
             }
           }' || true
@@ -301,9 +274,8 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
-          DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
-          ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
+          # 시크릿은 External Secrets Operator가 Secrets Manager에서 직접 동기화하므로
+          # (docs/external-secrets.md) 여기서 읽어 --set-string 으로 넘길 필요 없음.
 
           # Argo가 먼저 만든 오브젝트는 Helm ownership annotation 이 없어
           # `helm install` 이 NetworkPolicy 등에서 막힘 → adopt 후 upgrade
@@ -328,9 +300,6 @@ jobs:
           helm upgrade --install aniverse ./anime-project/deploy/helm/aniverse \
             -n aniverse --create-namespace \
             -f ./anime-project/deploy/helm/aniverse/values-eks.yaml \
-            --set-string "secrets.DJANGO_SECRET_KEY=${DJANGO}" \
-            --set-string "secrets.DB_PASSWORD=${DBPASS}" \
-            --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
             "${TAKE_OWN[@]}" \
             --timeout 8m
           kubectl -n aniverse get pods,ingress -o wide
