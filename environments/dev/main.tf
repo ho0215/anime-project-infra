@@ -92,6 +92,8 @@ module "eks" {
   cluster_version             = var.eks_cluster_version
   cluster_public_access_cidrs = var.admin_cidr_blocks
   cluster_admin_arns          = var.eks_cluster_admin_arns
+  eks_edit_arns               = var.eks_edit_arns
+  eks_edit_namespaces         = var.eks_edit_namespaces
 
   node_desired_size   = var.eks_node_desired_size
   node_min_size       = var.eks_node_min_size
