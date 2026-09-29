@@ -192,18 +192,30 @@ resource "aws_launch_template" "node" {
     http_put_response_hop_limit = 2
   }
 
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    cat > /etc/eks/nodeadm.d/max-pods.yaml << 'INNEREOF'
-    ---
-    apiVersion: node.eks.aws/v1alpha1
-    kind: NodeConfig
-    spec:
-      kubelet:
-        config:
-          maxPods: ${var.node_max_pods}
-    INNEREOF
-  EOF
+  # 매니지드 노드그룹 launch template의 user_data는 EKS 자체 bootstrap과
+  # 병합되려면 MIME multipart 형식이어야 함(플레인 스크립트만 넣으면
+  # "Ec2LaunchTemplateInvalidConfiguration: User data was not in the MIME
+  # multipart format"로 노드그룹 생성 자체가 CREATE_FAILED 남).
+  user_data = base64encode(<<-MIMEEOF
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+
+--==BOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
+
+#!/bin/bash
+cat > /etc/eks/nodeadm.d/max-pods.yaml << 'NODECONF'
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  kubelet:
+    config:
+      maxPods: ${var.node_max_pods}
+NODECONF
+
+--==BOUNDARY==--
+MIMEEOF
   )
 
   tag_specifications {
