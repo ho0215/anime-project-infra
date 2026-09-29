@@ -100,47 +100,17 @@ jobs:
           done
           echo "::warning::ACM still ${STATUS:-unknown} after ${ACM_WAIT_SEC}s — continuing (NS 전파 대기일 수 있음)"
 
-      - name: Ensure app secrets
-        env:
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-        run: |
-          set -euo pipefail
-          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
-          if kubectl -n aniverse get secret aniverse-app-secrets >/dev/null 2>&1; then
-            echo "live secret ok"
-            exit 0
-          fi
-          DJANGO="${DJANGO_SECRET_KEY}"
-          DBPASS="${DB_PASSWORD}"
-          ROOTPASS="${DB_ROOT_PASSWORD}"
-          SRC="github-secrets"
-          if [ -z "${DJANGO}" ] || [ -z "${DBPASS}" ] || [ -z "${ROOTPASS}" ]; then
-            DJANGO="${DJANGO:-$(openssl rand -hex 32)}"
-            DBPASS="${DBPASS:-aniversepass}"
-            ROOTPASS="${ROOTPASS:-aniversepass}"
-            SRC="lab-fallback"
-            echo "::warning::GitHub Secrets 없음 — lab fallback(aniversepass)으로 secret 생성"
-          fi
-          kubectl -n aniverse create secret generic aniverse-app-secrets \
-            --from-literal=DJANGO_SECRET_KEY="${DJANGO}" \
-            --from-literal=DB_PASSWORD="${DBPASS}" \
-            --from-literal=DB_ROOT_PASSWORD="${ROOTPASS}"
-          echo "seeded via ${SRC}" | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Helm upgrade aniverse (values-eks)
         run: |
           set -euo pipefail
-          DJANGO=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DJANGO_SECRET_KEY}' | base64 -d)
-          DBPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_PASSWORD}' | base64 -d)
-          ROOTPASS=$(kubectl -n aniverse get secret aniverse-app-secrets -o jsonpath='{.data.DB_ROOT_PASSWORD}' | base64 -d)
+          # 시크릿은 External Secrets Operator가 AWS Secrets Manager에서 직접
+          # 동기화한다(docs/external-secrets.md) — 여기서 만들거나 --set-string으로
+          # 넘기지 않음. (이전엔 GitHub Secrets 미설정 시 "aniversepass" lab
+          # fallback으로 조용히 시드하던 지점이었음 — 제거로 그 경로 자체가 없어짐)
+          kubectl get ns aniverse >/dev/null 2>&1 || kubectl create ns aniverse
           helm upgrade --install aniverse ./anime-project/deploy/helm/aniverse \
             -n aniverse --create-namespace \
             -f ./anime-project/deploy/helm/aniverse/values-eks.yaml \
-            --set-string "secrets.DJANGO_SECRET_KEY=${DJANGO}" \
-            --set-string "secrets.DB_PASSWORD=${DBPASS}" \
-            --set-string "secrets.DB_ROOT_PASSWORD=${ROOTPASS}" \
             --wait --timeout 15m || true
           kubectl -n aniverse get pods,ingress,svc -o wide
           kubectl -n aniverse describe ingress aniverse-web 2>&1 | tail -40 || true
