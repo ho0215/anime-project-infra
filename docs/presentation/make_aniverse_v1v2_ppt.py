@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 13
+TOTAL = 16
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -348,21 +348,27 @@ def slide_v2_detail_2(prs):
     s = blank(prs)
     bg(s)
     title_center(s, "Architecture V2 상세내용 ②")
-    rows = [
+    blocks = [
         (
-            "장기 Access Key를 쓰지 않음",
-            "키 유출로 계정이 막힌 경험이 있어, GitHub가 한시 권한(OIDC)으로만 AWS에 붙도록 바꿨습니다.",
+            "장기 Access Key를 쓰지 않음  ·  Zero-Key",
+            [
+                "OIDC — 파드와 CI는 장기 키 없이, GitHub 한시 권한으로만 AWS에 접속합니다.",
+                "SSO — 사람은 SSO 로그인으로 임시 자격증명을 받아, 키를 갖지 않습니다.",
+            ],
         ),
         (
             "인프라를 지워도 도메인은 남김",
-            "destroy해도 가비아에 연결한 DNS(Route53)는 남겨, 네임서버를 매번 다시 등록하지 않습니다.",
+            [
+                "destroy해도 가비아에 연결한 DNS(Route53)는 남겨, 네임서버를 매번 다시 등록하지 않습니다.",
+            ],
         ),
     ]
-    for i, (a, b) in enumerate(rows):
-        y = Inches(1.6) + i * Inches(2.2)
-        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.9), LIGHT if i % 2 == 0 else SOFT)
-        set_text(c.text_frame, a, 24, True, BLUE)
-        add_para(c.text_frame, b, 20, False, NAVY, 14)
+    for i, (head, lines) in enumerate(blocks):
+        y = Inches(1.35) + i * Inches(2.7)
+        c = card(s, Inches(0.55), y, Inches(12.2), Inches(2.45), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, head, 24, True, BLUE)
+        for line in lines:
+            add_para(c.text_frame, line, 18, False, NAVY, 12)
     footer(s, 8)
 
 
@@ -376,7 +382,7 @@ def slide_verify(prs):
         ("GitOps", "image.tag bump → Argo Synced", "Actions 로그 + Argo UI", "충족"),
         ("미디어", "destroy 후 Sync media 재업로드", "S3 media/ 확인", "충족"),
         ("관측", "Prom·Alloy·Loki 조회", "클러스터 메트릭·로그", "구성"),
-        ("알림/트레이싱", "AlertManager · Tempo", "다음 단계", "예정"),
+        ("알림", "AlertManager → Slack 수신", "웹훅 시크릿 마운트", "충족"),
     ]
     for i, (t, check, method, result) in enumerate(items):
         col, row = i % 3, i // 3
@@ -461,6 +467,84 @@ def slide_next(prs):
     footer(s, 12)
 
 
+def slide_trouble(prs, n, title, rows):
+    """3건. rows: (제목, 한 줄 설명)."""
+    s = blank(prs)
+    bg(s)
+    title_center(s, title, size=32)
+    for i, (head, body) in enumerate(rows):
+        y = Inches(1.15) + i * Inches(1.9)
+        c = card(s, Inches(0.45), y, Inches(12.4), Inches(1.75), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, head, 20, True, BLUE)
+        add_para(c.text_frame, body, 16, False, NAVY, 8)
+    footer(s, n)
+
+
+def slide_trouble_gitops(prs):
+    s = blank(prs)
+    bg(s)
+    title_center(s, "트러블슈팅  ·  껐는데 노드가 다시 켜짐", size=32)
+    cols = [
+        (BLUE, "증상", "stop은 성공인데\nEC2 워커는 Running"),
+        (ORANGE, "원인", "desired=0만 반영하고 종료\nAutoscaler가 노드를 다시 올림\nEKS maxSize는 0이 불가"),
+        (GREEN, "조치", "Launch suspend\nASG 0까지 대기\nNAT도 함께 중지\n성공 조건은 인스턴스 0대"),
+    ]
+    for i, (color, head, body) in enumerate(cols):
+        x = Inches(0.5) + i * Inches(4.25)
+        top = card(s, x, Inches(1.45), Inches(4.05), Inches(0.85), color)
+        set_text(top.text_frame, head, 22, True, WHITE, PP_ALIGN.CENTER)
+        box = card(s, x, Inches(2.45), Inches(4.05), Inches(4.0), LIGHT)
+        lines = body.split("\n")
+        set_text(box.text_frame, lines[0], 20, False, NAVY, PP_ALIGN.CENTER)
+        for line in lines[1:]:
+            add_para(box.text_frame, line, 20, False, NAVY, 10, PP_ALIGN.CENTER)
+    footer(s, 13)
+
+
+def slide_trouble_eks(prs):
+    slide_trouble(
+        prs,
+        14,
+        "트러블슈팅  ·  EKS",
+        [
+            (
+                "HPA가 늘린 수가 1로 돌아감",
+                "배포 파일에 replicas: 1이 고정돼, 재배포할 때마다 HPA가 맞춘 개수를 덮었습니다. replicas를 빼서 HPA만 개수를 관리하게 했습니다.",
+            ),
+            (
+                "빈 계정에서 생성 순서가 깨짐",
+                "이미 있던 환경에서는 안 보이던 의존성이, 처음부터 만들자 NAT·라우트보다 뒤 리소스가 먼저 돌았습니다. 생성 순서를 다시 맞췄습니다.",
+            ),
+            (
+                "시크릿을 옮기며 약한 기본값을 발견",
+                "기존 값을 Secrets Manager로 그대로 옮기다 약한 기본값일 가능성을 봤습니다. 난수로 바꾼 뒤 DB와 Secrets Manager를 같이 갱신했습니다.",
+            ),
+        ],
+    )
+
+
+def slide_trouble_observe(prs):
+    slide_trouble(
+        prs,
+        15,
+        "트러블슈팅  ·  DB · 관측",
+        [
+            (
+                "DB 백업 파일이 0바이트",
+                "DB 서비스가 헤드리스라 바깥 컨테이너에서 접속이 안 됐습니다. CronJob이 파드 안에서 mariadb-dump를 실행하게 바꿔, S3에 백업이 쌓입니다.",
+            ),
+            (
+                "Alloy가 노드 일부에서만 기동",
+                "노드당 파드 한도 17을 DaemonSet이 넘겼습니다. max-pods를 올린 뒤 노드를 다시 만들어 전부 Running이 됐습니다.",
+            ),
+            (
+                "Slack 알람이 오지 않음",
+                "웹훅을 파일로 읽게 했는데 시크릿이 파드에 마운트되지 않았습니다. secrets 마운트와 api_url_file로 연결해 수신을 확인했습니다.",
+            ),
+        ],
+    )
+
+
 def slide_schedule(prs):
     s = blank(prs)
     bg(s)
@@ -485,6 +569,9 @@ def main():
     slide_stack(prs)
     slide_data_flow(prs)
     slide_next(prs)
+    slide_trouble_gitops(prs)
+    slide_trouble_eks(prs)
+    slide_trouble_observe(prs)
     slide_schedule(prs)
 
     out = next_path()

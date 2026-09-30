@@ -3,7 +3,7 @@
 **기준 파일 (앞으로 여기 기준):**
 - `docs/presentation/ppt/Aniverse_V1V2_발표_working.pptx`
 - 생성 스크립트: `make_aniverse_v1v2_ppt.py` · 다이어그램: `make_hybrid_diagrams.py`
-- 슬라이드: **13장** · 13.333×7.5 in
+- 슬라이드: **16장** · 13.333×7.5 in
 
 ---
 
@@ -18,12 +18,15 @@
 | 5 | Architecture V2 정의 | 비전+기능 4칸 | |
 | 6 | 시스템 구성도 · V2 | 이미지 | `hybrid_02_arch_v2_vpc.png` |
 | 7 | Architecture V2 상세내용 ① | 3행 | DB Pod · sha 태그 · 시드 |
-| 8 | Architecture V2 상세내용 ② | 2행 | OIDC · DNS 유지 |
-| 9 | 기능 · 운영 검증 기준 | 6카드 | health~알림 |
+| 8 | Architecture V2 상세내용 ② | 2행 | Zero-Key(OIDC·SSO) · DNS 유지 |
+| 9 | 기능 · 운영 검증 기준 | 6카드 | health~Slack 알림 |
 | 10 | 기술 스택 · V2 | **이미지** | `hybrid_09_tech_stack.png` |
 | 11 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
 | 12 | 향후 계획 · 3UP | 3열+AIOps | Unique에 AIOps |
-| 13 | V2 일정 · 일자별 | 이미지 | `images/v2_schedule_by_day.png` |
+| 13 | 트러블슈팅 · 노드가 다시 켜짐 | 3열 | 증상 / 원인 / 조치 |
+| 14 | 트러블슈팅 · EKS | 3행 | HPA · 생성 순서 · 시크릿 값 |
+| 15 | 트러블슈팅 · DB · 관측 | 3행 | 백업 0바이트 · Alloy 한도 · Slack |
+| 16 | V2 일정 · 일자별 | 이미지 | `images/v2_schedule_by_day.png` |
 
 ---
 
@@ -77,7 +80,7 @@
 | ① | RDS 대신 EKS 안 DB | 학습·발표용 → MariaDB Pod + PVC |
 | ① | 이미지 태그까지 Git에 맞춤 | ECR `sha-*` + Helm values bump → Git·클러스터 일치 |
 | ① | 지워도 글이 다시 채워짐 | Git SQL → restore Job → DB 시드 |
-| ② | 장기 Access Key 미사용 | GitHub OIDC로만 AWS 인증 |
+| ② | 장기 Access Key 미사용 (Zero-Key) | OIDC: 파드·CI는 한시 권한만. SSO: 사람은 임시 자격증명 |
 | ② | destroy해도 도메인 유지 | Route53/DNS keep → 가비아 NS 재등록 불필요 |
 
 ### 9. 검증 기준
@@ -88,7 +91,7 @@
 | GitOps | tag bump → Synced | Actions+Argo | 충족 |
 | 미디어 | destroy 후 Sync media | S3 media/ | 충족 |
 | 관측 | Prom·Alloy·Loki 조회 | 클러스터 메트릭·로그 | 구성 |
-| 알림/트레이싱 | AlertManager·Tempo | 다음 단계 | 예정 |
+| 알림 | AlertManager → Slack | 웹훅 시크릿 마운트 | 충족 |
 
 ### 10. 기술 스택 (이미지)
 6칸 아이콘 맵:
@@ -109,11 +112,26 @@
 - **Unique Up:** 관측 고도화 · OIDC 축소 · 백업 드릴 · **AIOps(self-healing)**
 - Complete / Performance: Loki·시드 게이트·런북 / start-stop·대비 설명·장애 데모
 
+### 13. 트러블슈팅 · 껐는데 노드가 다시 켜짐
+- 증상: stop은 성공인데 EC2 워커는 Running
+- 원인: desired=0만 반영하고 종료. Autoscaler가 노드를 다시 올림. EKS maxSize는 0이 불가
+- 조치: Launch suspend, ASG 0까지 대기, NAT도 중지. 성공 조건은 인스턴스 0대
+
+### 14. 트러블슈팅 · EKS
+- HPA가 늘린 수가 1로 돌아감 — replicas 고정을 빼서 HPA만 개수를 관리
+- 빈 계정에서 생성 순서가 깨짐 — NAT·라우트를 먼저 두고 순서를 다시 맞춤
+- 시크릿을 옮기며 약한 기본값을 발견 — 난수로 교체하고 DB와 Secrets Manager를 같이 갱신
+
+### 15. 트러블슈팅 · DB · 관측
+- DB 백업 0바이트 — 헤드리스 서비스라 파드 안에서 mariadb-dump
+- Alloy가 일부 노드만 Running — 파드 한도 17을 올리고 노드 재생성
+- Slack 알람 없음 — 웹훅 시크릿을 마운트하고 api_url_file로 수신 확인
+
 ---
 
 ## 앞으로 작업 규칙
 
-1. 편집·재생성은 **이 13장 구조·문구**를 기준으로 한다.
+1. 편집·재생성은 **이 16장 구조·문구**를 기준으로 한다.
 2. 소스 오브 트루스 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 3. 버전 올리면 `Aniverse_V1V2_발표_vN.pptx`로 쌓되, working도 같이 갱신한다.
 4. 구성도·스택·흐름 PNG: `images/hybrid/hybrid_01_*`, `hybrid_02_*`, `hybrid_09_tech_stack.png`, `hybrid_10_data_flow.png`
