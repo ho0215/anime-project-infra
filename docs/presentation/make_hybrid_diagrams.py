@@ -441,7 +441,7 @@ def make_tech_stack_v2():
             "앱 · 런타임",
             CYAN,
             SOFT_BLUE,
-            [("django", "Django"), ("nginx", "Nginx"), ("servers", "Docker · Helm")],
+            [("django", "Django"), ("servers", "Daphne"), ("servers", "Docker · Helm")],
         ),
         (
             545,
@@ -487,7 +487,7 @@ def make_tech_stack_v2():
             SOFT_RED,
             [
                 ("cloudwatch", "Prometheus"),
-                ("cloudwatch", "Grafana"),
+                ("cloudwatch", "Alloy"),
                 ("cloudwatch", "Loki"),
             ],
         ),

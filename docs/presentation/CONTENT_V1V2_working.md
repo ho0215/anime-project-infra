@@ -92,12 +92,12 @@
 
 ### 10. 기술 스택 (이미지)
 6칸 아이콘 맵:
-- 앱·런타임: Django · Nginx · Docker/Helm
+- 앱·런타임: Django · Daphne · Docker/Helm
 - 오케스트레이션: EKS · MariaDB STS · EBS PVC
 - 스토리지: S3 media / static / db-backups
 - CI/CD·GitOps: Actions · ECR · Argo CD
 - 인증·IaC: GitHub OIDC · Terraform · Secrets/IRSA
-- 관측: Prometheus · Grafana · Loki
+- 관측: Prometheus · Alloy · Loki
 
 ### 11. 데이터 흐름 (이미지)
 1. 서비스: Users → ALB → web Pod → MariaDB → EBS PVC (eks-stop 시 PVC 유지)
