@@ -21,7 +21,9 @@ MIN_START="${EKS_MIN_SIZE:-2}"
 # EKS API: maxSize 최소 1 (0 불가)
 MAX_SIZE="${EKS_MAX_SIZE:-4}"
 MAX_STOP="${EKS_MAX_SIZE_STOP:-1}"
-WAIT_NODES="${EKS_WAIT_NODES:-2}"
+# 노드 개수 아님 — "Ready 대기를 할지"만 판단하는 불리언(1=대기). 실제 목표 개수는
+# DESIRED(위, 기본 2)를 씀. wait_nodes_ready()의 [ "${WAIT_NODES}" = "1" ] 참고.
+WAIT_NODES="${EKS_WAIT_NODES:-1}"
 WAIT_TIMEOUT="${EKS_WAIT_TIMEOUT_SEC:-600}"
 # Terraform modules/nat Name 태그
 NAT_NAME="${EKS_NAT_NAME:-aniverse-nat-instance}"
