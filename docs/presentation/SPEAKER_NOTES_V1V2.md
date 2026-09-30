@@ -1,10 +1,10 @@
-# Aniverse V1→V2 발표 대본 (작업 기준본 · 12장)
+# Aniverse V1→V2 발표 대본 (작업 기준본 · 13장)
 
 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`  
 내용 문서: `CONTENT_V1V2_working.md`  
 생성: `python3 make_hybrid_diagrams.py` → `python3 make_aniverse_v1v2_ppt.py`
 
-## 12장 구성
+## 13장 구성
 
 | # | 슬라이드 | 멘트 |
 |---|----------|------|
@@ -20,6 +20,7 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 | 10 | 기술 스택 | 6칸 아이콘 맵 (앱~관측) |
 | 11 | 데이터 흐름 | PVC vs S3 · 시드/백업/미디어 경로 |
 | 12 | 향후 3UP | Unique: 관측·OIDC·백업 + **AIOps(self-healing)** |
+| 13 | V2 일정 | 준비·구축·이관·복구·정리. GitOps / EKS / DB·관측 |
 
 ## 5~7분 배분
 
