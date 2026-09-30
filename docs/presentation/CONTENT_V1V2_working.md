@@ -3,7 +3,7 @@
 **기준 파일 (앞으로 여기 기준):**
 - `docs/presentation/ppt/Aniverse_V1V2_발표_working.pptx`
 - 생성 스크립트: `make_aniverse_v1v2_ppt.py` · 다이어그램: `make_hybrid_diagrams.py`
-- 슬라이드: **12장** · 13.333×7.5 in
+- 슬라이드: **13장** · 13.333×7.5 in
 
 ---
 
@@ -23,6 +23,7 @@
 | 10 | 기술 스택 · V2 | **이미지** | `hybrid_09_tech_stack.png` |
 | 11 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
 | 12 | 향후 계획 · 3UP | 3열+AIOps | Unique에 AIOps |
+| 13 | V2 일정 · 일자별 | 이미지 | `images/v2_schedule_by_day.png` |
 
 ---
 
@@ -112,7 +113,7 @@
 
 ## 앞으로 작업 규칙
 
-1. 편집·재생성은 **이 12장 구조·문구**를 기준으로 한다.
+1. 편집·재생성은 **이 13장 구조·문구**를 기준으로 한다.
 2. 소스 오브 트루스 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 3. 버전 올리면 `Aniverse_V1V2_발표_vN.pptx`로 쌓되, working도 같이 갱신한다.
 4. 구성도·스택·흐름 PNG: `images/hybrid/hybrid_01_*`, `hybrid_02_*`, `hybrid_09_tech_stack.png`, `hybrid_10_data_flow.png`

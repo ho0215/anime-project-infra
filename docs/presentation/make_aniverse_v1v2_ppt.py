@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 12
+TOTAL = 13
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -461,6 +461,13 @@ def slide_next(prs):
     footer(s, 12)
 
 
+def slide_schedule(prs):
+    s = blank(prs)
+    bg(s)
+    path = BASE / "images" / "v2_schedule_by_day.png"
+    s.shapes.add_picture(str(path), Inches(0), Inches(0), width=Inches(SW), height=Inches(SH))
+
+
 def main():
     prs = Presentation()
     prs.slide_width = Inches(SW)
@@ -478,6 +485,7 @@ def main():
     slide_stack(prs)
     slide_data_flow(prs)
     slide_next(prs)
+    slide_schedule(prs)
 
     out = next_path()
     prs.save(out)
