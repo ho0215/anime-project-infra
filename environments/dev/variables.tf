@@ -142,8 +142,11 @@ variable "eks_node_desired_size" {
 }
 
 variable "eks_node_min_size" {
+  # min_size는 modules/eks에서 ignore_changes 처리됨 — 이 기본값은 신규 클러스터
+  # 최초 생성 시에만 적용되고, 이후엔 eks-stop.sh/eks-start.sh나 지금처럼 AWS CLI로
+  # 직접 바꾼 값이 유지됨(Terraform이 되돌리지 않음).
   type    = number
-  default = 0
+  default = 2
 }
 
 variable "eks_node_max_size" {
