@@ -55,12 +55,12 @@
 3. ASG만으로 늘렸다 줄이기 — 인스턴스 단위·상시 용량 비용 낭비
 
 **V2 목표**
-1. 관측을 한곳에 — Prom/Grafana·Loki
+1. 관측을 한곳에 — Prom·Alloy·Loki
 2. 변경하면 즉시 배포 — 이미지 + GitOps(Argo) Synced
 3. 필요한 만큼만 스케일 — 노드·파드 · start/stop
 
 **V2 차별**
-1. 관측 스택 — Prom·Grafana·Loki, Alert/Tempo 확장
+1. 관측 스택 — Prom·Alloy·Loki, Alert/Tempo 확장
 2. Actions → ECR → Argo — sha-* bump + sync
 3. EKS + DB Pod — 노드/파드 스케일 + PVC
 
@@ -87,7 +87,7 @@
 | DB 시드 | restore 후 목록 UI | minTables+seed_rows | 충족 |
 | GitOps | tag bump → Synced | Actions+Argo | 충족 |
 | 미디어 | destroy 후 Sync media | S3 media/ | 충족 |
-| 관측 | 대시보드 조회 | 클러스터 메트릭 | 구성 |
+| 관측 | Prom·Alloy·Loki 조회 | 클러스터 메트릭·로그 | 구성 |
 | 알림/트레이싱 | AlertManager·Tempo | 다음 단계 | 예정 |
 
 ### 10. 기술 스택 (이미지)
@@ -102,7 +102,7 @@
 ### 11. 데이터 흐름 (이미지)
 1. 서비스: Users → ALB → web Pod → MariaDB → EBS PVC (eks-stop 시 PVC 유지)
 2. destroy 후 시드: GitHub SQL → restore Job → MariaDB
-3. 주기 백업: MariaDB → CronJob → S3 db-backups/
+3. 주기 백업: MariaDB → mariadb-dump CronJob → S3 db-backups/
 4. 미디어: web Pod → S3 media/ (DB 아님 · destroy 시 Sync media)
 
 ### 12. 향후 3UP

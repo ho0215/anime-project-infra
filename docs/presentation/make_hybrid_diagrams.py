@@ -199,10 +199,10 @@ def make_arch_v2():
     d.rounded_rectangle((40, 240, 1100, 700), radius=18, outline=CYAN, width=3)
     d.text((60, 255), "EKS Cluster  (aniverse)", font=fnt(20, True), fill=CYAN)
 
-    tile(img, 70, 310, 230, 280, "django", "web Pod", "Django + Nginx", CYAN, SOFT_BLUE, 64)
+    tile(img, 70, 310, 230, 280, "django", "web Pod", "Django + Daphne", CYAN, SOFT_BLUE, 64)
     tile(img, 330, 310, 230, 280, "rds_maria", "db Pod", "MariaDB StatefulSet", PURPLE, SOFT_PURPLE, 64)
     tile(img, 590, 310, 220, 280, "efs", "EBS PVC", "영구 볼륨", TEAL, SOFT_TEAL, 60)
-    tile(img, 840, 310, 220, 280, "cloudwatch", "Observability", "Prom / Grafana / Loki", ORANGE, SOFT_ORANGE, 56)
+    tile(img, 840, 310, 220, 280, "cloudwatch", "Observability", "Prom / Alloy / Loki", ORANGE, SOFT_ORANGE, 56)
 
     soft_card(img, (70, 620, 1070, 675), r=12, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
@@ -545,7 +545,7 @@ def make_data_flow_v2():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((820, 320, 1560, 590), radius=16, outline=ORANGE, width=3)
     d.text((840, 335), "3) 주기 백업 (CronJob)", font=fnt(22, True), fill=ORANGE)
-    tile(img, 860, 385, 185, 175, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 56)
+    tile(img, 860, 385, 185, 175, "rds_maria", "MariaDB", "mariadb-dump", PURPLE, WHITE, 56)
     tile(img, 1090, 385, 185, 175, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 56)
     tile(img, 1320, 385, 195, 175, "s3", "S3", "db-backups/", ORANGE, WHITE, 56)
     d = ImageDraw.Draw(img)
