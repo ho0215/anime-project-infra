@@ -202,23 +202,23 @@ def slide_cover(prs):
 def slide_v1_def(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V1 정의")
+    title_center(s, "Architecture V1")
     items = [
         (
-            "V1 정의",
-            "User → ALB → ASG/EC2(Nginx+Django) → RDS · EFS · S3 로 Aniverse 서비스를 운영하던 초기 클라우드 구성입니다.",
+            "구성",
+            "ALB 뒤에 EC2 애플리케이션 서버를 두고, RDS·EFS·S3를 연결해 서비스를 운영했습니다.",
         ),
         (
-            "구현 방식",
-            "Terraform으로 VPC·ALB·ASG를 구성하고, CodeDeploy / Actions로 EC2에 배포하는 방식을 사용했습니다.",
+            "배포",
+            "Terraform으로 인프라를 만들고, GitHub Actions와 CodeDeploy를 통해 EC2에 배포했습니다.",
         ),
         (
-            "개발 배경",
-            "통합 서브컬처 사이트를 안정적으로 서비스하기 위해, 기존 온프레미스 구조에서 AWS 로 이전, EC2 기반 3-tier로 구축했습니다.",
+            "전환 배경",
+            "온프레미스에서 운영하던 서비스를 AWS로 옮기면서 EC2 기반 3-tier 구조를 선택했습니다.",
         ),
         (
-            "구현 범위",
-            "HTTPS(ACM)·WAF·Redis·미디어 S3까지 포함하여 운영 가능한 형태까지 구현이 완료된 상태였습니다.",
+            "운영 범위",
+            "HTTPS, WAF, Redis, S3 미디어 저장까지 실제 서비스에 필요한 구성을 갖췄습니다.",
         ),
     ]
     positions = [(0.55, 1.25), (6.85, 1.25), (0.55, 4.15), (6.85, 4.15)]
@@ -243,27 +243,27 @@ def slide_v1_to_v2(prs):
     title_center(s, "V1의 한계  ·  V2 목표  ·  V2 차별점", size=34)
     headers = [
         (0.4, RED, "V1의 한계"),
-        (4.65, GREEN, "V2의 기능 · 개발 목표"),
-        (8.9, BLUE, "V2 차별점"),
+        (4.65, GREEN, "V2에서 바꾼 점"),
+        (8.9, BLUE, "V2의 핵심"),
     ]
     for x, color, text in headers:
         h = card(s, Inches(x), Inches(1.05), Inches(4.05), Inches(0.65), color)
         set_text(h.text_frame, text, 20, True, WHITE, PP_ALIGN.CENTER)
 
     left = [
-        ("모니터링이 한눈에 안 보임", "메트릭·로그·배포 상태가 흩어져 장애/부하를 한 화면에서 보기 어려웠습니다."),
-        ("수정 → 서비스 반영이 어려움", "인프라·앱 변경이 EC2/에이전트에 묶여 서비스에 빠르고 일관되게 반영되기 어려웠습니다."),
-        ("ASG만으로 늘렸다 줄이기", "스케일이 인스턴스 단위라, 필요할 때만 줄이기 어렵고 상시 용량으로 비용이 낭비될 수 있었습니다."),
+        ("상태를 한눈에 보기 어려움", "메트릭, 로그, 배포 상태가 흩어져 있어 문제를 찾는 데 시간이 걸렸습니다."),
+        ("변경 반영이 느리고 복잡함", "앱과 인프라 변경이 EC2와 배포 에이전트에 묶여 있었습니다."),
+        ("인스턴스 단위로만 확장", "작은 부하 변화에도 서버 단위로 늘려야 해 비용을 세밀하게 조절하기 어려웠습니다."),
     ]
     mid = [
-        ("관측을 한곳에", "Prom·Alloy·Loki로 메트릭·로그를 모아 클러스터·앱 상태를 한눈에 봅니다."),
-        ("변경하면 즉시 배포", "이미지 빌드 + GitOps(Argo)로 수정이 Synced 상태로 서비스에 반영됩니다."),
-        ("필요한 만큼만 스케일", "노드·파드 단위로 스케일을 나누고 start/stop으로 미사용 비용을 줄입니다."),
+        ("메트릭과 로그를 한곳에", "Prometheus, Alloy, Loki로 클러스터와 앱 상태를 함께 확인합니다."),
+        ("커밋부터 배포까지 자동화", "이미지를 빌드하고 Git을 갱신하면 Argo CD가 변경 사항을 반영합니다."),
+        ("노드와 파드를 따로 조절", "부하에 따라 파드를 늘리고, 사용하지 않을 때는 노드와 NAT를 중지합니다."),
     ]
     right = [
-        ("관측 스택", "Prometheus · Alloy · Loki를 기본 구성에 두고, Alert/Tempo로 확장합니다."),
-        ("Actions → ECR → Argo", "sha-* 태그 bump 후 Argo sync로 코드/차트 변경이 선언적으로 반영됩니다."),
-        ("EKS + DB Pod", "ASG 인스턴스 스케일 대신 EKS 노드/파드 스케일과 PVC 기반 DB로 낭비를 줄입니다."),
+        ("통합 관측", "Prometheus·Alloy·Loki를 기본으로 구성하고 Slack 알림까지 연결했습니다."),
+        ("GitOps 배포", "Actions가 이미지를 올리고 태그를 바꾸면 Argo CD가 클러스터를 맞춥니다."),
+        ("EKS + DB Pod", "앱과 DB를 Kubernetes에서 운영하고, 데이터는 PVC에 보관합니다."),
     ]
     for i, (t, b) in enumerate(left):
         accent_item(s, Inches(0.4), Inches(1.85) + i * Inches(1.65), Inches(4.05), Inches(1.5), RED, t, b)
@@ -277,12 +277,12 @@ def slide_v1_to_v2(prs):
 def slide_v2_def(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V2 정의")
+    title_center(s, "Architecture V2")
     vision = card(s, Inches(0.55), Inches(1.15), Inches(12.2), Inches(1.45), LIGHT, BLUE)
     set_text(vision.text_frame, "비전", 20, True, BLUE)
     add_para(
         vision.text_frame,
-        "Aniverse를 EKS 위에서 GitOps로 재현 가능하게 운영하고, 데이터·관측·보안까지 한 사이클로 다루는 최종 아키텍처를 목표로 합니다.",
+        "EKS 위에서 같은 환경을 다시 만들 수 있도록 배포, 데이터 복구, 관측, 인증을 하나의 흐름으로 묶었습니다.",
         18,
         False,
         NAVY,
@@ -291,10 +291,10 @@ def slide_v2_def(prs):
     label = s.shapes.add_textbox(Inches(0.55), Inches(2.8), Inches(4), Inches(0.4))
     set_text(label.text_frame, "주요 기능", 20, True, BLACK)
     feats = [
-        (BLUE, "ALB Ingress · HTTPS", "ACM ISSUED 후 Ingress ALB + Route53으로 외부 진입을 구성합니다."),
-        (GREEN, "EKS web / db Pod", "Django+Daphne Deployment와 MariaDB StatefulSet+PVC로 앱·DB를 운영합니다."),
-        (ORANGE, "Actions → ECR → Argo", "OIDC 빌드, sha-* 이미지, values bump 후 Argo sync로 배포합니다."),
-        (PURPLE, "백업 · 관측", "restore Job / CronJob→S3, Prom·Alloy·Loki로 운영 가시성을 확보합니다."),
+        (BLUE, "ALB Ingress · HTTPS", "ACM 인증서가 발급되면 ALB와 Route53을 연결해 외부 트래픽을 받습니다."),
+        (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
+        (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
+        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Alloy·Loki로 상태와 로그를 확인합니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -320,19 +320,19 @@ def slide_v2_detail_1(prs):
     """V2 상세내용 ① — DB · 이미지 태그 · 시드 복구."""
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V2 상세내용 ①")
+    title_center(s, "Architecture V2  ·  배포와 데이터")
     rows = [
         (
-            "RDS 대신 EKS 안 DB",
-            "학습·발표용이라 RDS를 상시로 두지 않고, MariaDB Pod + 디스크(PVC)로 돌립니다.",
+            "DB를 클러스터 안으로",
+            "상시 RDS 비용을 줄이기 위해 MariaDB를 StatefulSet으로 운영하고, 데이터는 PVC에 저장했습니다.",
         ),
         (
-            "이미지 태그까지 Git에 맞춤",
-            "빌드하면 ECR에 sha-* 이미지를 올리고 Helm values 태그도 같이 바꿔, Git과 클러스터가 어긋나지 않게 합니다.",
+            "배포 이미지도 Git으로 관리",
+            "ECR에 sha-* 이미지를 올린 뒤 Helm의 태그를 갱신해, Git과 실제 배포 버전을 맞췄습니다.",
         ),
         (
-            "지워도 글이 다시 채워짐",
-            "인프라를 싹 지운 뒤에도 Git에 둔 SQL을 restore Job이 받아 DB에 넣어, 목록이 다시 보이게 합니다.",
+            "인프라를 다시 만들어도 데이터 복구",
+            "클러스터를 다시 만든 뒤 restore Job이 SQL을 불러와 서비스에 필요한 초기 데이터를 복원합니다.",
         ),
     ]
     for i, (a, b) in enumerate(rows):
@@ -347,19 +347,19 @@ def slide_v2_detail_2(prs):
     """V2 상세내용 ② — OIDC · DNS 유지."""
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V2 상세내용 ②")
+    title_center(s, "Architecture V2  ·  인증과 DNS")
     blocks = [
         (
-            "장기 Access Key를 쓰지 않음  ·  Zero-Key",
+            "장기 키 없는 Zero-Key 구성",
             [
-                "OIDC — 파드와 CI는 장기 키 없이, GitHub 한시 권한으로만 AWS에 접속합니다.",
-                "SSO — 사람은 SSO 로그인으로 임시 자격증명을 받아, 키를 갖지 않습니다.",
+                "파드와 CI는 OIDC로 필요한 순간에만 AWS 권한을 받습니다.",
+                "사람은 SSO로 로그인해 임시 자격증명을 사용합니다.",
             ],
         ),
         (
-            "인프라를 지워도 도메인은 남김",
+            "클러스터를 지워도 도메인은 유지",
             [
-                "destroy해도 가비아에 연결한 DNS(Route53)는 남겨, 네임서버를 매번 다시 등록하지 않습니다.",
+                "Route53 영역은 삭제 대상에서 제외해, 클러스터를 다시 만들 때도 네임서버를 재등록하지 않습니다.",
             ],
         ),
     ]
@@ -377,12 +377,12 @@ def slide_verify(prs):
     bg(s)
     title_center(s, "기능 · 운영 검증 기준")
     items = [
-        ("웹 health", "Ingress/ALB 통해 HTTPS 200", "curl / 브라우저", "충족"),
-        ("DB 시드", "restore Job 후 목록 UI에 데이터", "minTables + seed_rows", "충족"),
-        ("GitOps", "image.tag bump → Argo Synced", "Actions 로그 + Argo UI", "충족"),
-        ("미디어", "destroy 후 Sync media 재업로드", "S3 media/ 확인", "충족"),
-        ("관측", "Prom·Alloy·Loki 조회", "클러스터 메트릭·로그", "구성"),
-        ("알림", "AlertManager → Slack 수신", "웹훅 시크릿 마운트", "충족"),
+        ("웹 접속", "ALB를 거쳐 HTTPS 200 응답", "curl · 브라우저", "확인"),
+        ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
+        ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
+        ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),
+        ("관측", "메트릭과 로그 조회", "Prometheus · Loki", "구성"),
+        ("알림", "AlertManager 알림 수신", "Slack 채널", "확인"),
     ]
     for i, (t, check, method, result) in enumerate(items):
         col, row = i % 3, i // 3
@@ -390,9 +390,9 @@ def slide_verify(prs):
         y = Inches(1.25) + row * Inches(2.7)
         c = card(s, x, y, Inches(4.05), Inches(2.45), LIGHT)
         set_text(c.text_frame, t, 20, True, BLUE)
-        add_para(c.text_frame, "검증: " + check, 17, False, NAVY, 10)
-        add_para(c.text_frame, "방법: " + method, 16, False, GRAY, 8)
-        add_para(c.text_frame, "결과: " + result, 17, True, GREEN if result == "충족" else ORANGE, 10)
+        add_para(c.text_frame, check, 17, False, NAVY, 10)
+        add_para(c.text_frame, "확인: " + method, 16, False, GRAY, 8)
+        add_para(c.text_frame, result, 17, True, GREEN if result == "확인" else ORANGE, 10)
     footer(s, 9)
 
 
@@ -415,37 +415,37 @@ def slide_data_flow(prs):
 def slide_next(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "향후 계획  ·  3UP")
+    title_center(s, "앞으로 보완할 점")
     cols = [
         (
             ORANGE,
-            "Unique Up",
-            "차별성",
+            "운영 고도화",
+            "관측 · 보안 · 복구",
             [
-                "관측 고도화 (Alert · Tempo/OTel)",
-                "OIDC 권한 축소 (보안)",
-                "백업 덤프 주기·복구 드릴 (DB 안정성)",
-                "AIOps (self-healing, auto-remediation) 구현",
+                "Tempo/OTel로 트레이싱 추가",
+                "OIDC 권한 범위 최소화",
+                "정기 백업과 복구 훈련",
+                "반복 장애 자동 복구",
             ],
         ),
         (
             GREEN,
-            "Complete Up",
             "완성도",
+            "운영 기준 정리",
             [
-                "Loki/Alloy EKS 반영 완료",
-                "시드/목록 검증 CI 게이트",
-                "운영 런북·이관 체크리스트",
+                "시드 데이터 검증 자동화",
+                "운영 런북 보완",
+                "계정 이관 체크리스트 정리",
             ],
         ),
         (
             BLUE,
-            "Performance Up",
-            "시연·운영",
+            "발표 · 시연",
+            "핵심 흐름 전달",
             [
-                "start/stop 데모 시나리오",
-                "V1/V2 대비 설명 정리",
-                "장애 재현(Missing/SSA) 데모",
+                "클러스터 start/stop 시연",
+                "V1과 V2 변화 비교",
+                "대표 장애와 해결 과정 시연",
             ],
         ),
     ]
@@ -483,11 +483,11 @@ def slide_trouble(prs, n, title, rows):
 def slide_trouble_gitops(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "트러블슈팅  ·  껐는데 노드가 다시 켜짐", size=32)
+    title_center(s, "트러블슈팅  ·  노드를 껐는데 다시 켜졌다", size=32)
     cols = [
-        (BLUE, "증상", "stop은 성공인데\nEC2 워커는 Running"),
-        (ORANGE, "원인", "desired=0만 반영하고 종료\nAutoscaler가 노드를 다시 올림\nEKS maxSize는 0이 불가"),
-        (GREEN, "조치", "Launch suspend\nASG 0까지 대기\nNAT도 함께 중지\n성공 조건은 인스턴스 0대"),
+        (BLUE, "증상", "중지 작업은 성공\nEC2 워커는 계속 실행 중"),
+        (ORANGE, "원인", "desired만 0으로 변경\nAutoscaler가 노드를 다시 생성\nmaxSize는 0으로 설정 불가"),
+        (GREEN, "해결", "ASG의 Launch 중지\n인스턴스 0대까지 확인\nNAT도 함께 중지"),
     ]
     for i, (color, head, body) in enumerate(cols):
         x = Inches(0.5) + i * Inches(4.25)
@@ -508,16 +508,16 @@ def slide_trouble_eks(prs):
         "트러블슈팅  ·  EKS",
         [
             (
-                "HPA가 늘린 수가 1로 돌아감",
-                "배포 파일에 replicas: 1이 고정돼, 재배포할 때마다 HPA가 맞춘 개수를 덮었습니다. replicas를 빼서 HPA만 개수를 관리하게 했습니다.",
+                "HPA가 늘린 파드가 다시 1개로 줄어듦",
+                "배포 파일의 replicas: 1이 HPA 값을 덮고 있었습니다. 고정값을 빼고 HPA만 파드 수를 관리하도록 바꿨습니다.",
             ),
             (
-                "빈 계정에서 생성 순서가 깨짐",
-                "이미 있던 환경에서는 안 보이던 의존성이, 처음부터 만들자 NAT·라우트보다 뒤 리소스가 먼저 돌았습니다. 생성 순서를 다시 맞췄습니다.",
+                "새 계정에서 일부 리소스가 생성되지 않음",
+                "기존 환경에 가려져 있던 의존성이 새 계정에서 드러났습니다. NAT와 라우팅을 먼저 만들도록 순서를 조정했습니다.",
             ),
             (
-                "시크릿을 옮기며 약한 기본값을 발견",
-                "기존 값을 Secrets Manager로 그대로 옮기다 약한 기본값일 가능성을 봤습니다. 난수로 바꾼 뒤 DB와 Secrets Manager를 같이 갱신했습니다.",
+                "기존 DB 비밀번호가 약한 기본값일 가능성",
+                "ESO로 전환하면서 비밀번호도 새 난수로 교체했습니다. DB와 Secrets Manager 값을 함께 갱신했습니다.",
             ),
         ],
     )
@@ -530,16 +530,16 @@ def slide_trouble_observe(prs):
         "트러블슈팅  ·  DB · 관측",
         [
             (
-                "DB 백업 파일이 0바이트",
-                "DB 서비스가 헤드리스라 바깥 컨테이너에서 접속이 안 됐습니다. CronJob이 파드 안에서 mariadb-dump를 실행하게 바꿔, S3에 백업이 쌓입니다.",
+                "S3에 올라간 DB 백업 파일이 0바이트",
+                "외부 컨테이너에서 DB에 연결하지 못하고 있었습니다. CronJob이 DB 파드 안에서 mariadb-dump를 실행하도록 바꿨습니다.",
             ),
             (
-                "Alloy가 노드 일부에서만 기동",
-                "노드당 파드 한도 17을 DaemonSet이 넘겼습니다. max-pods를 올린 뒤 노드를 다시 만들어 전부 Running이 됐습니다.",
+                "Alloy가 일부 노드에서 실행되지 않음",
+                "노드당 파드 한도 17개를 넘긴 것이 원인이었습니다. max-pods를 높이고 노드를 다시 만들어 정상화했습니다.",
             ),
             (
-                "Slack 알람이 오지 않음",
-                "웹훅을 파일로 읽게 했는데 시크릿이 파드에 마운트되지 않았습니다. secrets 마운트와 api_url_file로 연결해 수신을 확인했습니다.",
+                "AlertManager 알림이 Slack에 오지 않음",
+                "웹훅 시크릿이 AlertManager 파드에 연결되지 않았습니다. 시크릿을 마운트하고 api_url_file로 읽도록 수정했습니다.",
             ),
         ],
     )
