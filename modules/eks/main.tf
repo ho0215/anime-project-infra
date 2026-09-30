@@ -294,8 +294,10 @@ resource "aws_eks_node_group" "default" {
     aws_eks_access_entry.nodes,
   ]
 
+  # min_size도 desired_size와 같은 이유로 ignore — eks-stop.sh가 완전 종료 시
+  # min=0으로 내리는데, 다음 CD apply가 이걸 도로 올려버리면 stop 상태가 풀림.
   lifecycle {
-    ignore_changes = [scaling_config[0].desired_size]
+    ignore_changes = [scaling_config[0].desired_size, scaling_config[0].min_size]
   }
 }
 
