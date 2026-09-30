@@ -256,12 +256,12 @@ def slide_v1_to_v2(prs):
         ("ASG만으로 늘렸다 줄이기", "스케일이 인스턴스 단위라, 필요할 때만 줄이기 어렵고 상시 용량으로 비용이 낭비될 수 있었습니다."),
     ]
     mid = [
-        ("관측을 한곳에", "Prom/Grafana·Loki로 메트릭·로그를 모아 클러스터·앱 상태를 한눈에 봅니다."),
+        ("관측을 한곳에", "Prom·Alloy·Loki로 메트릭·로그를 모아 클러스터·앱 상태를 한눈에 봅니다."),
         ("변경하면 즉시 배포", "이미지 빌드 + GitOps(Argo)로 수정이 Synced 상태로 서비스에 반영됩니다."),
         ("필요한 만큼만 스케일", "노드·파드 단위로 스케일을 나누고 start/stop으로 미사용 비용을 줄입니다."),
     ]
     right = [
-        ("관측 스택", "Prometheus · Grafana · Loki를 기본 구성에 두고, Alert/Tempo로 확장합니다."),
+        ("관측 스택", "Prometheus · Alloy · Loki를 기본 구성에 두고, Alert/Tempo로 확장합니다."),
         ("Actions → ECR → Argo", "sha-* 태그 bump 후 Argo sync로 코드/차트 변경이 선언적으로 반영됩니다."),
         ("EKS + DB Pod", "ASG 인스턴스 스케일 대신 EKS 노드/파드 스케일과 PVC 기반 DB로 낭비를 줄입니다."),
     ]
@@ -292,9 +292,9 @@ def slide_v2_def(prs):
     set_text(label.text_frame, "주요 기능", 20, True, BLACK)
     feats = [
         (BLUE, "ALB Ingress · HTTPS", "ACM ISSUED 후 Ingress ALB + Route53으로 외부 진입을 구성합니다."),
-        (GREEN, "EKS web / db Pod", "Django+Nginx Deployment와 MariaDB StatefulSet+PVC로 앱·DB를 운영합니다."),
+        (GREEN, "EKS web / db Pod", "Django+Daphne Deployment와 MariaDB StatefulSet+PVC로 앱·DB를 운영합니다."),
         (ORANGE, "Actions → ECR → Argo", "OIDC 빌드, sha-* 이미지, values bump 후 Argo sync로 배포합니다."),
-        (PURPLE, "백업 · 관측", "restore Job / CronJob→S3, Prom·Grafana·Loki로 운영 가시성을 확보합니다."),
+        (PURPLE, "백업 · 관측", "restore Job / CronJob→S3, Prom·Alloy·Loki로 운영 가시성을 확보합니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -375,7 +375,7 @@ def slide_verify(prs):
         ("DB 시드", "restore Job 후 목록 UI에 데이터", "minTables + seed_rows", "충족"),
         ("GitOps", "image.tag bump → Argo Synced", "Actions 로그 + Argo UI", "충족"),
         ("미디어", "destroy 후 Sync media 재업로드", "S3 media/ 확인", "충족"),
-        ("관측", "Prom/Grafana 대시보드 조회", "클러스터 메트릭", "구성"),
+        ("관측", "Prom·Alloy·Loki 조회", "클러스터 메트릭·로그", "구성"),
         ("알림/트레이싱", "AlertManager · Tempo", "다음 단계", "예정"),
     ]
     for i, (t, check, method, result) in enumerate(items):
