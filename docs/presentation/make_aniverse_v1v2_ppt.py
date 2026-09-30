@@ -481,24 +481,25 @@ def slide_trouble(prs, n, title, rows):
 
 
 def slide_trouble_gitops(prs):
-    s = blank(prs)
-    bg(s)
-    title_center(s, "트러블슈팅  ·  노드를 껐는데 다시 켜졌다", size=32)
-    cols = [
-        (BLUE, "증상", "중지 작업은 성공\nEC2 워커는 계속 실행 중"),
-        (ORANGE, "원인", "desired만 0으로 변경\nAutoscaler가 노드를 다시 생성\nmaxSize는 0으로 설정 불가"),
-        (GREEN, "해결", "ASG의 Launch 중지\n인스턴스 0대까지 확인\nNAT도 함께 중지"),
-    ]
-    for i, (color, head, body) in enumerate(cols):
-        x = Inches(0.5) + i * Inches(4.25)
-        top = card(s, x, Inches(1.45), Inches(4.05), Inches(0.85), color)
-        set_text(top.text_frame, head, 22, True, WHITE, PP_ALIGN.CENTER)
-        box = card(s, x, Inches(2.45), Inches(4.05), Inches(4.0), LIGHT)
-        lines = body.split("\n")
-        set_text(box.text_frame, lines[0], 20, False, NAVY, PP_ALIGN.CENTER)
-        for line in lines[1:]:
-            add_para(box.text_frame, line, 20, False, NAVY, 10, PP_ALIGN.CENTER)
-    footer(s, 13)
+    slide_trouble(
+        prs,
+        13,
+        "트러블슈팅  ·  GitOps · CI/CD",
+        [
+            (
+                "중지 작업은 성공했지만 워커가 계속 실행됨",
+                "desired만 0으로 바꾸자 Autoscaler가 노드를 다시 만들었습니다. ASG의 Launch를 중지하고 인스턴스 0대까지 확인한 뒤 NAT도 함께 껐습니다.",
+            ),
+            (
+                "Argo CD에서 리소스가 계속 Missing으로 표시됨",
+                "이전에 사용한 ServerSideApply 설정이 남아 상태 비교를 막고 있었습니다. 해당 옵션을 제거하고 일반 apply 방식으로 다시 동기화했습니다.",
+            ),
+            (
+                "DB 복구 워크플로는 성공했지만 목록이 비어 있음",
+                "테이블 수만 확인해 빈 스키마도 복구된 것으로 처리했습니다. 시드 행이 1개 이상일 때만 성공하도록 검증 기준을 바꿨습니다.",
+            ),
+        ],
+    )
 
 
 def slide_trouble_eks(prs):
