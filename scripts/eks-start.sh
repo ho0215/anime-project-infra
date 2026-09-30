@@ -15,11 +15,13 @@ REGION="${AWS_REGION:-ap-northeast-2}"
 CLUSTER="${EKS_CLUSTER_NAME:-aniverse-eks}"
 NODEGROUPS="${EKS_NODEGROUP_NAME:-aniverse-nodes}"
 DESIRED="${EKS_DESIRED_SIZE:-2}"
-MIN_START="${EKS_MIN_SIZE:-0}"
+# Multi-AZ 유지용 — 0으로 두면 로드 낮을 때 Cluster Autoscaler가 노드 1개로
+# 줄여버려서 AZ 하나에 다 몰림(modules/eks 코드 쪽도 같은 이유로 min_size=2).
+MIN_START="${EKS_MIN_SIZE:-2}"
 # EKS API: maxSize 최소 1 (0 불가)
 MAX_SIZE="${EKS_MAX_SIZE:-4}"
 MAX_STOP="${EKS_MAX_SIZE_STOP:-1}"
-WAIT_NODES="${EKS_WAIT_NODES:-1}"
+WAIT_NODES="${EKS_WAIT_NODES:-2}"
 WAIT_TIMEOUT="${EKS_WAIT_TIMEOUT_SEC:-600}"
 # Terraform modules/nat Name 태그
 NAT_NAME="${EKS_NAT_NAME:-aniverse-nat-instance}"
