@@ -61,6 +61,11 @@ output "db_backup_irsa_role_arn" {
   value       = module.eks.db_backup_irsa_role_arn
 }
 
+output "redis_url" {
+  description = "anime-project values-eks.yaml config.REDIS_URL"
+  value       = "redis://${module.cache.redis_endpoint}:${module.cache.redis_port}/0"
+}
+
 output "eso_secret_name" {
   description = "docs/external-secrets.md 전환 절차에서 값 주입할 Secrets Manager 시크릿 이름"
   value       = aws_secretsmanager_secret.app_secrets.name

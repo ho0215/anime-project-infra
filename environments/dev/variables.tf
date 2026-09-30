@@ -27,9 +27,10 @@ variable "private_app_subnet_cidrs" {
   default     = ["10.0.11.0/24", "10.0.12.0/24"]
 }
 
-# NAT SG 허용 대역용으로만 유지 (RDS 서브넷은 더 이상 쓰지 않음)
+# RDS는 더 이상 안 쓰지만, 서브넷 자체는 실제로 생성됨 — 지금은 Redis(ElastiCache,
+# module.cache)가 이 서브넷을 씀. NAT SG ingress 허용 대역으로도 겸용.
 variable "private_db_subnet_cidrs" {
-  description = "레거시 DB 서브넷 CIDR (NAT SG ingress 허용용, 리소스 미생성)"
+  description = "프라이빗 DB 서브넷 CIDR (Redis/ElastiCache 배치, NAT SG ingress 허용용)"
   type        = list(string)
   default     = ["10.0.21.0/24", "10.0.22.0/24"]
 }
