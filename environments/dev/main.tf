@@ -44,6 +44,18 @@ module "storage" {
 }
 
 # ==========================================
+# Cache (Redis — Django Channels 웹소켓 채널 레이어)
+# ==========================================
+module "cache" {
+  source = "../../modules/cache"
+
+  project_name          = var.project_name
+  vpc_id                = module.network.vpc_id
+  private_db_subnet_ids = module.network.private_db_subnet_ids
+  allowed_cidr_blocks   = var.private_app_subnet_cidrs
+}
+
+# ==========================================
 # DNS (Route53 zone + EKS ALB alias + ACM)
 # destroy 시 존·ACM 보존: scripts/terraform-destroy-keep-dns.sh
 # ==========================================
