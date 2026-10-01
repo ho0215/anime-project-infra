@@ -10,3 +10,13 @@
 # Route53: create_route53_zone=true (기본) → output route53_name_servers → 가비아 NS
 # ALB DNS 폴백이 필요할 때만:
 # eks_ingress_hostname = "k8s-aniverse-....elb.amazonaws.com"
+
+# WAF (EKS Ingress ALB). 기본 true — 월 비용 있음. 끄려면:
+# enable_waf = false
+# waf_rate_limit = 2000
+
+# apply 후:
+#   terraform output -raw waf_web_acl_arn
+# → anime-project deploy/helm/aniverse/values-eks.yaml
+#   alb.ingress.kubernetes.io/wafv2-acl-arn 에 넣고 Argo sync
+# (ALB 가 이미 있으면 TF association 만으로도 연결됨)

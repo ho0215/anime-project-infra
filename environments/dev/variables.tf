@@ -174,3 +174,15 @@ variable "eks_enable_cluster_autoscaler" {
   type    = bool
   default = true
 }
+
+variable "enable_waf" {
+  description = "EKS Ingress ALB 앞 WAFv2 Web ACL 생성. 월 비용 발생 — 끄려면 false"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit" {
+  description = "WAF 동일 IP 5분당 요청 한도"
+  type        = number
+  default     = 2000
+}
