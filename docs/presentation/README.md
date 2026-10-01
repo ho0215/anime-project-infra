@@ -26,6 +26,7 @@ python3 make_instructor_diagrams.py        # 01, 05~09 (+ 02/03 호출)
 python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
 python3 make_hybrid_diagrams.py            # images/hybrid/*.png (PIL+한글 폰트)
+python3 make_v2_schedule.py                # images/v2_schedule_by_day.png
 python3 make_aniverse_v1v2_ppt.py          # ppt/Aniverse_V1V2_발표_working.pptx + vN (16장)
 python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (상세판)
 ```

@@ -192,7 +192,8 @@ def make_arch_v2():
 
     tile(img, 50, 60, 150, 150, "users", "Users", "", CYAN, SOFT_BLUE, 48)
     tile(img, 230, 60, 150, 150, "route53", "Route53", "ACM", PURPLE, SOFT_PURPLE, 48)
-    tile(img, 410, 60, 150, 150, "alb", "ALB", "Ingress", GREEN, SOFT_GREEN, 48)
+    tile(img, 410, 60, 150, 150, "waf", "WAFv2", "Web ACL", RED, SOFT_RED, 48)
+    tile(img, 590, 60, 150, 150, "alb", "ALB", "Ingress", GREEN, SOFT_GREEN, 48)
 
     soft_card(img, (40, 240, 1100, 700), r=18, fill=WHITE, shadow=False)
     d = ImageDraw.Draw(img)
@@ -217,7 +218,8 @@ def make_arch_v2():
     d = ImageDraw.Draw(img)
     arrow_h(d, 200, 135, 230, NAVY)
     arrow_h(d, 380, 135, 410, NAVY)
-    arrow_v(d, 485, 210, 240, NAVY)
+    arrow_h(d, 560, 135, 590, NAVY)
+    arrow_v(d, 665, 210, 240, NAVY)
     arrow_h(d, 300, 450, 330, NAVY)
     arrow_h(d, 560, 450, 590, NAVY)
     arrow_v(d, 1250, 210, 250, NAVY)
@@ -228,7 +230,7 @@ def make_arch_v2():
     d.text((60, 755), "흐름 요약", font=fnt(18, True), fill=GREEN)
     d.text(
         (60, 805),
-        "Users → ALB → web Pod → MariaDB → PVC   |   Actions → ECR → Argo → EKS   |   Media/Backup → S3",
+        "Users → Route53 → WAF → ALB → web Pod → MariaDB   |   Actions → ECR → Argo → EKS   |   Media/Backup → S3",
         font=fnt(16),
         fill=NAVY,
     )
@@ -474,10 +476,10 @@ def make_tech_stack_v2():
         (
             545,
             470,
-            "인증 · IaC",
+            "보안 · 인증 · IaC",
             GREEN,
             SOFT_GREEN,
-            [("iam", "GitHub OIDC"), ("terraform", "Terraform"), ("secrets", "Secrets/IRSA")],
+            [("waf", "WAFv2"), ("iam", "OIDC · SSO"), ("terraform", "Terraform · IRSA")],
         ),
         (
             1050,
@@ -518,16 +520,17 @@ def make_data_flow_v2():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 30, 1560, 290), radius=16, outline=CYAN, width=3)
     d.text((60, 42), "1) 서비스 중 — 글 / 데이터", font=fnt(22, True), fill=CYAN)
-    tile(img, 70, 95, 170, 170, "users", "Users", "", CYAN, WHITE, 52)
-    tile(img, 290, 95, 170, 170, "alb", "ALB", "Ingress", GREEN, WHITE, 52)
-    tile(img, 510, 95, 210, 170, "django", "web Pod", "Django", CYAN, WHITE, 56)
-    tile(img, 770, 95, 230, 170, "rds_maria", "MariaDB Pod", "StatefulSet", PURPLE, WHITE, 56)
-    tile(img, 1050, 95, 210, 170, "efs", "EBS PVC", "영구 저장", TEAL, WHITE, 56)
+    tile(img, 60, 95, 150, 170, "users", "Users", "", CYAN, WHITE, 48)
+    tile(img, 250, 95, 150, 170, "waf", "WAFv2", "Web ACL", RED, WHITE, 48)
+    tile(img, 440, 95, 150, 170, "alb", "ALB", "Ingress", GREEN, WHITE, 48)
+    tile(img, 630, 95, 190, 170, "django", "web Pod", "Django", CYAN, WHITE, 52)
+    tile(img, 860, 95, 210, 170, "rds_maria", "MariaDB Pod", "StatefulSet", PURPLE, WHITE, 52)
+    tile(img, 1110, 95, 190, 170, "efs", "EBS PVC", "영구 저장", TEAL, WHITE, 52)
     d = ImageDraw.Draw(img)
-    for x0, x1 in [(240, 290), (460, 510), (720, 770), (1000, 1050)]:
+    for x0, x1 in [(210, 250), (400, 440), (590, 630), (820, 860), (1070, 1110)]:
         arrow_h(d, x0, 180, x1, NAVY)
-    d.text((1290, 145), "eks-stop", font=fnt(18, True), fill=GREEN)
-    d.text((1290, 175), "→ PVC 유지", font=fnt(18, True), fill=GREEN)
+    d.text((1330, 145), "eks-stop", font=fnt(18, True), fill=GREEN)
+    d.text((1330, 175), "→ PVC 유지", font=fnt(18, True), fill=GREEN)
 
     # 2) seed  ·  3) backup — mid row
     soft_card(img, (40, 320, 780, 590), r=16, fill=SOFT_GREEN, shadow=False)
