@@ -1,5 +1,6 @@
-# EKS-only stack: VPC + NAT + S3 static + Route53/ACM + ECR + EKS
+# EKS-only stack: VPC + NAT + S3 static + Route53/ACM + ECR + EKS + WAF
 # (EC2 ASG / CodeDeploy / RDS / Redis / EFS / classic ALB 제거)
+# WAF 는 EKS Ingress ALB 에 연결 (태그 조회 association + Helm wafv2-acl-arn)
 
 # ==========================================
 # Network / NAT / Security
@@ -129,4 +130,31 @@ module "eks" {
   # 읽을 수 있게 스코핑. 값 주입/전환 절차는 docs/external-secrets.md.
   enable_external_secrets = true
   eso_secret_arn          = aws_secretsmanager_secret.app_secrets.arn
+}
+
+# ==========================================
+# WAF (regional Web ACL → EKS Ingress ALB)
+# 비용: Web ACL + 관리형 룰그룹 월정액 + 요청 요금 — enable_waf=false 로 끌 수 있음
+# ==========================================
+data "aws_lbs" "eks_ingress_waf" {
+  count = var.enable_waf && var.lookup_eks_alb ? 1 : 0
+
+  tags = {
+    "ingress.k8s.aws/stack" = var.eks_ingress_stack
+  }
+}
+
+locals {
+  eks_alb_arn_for_waf = var.enable_waf && var.lookup_eks_alb ? try(tolist(data.aws_lbs.eks_ingress_waf[0].arns)[0], "") : ""
+}
+
+module "waf" {
+  count  = var.enable_waf ? 1 : 0
+  source = "../../modules/waf"
+
+  project_name = var.project_name
+  # ALB 가 이미 있으면 TF association. 없으면 ACL만 만들고
+  # values-eks.yaml 의 wafv2-acl-arn(또는 bind 스크립트)으로 연결.
+  alb_arn    = local.eks_alb_arn_for_waf
+  rate_limit = var.waf_rate_limit
 }

@@ -70,3 +70,12 @@ output "eso_secret_name" {
   description = "docs/external-secrets.md 전환 절차에서 값 주입할 Secrets Manager 시크릿 이름"
   value       = aws_secretsmanager_secret.app_secrets.name
 }
+
+output "waf_web_acl_arn" {
+  description = "anime-project values-eks.yaml ingress.annotations alb.ingress.kubernetes.io/wafv2-acl-arn"
+  value       = try(module.waf[0].web_acl_arn, null)
+}
+
+output "waf_web_acl_name" {
+  value = try(module.waf[0].web_acl_name, null)
+}
