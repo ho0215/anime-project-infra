@@ -113,12 +113,22 @@ asg_running_count() {
 # 멈추는 경우가 있음 — 그 훅들을 찾아서 CONTINUE로 강제 완료시켜 종료를 이어감.
 force_complete_stuck_hooks() {
   local asg="$1"
-  local hooks
+  local hooks hooks_err
+  # 백틱 리터럴(`...`)은 JSON 값이어야 해서 콜론 들어간 bare word 는 파싱 에러 —
+  # 작은따옴표 raw-string 리터럴 써야 함(아래 waiting 쿼리와 동일 방식).
+  hooks_err="$(mktemp)"
   hooks="$(aws autoscaling describe-lifecycle-hooks --region "${REGION}" \
     --auto-scaling-group-name "${asg}" \
-    --query 'LifecycleHooks[?LifecycleTransition==`autoscaling:EC2_INSTANCE_TERMINATING`].LifecycleHookName' \
-    --output text 2>/dev/null)"
-  [ -n "${hooks}" ] || return 0
+    --query "LifecycleHooks[?LifecycleTransition=='autoscaling:EC2_INSTANCE_TERMINATING'].LifecycleHookName" \
+    --output text 2>"${hooks_err}")"
+  if [ -s "${hooks_err}" ]; then
+    echo "WARN: describe-lifecycle-hooks 실패: $(cat "${hooks_err}")" >&2
+  fi
+  rm -f "${hooks_err}"
+  if [ -z "${hooks}" ]; then
+    echo "  (종료 라이프사이클 훅 없음 — force-complete 스킵)"
+    return 0
+  fi
   local waiting
   waiting="$(aws autoscaling describe-auto-scaling-groups --region "${REGION}" \
     --auto-scaling-group-names "${asg}" \
@@ -133,7 +143,7 @@ force_complete_stuck_hooks() {
         --lifecycle-hook-name "${hook}" \
         --auto-scaling-group-name "${asg}" \
         --instance-id "${id}" \
-        --lifecycle-action-result CONTINUE >/dev/null 2>&1 || true
+        --lifecycle-action-result CONTINUE || echo "WARN: complete-lifecycle-action 실패 (hook=${hook} id=${id})" >&2
     done
   done
 }
