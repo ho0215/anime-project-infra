@@ -21,6 +21,11 @@ MAX_SIZE="${EKS_MAX_SIZE:-4}"
 MAX_STOP="${EKS_MAX_SIZE_STOP:-1}"
 WAIT_NODES="${EKS_WAIT_NODES:-1}"
 WAIT_TIMEOUT="${EKS_WAIT_TIMEOUT_SEC:-600}"
+# desired=0(전원 끄기)일 땐 어차피 받아줄 노드가 없어서 PDB(coredns/ebs-csi/
+# metrics-server 등 maxUnavailable:1)가 드레인을 영원히 막을 수 있음(남은 노드가
+# 없어 evict된 파드가 Pending으로 멈추고 그게 다시 PDB를 소진 — 데드락).
+# 이 유예시간이 지나면 멈춘 라이프사이클 훅을 CONTINUE로 강제 완료시켜서 종료를 풂.
+FORCE_HOOK_GRACE_SEC="${EKS_STOP_FORCE_GRACE_SEC:-180}"
 # Terraform modules/nat Name 태그
 NAT_NAME="${EKS_NAT_NAME:-aniverse-nat-instance}"
 # stop 후 ASG 인스턴스 0 대기
@@ -103,11 +108,42 @@ asg_running_count() {
   asg_instance_count "$@"
 }
 
+# desired=0으로 내려도 EKS 매니지드 노드그룹이 자동으로 붙인 종료 라이프사이클
+# 훅이 PDB를 지키며 드레인하다가, 받아줄 노드가 없어 영원히 Terminating:Wait에
+# 멈추는 경우가 있음 — 그 훅들을 찾아서 CONTINUE로 강제 완료시켜 종료를 이어감.
+force_complete_stuck_hooks() {
+  local asg="$1"
+  local hooks
+  hooks="$(aws autoscaling describe-lifecycle-hooks --region "${REGION}" \
+    --auto-scaling-group-name "${asg}" \
+    --query 'LifecycleHooks[?LifecycleTransition==`autoscaling:EC2_INSTANCE_TERMINATING`].LifecycleHookName' \
+    --output text 2>/dev/null)"
+  [ -n "${hooks}" ] || return 0
+  local waiting
+  waiting="$(aws autoscaling describe-auto-scaling-groups --region "${REGION}" \
+    --auto-scaling-group-names "${asg}" \
+    --query "AutoScalingGroups[0].Instances[?LifecycleState=='Terminating:Wait'].InstanceId" \
+    --output text 2>/dev/null)"
+  [ -n "${waiting}" ] || return 0
+  local hook id
+  for id in ${waiting}; do
+    for hook in ${hooks}; do
+      echo "==> force-complete stuck lifecycle hook '${hook}' for ${id} (전원 끄기라 드레인 대상 노드가 없음 — PDB 데드락 방지)"
+      aws autoscaling complete-lifecycle-action --region "${REGION}" \
+        --lifecycle-hook-name "${hook}" \
+        --auto-scaling-group-name "${asg}" \
+        --instance-id "${id}" \
+        --lifecycle-action-result CONTINUE >/dev/null 2>&1 || true
+    done
+  done
+}
+
 wait_asg_empty() {
   local asg="$1"
   [ "${WAIT_ASG_EMPTY}" = "1" ] || return 0
   echo "==> waiting for ASG ${asg} instances → 0 (timeout ${WAIT_TIMEOUT}s)"
   local deadline=$((SECONDS + WAIT_TIMEOUT))
+  local force_after=$((SECONDS + FORCE_HOOK_GRACE_SEC))
   while (( SECONDS < deadline )); do
     local n
     n="$(asg_running_count "${asg}")"
@@ -115,6 +151,9 @@ wait_asg_empty() {
     if [ "${n}" = "0" ] || [ "${n}" = "None" ]; then
       echo "OK — ASG empty"
       return 0
+    fi
+    if (( SECONDS >= force_after )); then
+      force_complete_stuck_hooks "${asg}"
     fi
     sleep 15
   done
