@@ -169,6 +169,59 @@ jobs:
           fi
           set -e
 
+      # SSO admin/edit Access Entry 가 콘솔·수동으로 이미 있으면 ResourceInUse(409).
+      # (WAF apply 실패 원인 — retry 가 terraform_runner 만 import 해서 admins 409 재발)
+      - name: Import admin/editor Access Entries if present
+        run: |
+          set +e
+          CLUSTER=aniverse-eks
+          POLICY_ADMIN='arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+          POLICY_EDIT='arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy'
+          in_state() { terraform state list 2>/dev/null | grep -Fqx "$1"; }
+
+          import_foreach_pair() {
+            local kind="$1" principal="$2" policy="$3"
+            local entry="module.eks.aws_eks_access_entry.${kind}[\"${principal}\"]"
+            local assoc="module.eks.aws_eks_access_policy_association.${kind}[\"${principal}\"]"
+            if ! aws eks describe-access-entry \
+              --region "${AWS_REGION}" \
+              --cluster-name "${CLUSTER}" \
+              --principal-arn "${principal}" >/dev/null 2>&1; then
+              echo "No live entry for ${kind}: ${principal}"
+              return 0
+            fi
+            if in_state "${entry}"; then
+              echo "Already in state: ${entry}"
+            else
+              terraform import -input=false "${entry}" "${CLUSTER}:${principal}" \
+                && echo "Imported ${entry}" \
+                || echo "Entry import failed (non-fatal): ${entry}"
+            fi
+            if in_state "${assoc}"; then
+              echo "Already in state: ${assoc}"
+            else
+              terraform import -input=false "${assoc}" \
+                "${CLUSTER}#${principal}#${policy}" \
+                && echo "Imported ${assoc}" \
+                || echo "Assoc import failed (non-fatal): ${assoc}"
+            fi
+          }
+
+          # environments/dev/variables.tf defaults (+ TF_VAR_* 있으면 우선)
+          ADMINS=(
+            "arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_AdministratorAccess_e2fb8e5aead25e6d"
+          )
+          EDITS=(
+            "arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_aniverse-app-edit_fbef725212ce072a"
+          )
+          for p in "${ADMINS[@]}"; do
+            import_foreach_pair admins "${p}" "${POLICY_ADMIN}"
+          done
+          for p in "${EDITS[@]}"; do
+            import_foreach_pair editors "${p}" "${POLICY_EDIT}"
+          done
+          set -e
+
       # 부분 실패 apply 후 IAM만 AWS에 남은 경우 EntityAlreadyExists(409) 방지
       - name: Import orphan NAT IAM if present
         run: |
@@ -251,41 +304,75 @@ jobs:
             exit 0
           fi
 
-          # Fresh create + 과거 bootstrap=true: 생성자 Access Entry 가 이미 있어
-          # terraform_runner create 가 ResourceInUse(409) → import 후 1회 재시도
-          echo "==> apply failed (rc=${rc}); trying CI Access Entry import + retry"
+          # Access Entry ResourceInUse(409): CI runner / SSO admin / edit 가
+          # 클러스터에만 있고 state 에 없을 때 → import 후 1회 재시도
+          echo "==> apply failed (rc=${rc}); trying Access Entry import + retry"
           ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
           CLUSTER=aniverse-eks
           PRINCIPAL="arn:aws:iam::${ACCOUNT}:role/aniverse-github-actions-terraform"
           ENTRY='module.eks.aws_eks_access_entry.terraform_runner'
           ASSOC='module.eks.aws_eks_access_policy_association.terraform_runner'
           POLICY='arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
-          in_state() { terraform state list 2>/dev/null | grep -qx "$1"; }
+          POLICY_EDIT='arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy'
+          in_state() { terraform state list 2>/dev/null | grep -Fqx "$1"; }
 
-          if ! aws eks describe-access-entry \
+          import_foreach_pair() {
+            local kind="$1" principal="$2" policy="$3"
+            local entry="module.eks.aws_eks_access_entry.${kind}[\"${principal}\"]"
+            local assoc="module.eks.aws_eks_access_policy_association.${kind}[\"${principal}\"]"
+            if ! aws eks describe-access-entry \
+              --region "${AWS_REGION}" \
+              --cluster-name "${CLUSTER}" \
+              --principal-arn "${principal}" >/dev/null 2>&1; then
+              return 0
+            fi
+            if ! in_state "${entry}"; then
+              terraform import -input=false "${entry}" "${CLUSTER}:${principal}" \
+                && echo "Imported ${entry}" \
+                || echo "Entry import failed: ${entry}"
+            fi
+            if ! in_state "${assoc}"; then
+              terraform import -input=false "${assoc}" \
+                "${CLUSTER}#${principal}#${policy}" \
+                && echo "Imported ${assoc}" \
+                || echo "Assoc import failed: ${assoc}"
+            fi
+          }
+
+          set +e
+          if aws eks describe-access-entry \
             --region "${AWS_REGION}" \
             --cluster-name "${CLUSTER}" \
             --principal-arn "${PRINCIPAL}" >/dev/null 2>&1; then
-            echo "No CI access entry to import — not a ResourceInUse recovery case"
-            exit "${rc}"
+            if ! in_state "${ENTRY}"; then
+              terraform import -input=false "${ENTRY}" "${CLUSTER}:${PRINCIPAL}" \
+                && echo "Imported ${ENTRY}" \
+                || echo "Entry import failed"
+            else
+              echo "Already in state: ${ENTRY}"
+            fi
+            if ! in_state "${ASSOC}"; then
+              terraform import -input=false "${ASSOC}" \
+                "${CLUSTER}#${PRINCIPAL}#${POLICY}" \
+                && echo "Imported ${ASSOC}" \
+                || echo "Assoc import failed"
+            else
+              echo "Already in state: ${ASSOC}"
+            fi
+          else
+            echo "No CI access entry for ${PRINCIPAL} — still try admin/edit import"
           fi
 
-          set +e
-          if ! in_state "${ENTRY}"; then
-            terraform import -input=false "${ENTRY}" "${CLUSTER}:${PRINCIPAL}" \
-              && echo "Imported ${ENTRY}" \
-              || echo "Entry import failed"
-          else
-            echo "Already in state: ${ENTRY}"
-          fi
-          if ! in_state "${ASSOC}"; then
-            terraform import -input=false "${ASSOC}" \
-              "${CLUSTER}#${PRINCIPAL}#${POLICY}" \
-              && echo "Imported ${ASSOC}" \
-              || echo "Assoc import failed"
-          else
-            echo "Already in state: ${ASSOC}"
-          fi
+          for p in \
+            "arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_AdministratorAccess_e2fb8e5aead25e6d"
+          do
+            import_foreach_pair admins "${p}" "${POLICY}"
+          done
+          for p in \
+            "arn:aws:iam::841535407395:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_aniverse-app-edit_fbef725212ce072a"
+          do
+            import_foreach_pair editors "${p}" "${POLICY_EDIT}"
+          done
           set -e
 
           terraform apply -auto-approve -input=false
@@ -299,6 +386,7 @@ jobs:
           echo "- STATIC_BUCKET_NAME=$(terraform output -raw static_bucket_name)" >> "$GITHUB_STEP_SUMMARY"
           echo "- ECR=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_STEP_SUMMARY"
           echo "- EKS=$(terraform output -raw eks_cluster_name)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- WAF_ACL=$(terraform output -raw waf_web_acl_arn 2>/dev/null || echo n/a)" >> "$GITHUB_STEP_SUMMARY"
           echo "- NS: \`terraform output route53_name_servers\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- kubeconfig: \`$(terraform output -raw eks_kubeconfig_hint)\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- helm + DNS: anime-project \`./scripts/eks-bind-domain.sh\`" >> "$GITHUB_STEP_SUMMARY"
