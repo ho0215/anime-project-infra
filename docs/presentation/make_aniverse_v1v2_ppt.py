@@ -291,7 +291,7 @@ def slide_v2_def(prs):
     label = s.shapes.add_textbox(Inches(0.55), Inches(2.8), Inches(4), Inches(0.4))
     set_text(label.text_frame, "주요 기능", 20, True, BLACK)
     feats = [
-        (BLUE, "ALB Ingress · HTTPS", "ACM 인증서가 발급되면 ALB와 Route53을 연결해 외부 트래픽을 받습니다."),
+        (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고, ALB 앞 WAF에서 공격 요청과 과도한 요청을 걸러냅니다."),
         (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
         (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
         (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Alloy·Loki로 상태와 로그를 확인합니다."),
@@ -344,31 +344,29 @@ def slide_v2_detail_1(prs):
 
 
 def slide_v2_detail_2(prs):
-    """V2 상세내용 ② — OIDC · DNS 유지."""
+    """V2 상세내용 ② — Zero-Key · WAF · DNS 유지."""
     s = blank(prs)
     bg(s)
-    title_center(s, "Architecture V2  ·  인증과 DNS")
+    title_center(s, "Architecture V2  ·  보안과 DNS")
     blocks = [
         (
             "장기 키 없는 Zero-Key 구성",
-            [
-                "파드와 CI는 OIDC로 필요한 순간에만 AWS 권한을 받습니다.",
-                "사람은 SSO로 로그인해 임시 자격증명을 사용합니다.",
-            ],
+            "파드·CI는 OIDC, 사람은 SSO로 로그인해 임시 권한만 사용합니다.",
+        ),
+        (
+            "WAF로 ALB 앞단 보호",
+            "관리형 웹 공격·악성 입력·SQLi 규칙과 IP별 5분 2,000회 요청 제한을 적용했습니다. 글쓰기 BODY 규칙은 오탐 방지를 위해 Count합니다.",
         ),
         (
             "클러스터를 지워도 도메인은 유지",
-            [
-                "Route53 영역은 삭제 대상에서 제외해, 클러스터를 다시 만들 때도 네임서버를 재등록하지 않습니다.",
-            ],
+            "Route53 영역은 삭제 대상에서 제외해, 클러스터를 다시 만들어도 네임서버를 재등록하지 않습니다.",
         ),
     ]
-    for i, (head, lines) in enumerate(blocks):
-        y = Inches(1.35) + i * Inches(2.7)
-        c = card(s, Inches(0.55), y, Inches(12.2), Inches(2.45), LIGHT if i % 2 == 0 else SOFT)
-        set_text(c.text_frame, head, 24, True, BLUE)
-        for line in lines:
-            add_para(c.text_frame, line, 18, False, NAVY, 12)
+    for i, (head, body) in enumerate(blocks):
+        y = Inches(1.2) + i * Inches(1.8)
+        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.6), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, head, 21, True, BLUE)
+        add_para(c.text_frame, body, 17, False, NAVY, 8)
     footer(s, 8)
 
 
@@ -377,7 +375,7 @@ def slide_verify(prs):
     bg(s)
     title_center(s, "기능 · 운영 검증 기준")
     items = [
-        ("웹 접속", "ALB를 거쳐 HTTPS 200 응답", "curl · 브라우저", "확인"),
+        ("웹 · WAF", "HTTPS 응답 · Web ACL 연결", "curl · sampled requests", "구성"),
         ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
         ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
         ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),

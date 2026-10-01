@@ -18,8 +18,8 @@
 | 5 | Architecture V2 | 비전+기능 4칸 | |
 | 6 | 시스템 구성도 · V2 | 이미지 | `hybrid_02_arch_v2_vpc.png` |
 | 7 | Architecture V2 · 배포와 데이터 | 3행 | DB Pod · sha 태그 · 시드 |
-| 8 | Architecture V2 · 인증과 DNS | 2행 | Zero-Key(OIDC·SSO) · DNS 유지 |
-| 9 | 기능 · 운영 검증 기준 | 6카드 | health~Slack 알림 |
+| 8 | Architecture V2 · 보안과 DNS | 3행 | Zero-Key · WAFv2 · DNS 유지 |
+| 9 | 기능 · 운영 검증 기준 | 6카드 | HTTPS·WAF~Slack 알림 |
 | 10 | 기술 스택 · V2 | **이미지** | `hybrid_09_tech_stack.png` |
 | 11 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
 | 12 | 앞으로 보완할 점 | 3열 | 운영 고도화 · 완성도 · 발표 |
@@ -63,13 +63,13 @@
 3. 노드와 파드를 따로 조절
 
 **V2 차별**
-1. 통합 관측 — Prometheus·Alloy·Loki와 Slack 알림
+1. 보안·관측 — WAFv2, Prometheus·Alloy·Loki, Slack 알림
 2. GitOps 배포 — Actions → ECR → Argo CD
 3. EKS + DB Pod — 앱과 DB를 Kubernetes에서 운영
 
 ### 5. Architecture V2
-- **비전:** 배포·데이터 복구·관측·인증을 하나의 운영 흐름으로 구성
-- **주요 기능:** ALB Ingress·HTTPS / EKS web·db Pod / 백업·관측 / Actions→ECR→Argo
+- **비전:** 배포·데이터 복구·관측·보안을 하나의 운영 흐름으로 구성
+- **주요 기능:** ALB·HTTPS·WAF / EKS web·db Pod / 백업·관측 / Actions→ECR→Argo
 
 ### 6. 구성도 V2
 - 이미지 슬라이드
@@ -81,12 +81,13 @@
 | ① | 배포 이미지도 Git으로 관리 | ECR `sha-*` + Helm 태그 갱신 |
 | ① | 재구축 후 데이터 복구 | Git SQL → restore Job → DB 시드 |
 | ② | 장기 키 없는 Zero-Key 구성 | 파드·CI는 OIDC, 사람은 SSO |
+| ② | WAF로 ALB 앞단 보호 | 관리형 규칙 + IP별 5분 2,000회 요청 제한 |
 | ② | 클러스터를 지워도 도메인 유지 | Route53 영역을 삭제 대상에서 제외 |
 
 ### 9. 검증 기준
 | 항목 | 검증 | 방법 | 결과 |
 |------|------|------|------|
-| 웹 접속 | HTTPS 200 | curl·브라우저 | 확인 |
+| 웹·WAF | HTTPS 응답·Web ACL 연결 | curl·sampled requests | 구성 |
 | DB 데이터 | 목록 데이터 표시 | 테이블 수·시드 행 | 확인 |
 | GitOps | Git 태그와 배포 이미지 일치 | Actions·Argo CD | 확인 |
 | 미디어 | 재구축 후 이미지 표시 | S3 media 경로 | 확인 |
@@ -99,11 +100,11 @@
 - 오케스트레이션: EKS · MariaDB STS · EBS PVC
 - 스토리지: S3 media / static / db-backups
 - CI/CD·GitOps: Actions · ECR · Argo CD
-- 인증·IaC: GitHub OIDC · Terraform · Secrets/IRSA
+- 보안·인증·IaC: WAFv2 · OIDC/SSO · Terraform/IRSA
 - 관측: Prometheus · Alloy · Loki
 
 ### 11. 데이터 흐름 (이미지)
-1. 서비스: Users → ALB → web Pod → MariaDB → EBS PVC (eks-stop 시 PVC 유지)
+1. 서비스: Users → Route53 → WAF → ALB → web Pod → MariaDB → EBS PVC
 2. destroy 후 시드: GitHub SQL → restore Job → MariaDB
 3. 주기 백업: MariaDB → mariadb-dump CronJob → S3 db-backups/
 4. 미디어: web Pod → S3 media/ (DB 아님 · destroy 시 Sync media)
