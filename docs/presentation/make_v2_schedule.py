@@ -46,9 +46,9 @@ def main():
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    draw.text((55, 45), "V2 일정", font=font(48, True), fill=TEXT)
-    draw.text((275, 59), "일자별", font=font(24, True), fill="#00AEEF")
-    draw.rectangle((55, 118, 275, 126), fill="#00AEEF")
+    draw.text((55, 36), "V2 일정", font=font(44, True), fill=TEXT)
+    draw.text((270, 50), "준비 → 구축 → 이관 → 복구 → 정리 → 보안", font=font(22, True), fill="#00AEEF")
+    draw.rectangle((55, 105, 275, 113), fill="#00AEEF")
 
     dates = [
         ("9/11", "금"),
@@ -81,14 +81,14 @@ def main():
     for start, end, label, color in phases:
         left = col_x(start)
         right = col_x(end) + col_w
-        rounded(draw, (left, 155, right, 190), 10, color)
-        centered(draw, (left, 155, right, 190), label, font(17, True), WHITE)
+        rounded(draw, (left, 130, right, 168), 10, color)
+        centered(draw, (left, 130, right, 168), label, font(18, True), WHITE)
 
     for i, (day, weekday) in enumerate(dates):
         left = col_x(i)
-        rounded(draw, (left, 200, left + col_w, 285), 12, NAVY)
-        centered(draw, (left, 210, left + col_w, 252), day, font(27, True), WHITE)
-        centered(draw, (left, 250, left + col_w, 280), weekday, font(15), "#CBD5E1")
+        rounded(draw, (left, 178, left + col_w, 265), 12, NAVY)
+        centered(draw, (left, 186, left + col_w, 230), day, font(28, True), WHITE)
+        centered(draw, (left, 228, left + col_w, 258), weekday, font(16), "#CBD5E1")
 
     rows = [
         (
@@ -139,22 +139,22 @@ def main():
                 "Helm 차트\n로컬 쿠버",
                 "PVC 검증",
                 "파드 한도\nQuota",
+                "백업·Loki\n설정",
                 "—",
-                "Loki·Slack\nTempo",
                 "—",
                 "DB 덤프\nmariadb-dump",
-                "—",
-                "—",
-                "—",
+                "OTel·Tempo\nAlertManager",
+                "파드\n안티어피니티",
+                "부하\n테스트",
             ],
         ),
     ]
-    row_tops = [315, 625, 935]
-    row_h = 275
+    row_tops = [285, 620, 955]
+    row_h = 300
 
     for (label, label_color, cell_color, accent, values), top in zip(rows, row_tops):
         rounded(draw, (45, top, 260, top + row_h), 14, label_color)
-        centered(draw, (45, top, 260, top + row_h), label, font(31, True), WHITE, 12)
+        centered(draw, (45, top, 260, top + row_h), label, font(32, True), WHITE, 12)
 
         for i, value in enumerate(values):
             left = col_x(i)
@@ -166,7 +166,7 @@ def main():
                     draw,
                     (left + 22, top + 25, left + col_w - 8, top + row_h - 25),
                     value,
-                    font(17, True),
+                    font(18, True),
                     "#0F4650" if label_color != "#EA580C" else "#9A3412",
                     8,
                 )

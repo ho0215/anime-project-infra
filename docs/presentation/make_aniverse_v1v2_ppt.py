@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 16
+TOTAL = 18
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -240,7 +240,7 @@ def slide_arch_v1(prs):
 def slide_v1_to_v2(prs):
     s = blank(prs)
     bg(s)
-    title_center(s, "V1의 한계  ·  V2 목표  ·  V2 차별점", size=34)
+    title_center(s, "V1의 한계  ·  V2에서 바꾼 점  ·  V2의 핵심", size=30)
     headers = [
         (0.4, RED, "V1의 한계"),
         (4.65, GREEN, "V2에서 바꾼 점"),
@@ -261,7 +261,7 @@ def slide_v1_to_v2(prs):
         ("노드와 파드를 따로 조절", "부하에 따라 파드를 늘리고, 사용하지 않을 때는 노드와 NAT를 중지합니다."),
     ]
     right = [
-        ("통합 관측", "Prometheus·Alloy·Loki를 기본으로 구성하고 Slack 알림까지 연결했습니다."),
+        ("통합 관측", "Prometheus·Loki·Tempo를 구성하고 AlertManager→Slack 알림까지 연결했습니다."),
         ("GitOps 배포", "Actions가 이미지를 올리고 태그를 바꾸면 Argo CD가 클러스터를 맞춥니다."),
         ("EKS + DB Pod", "앱과 DB를 Kubernetes에서 운영하고, 데이터는 PVC에 보관합니다."),
     ]
@@ -294,7 +294,7 @@ def slide_v2_def(prs):
         (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고, ALB 앞 WAF에서 공격 요청과 과도한 요청을 걸러냅니다."),
         (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
         (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
-        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Alloy·Loki로 상태와 로그를 확인합니다."),
+        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo로 메트릭·로그·트레이스를 확인합니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -350,8 +350,11 @@ def slide_v2_detail_2(prs):
     title_center(s, "Architecture V2  ·  보안과 DNS")
     blocks = [
         (
-            "장기 키 없는 Zero-Key 구성",
-            "파드·CI는 OIDC, 사람은 SSO로 로그인해 임시 권한만 사용합니다.",
+            "장기 Access Key 미사용 (Zero-Key)",
+            "OIDC(워크로드): 파드·CI에서 Access Key가 돌지 않도록 차단합니다. "
+            "SSO(사람): 장기 키 없이 SSO 로그인으로 임시 자격증명만 받아 키 유출을 막습니다. "
+            "결과: 장기 키를 최소화한 Zero-Key 구성으로 바꿨습니다. "
+            "계정 접근이 제한되어 복구가 어려웠을 때 팀원 계정으로 이관하며 SSO·OIDC 기반으로 전환했습니다.",
         ),
         (
             "WAF로 ALB 앞단 보호",
@@ -363,10 +366,10 @@ def slide_v2_detail_2(prs):
         ),
     ]
     for i, (head, body) in enumerate(blocks):
-        y = Inches(1.2) + i * Inches(1.8)
-        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.6), LIGHT if i % 2 == 0 else SOFT)
-        set_text(c.text_frame, head, 21, True, BLUE)
-        add_para(c.text_frame, body, 17, False, NAVY, 8)
+        y = Inches(1.15) + i * Inches(1.85)
+        c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.7), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, head, 20, True, BLUE)
+        add_para(c.text_frame, body, 15, False, NAVY, 6)
     footer(s, 8)
 
 
@@ -374,23 +377,32 @@ def slide_verify(prs):
     s = blank(prs)
     bg(s)
     title_center(s, "기능 · 운영 검증 기준")
+    note = s.shapes.add_textbox(Inches(0.55), Inches(0.95), Inches(12.2), Inches(0.35))
+    set_text(
+        note.text_frame,
+        "확인 = 직접 검증 완료  ·  구성 = 스택 배포·연결까지 완료 (추가 시나리오 검증은 보완 과제)",
+        14,
+        False,
+        GRAY,
+        PP_ALIGN.CENTER,
+    )
     items = [
         ("웹 · WAF", "HTTPS 응답 · Web ACL 연결", "curl · sampled requests", "구성"),
         ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
         ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
         ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),
-        ("관측", "메트릭과 로그 조회", "Prometheus · Loki", "구성"),
+        ("관측", "메트릭·로그·트레이스 조회", "Prom · Loki · Tempo", "확인"),
         ("알림", "AlertManager 알림 수신", "Slack 채널", "확인"),
     ]
     for i, (t, check, method, result) in enumerate(items):
         col, row = i % 3, i // 3
         x = Inches(0.45) + col * Inches(4.25)
-        y = Inches(1.25) + row * Inches(2.7)
-        c = card(s, x, y, Inches(4.05), Inches(2.45), LIGHT)
+        y = Inches(1.4) + row * Inches(2.6)
+        c = card(s, x, y, Inches(4.05), Inches(2.4), LIGHT)
         set_text(c.text_frame, t, 20, True, BLUE)
-        add_para(c.text_frame, check, 17, False, NAVY, 10)
-        add_para(c.text_frame, "확인: " + method, 16, False, GRAY, 8)
-        add_para(c.text_frame, result, 17, True, GREEN if result == "확인" else ORANGE, 10)
+        add_para(c.text_frame, check, 16, False, NAVY, 8)
+        add_para(c.text_frame, "방법: " + method, 15, False, GRAY, 6)
+        add_para(c.text_frame, result, 17, True, GREEN if result == "확인" else ORANGE, 8)
     footer(s, 9)
 
 
@@ -418,41 +430,32 @@ def slide_next(prs):
         (
             ORANGE,
             "운영 고도화",
-            "관측 · 보안 · 복구",
+            "보안 · 복구 · 비용",
             [
-                "Tempo/OTel로 트레이싱 추가",
                 "OIDC 권한 범위 최소화",
-                "정기 백업과 복구 훈련",
-                "반복 장애 자동 복구",
+                "정기 백업·복구 훈련 (S3 덤프 복구 경로 포함)",
+                "반복 장애 자동 복구(AIOps)",
+                "노드·NAT 중지·상시 RDS 제거로 비용 절감 유지",
             ],
         ),
         (
             GREEN,
             "완성도",
-            "운영 기준 정리",
+            "관측 성과 위에 남은 과제",
             [
-                "시드 데이터 검증 자동화",
-                "운영 런북 보완",
+                "시드 검증·운영 런북 자동화",
                 "계정 이관 체크리스트 정리",
-            ],
-        ),
-        (
-            BLUE,
-            "발표 · 시연",
-            "핵심 흐름 전달",
-            [
-                "클러스터 start/stop 시연",
-                "V1과 V2 변화 비교",
-                "대표 장애와 해결 과정 시연",
+                "부하 병목(/works 지연)·Redis Timeout 해소",
+                "Tempo로 찾은 병목을 성능 개선으로 연결",
             ],
         ),
     ]
     for i, (color, title, sub, lines) in enumerate(cols):
-        x = Inches(0.5) + i * Inches(4.25)
-        head = card(s, x, Inches(1.15), Inches(4.05), Inches(1.0), color)
+        x = Inches(0.9) + i * Inches(6.0)
+        head = card(s, x, Inches(1.2), Inches(5.5), Inches(1.0), color)
         set_text(head.text_frame, title, 22, True, WHITE, PP_ALIGN.CENTER)
-        add_para(head.text_frame, sub, 16, False, WHITE, 2, PP_ALIGN.CENTER)
-        body = card(s, x, Inches(2.35), Inches(4.05), Inches(4.0), LIGHT)
+        add_para(head.text_frame, sub, 15, False, WHITE, 2, PP_ALIGN.CENTER)
+        body = card(s, x, Inches(2.4), Inches(5.5), Inches(4.0), LIGHT)
         body.text_frame.clear()
         pad(body.text_frame)
         first = True
@@ -461,8 +464,59 @@ def slide_next(prs):
                 set_text(body.text_frame, "·  " + line, 17, False, NAVY)
                 first = False
             else:
-                add_para(body.text_frame, "·  " + line, 17, False, NAVY, 12)
+                add_para(body.text_frame, "·  " + line, 17, False, NAVY, 14)
     footer(s, 12)
+
+
+def slide_load_trace(prs):
+    """부하테스트 + Tempo 트레이싱 성과."""
+    s = blank(prs)
+    bg(s)
+    title_center(s, "부하테스트 · 트레이싱으로 본 병목")
+    cards = [
+        (
+            GREEN,
+            "확인한 성과",
+            [
+                "HPA로 web 파드 2 → 4 확장 확인",
+                "Tempo/OTel로 요청 구간 수집·조회",
+                "AlertManager → Slack 알림 수신",
+            ],
+        ),
+        (
+            ORANGE,
+            "발견한 병목",
+            [
+                "/works/ 응답 최대 약 2.91초",
+                "Tempo 트레이스로 구간 병목 위치 확인",
+                "WAF RateLimit에 걸려 차단된 구간도 확인",
+            ],
+        ),
+        (
+            RED,
+            "남은 과제",
+            [
+                "Redis TimeoutError는 미해결",
+                "병목 구간 쿼리·캐시 최적화",
+                "부하 시나리오와 WAF 한도 정합",
+            ],
+        ),
+    ]
+    for i, (color, title, lines) in enumerate(cards):
+        x = Inches(0.4) + i * Inches(4.3)
+        head = card(s, x, Inches(1.2), Inches(4.1), Inches(0.7), color)
+        set_text(head.text_frame, title, 20, True, WHITE, PP_ALIGN.CENTER)
+        body = card(s, x, Inches(2.05), Inches(4.1), Inches(4.4), LIGHT)
+        body.text_frame.clear()
+        pad(body.text_frame)
+        first = True
+        for line in lines:
+            if first:
+                set_text(body.text_frame, "·  " + line, 16, False, NAVY)
+                first = False
+            else:
+                add_para(body.text_frame, "·  " + line, 16, False, NAVY, 14)
+    footer(s, 13)
 
 
 def slide_trouble(prs, n, title, rows):
@@ -481,7 +535,7 @@ def slide_trouble(prs, n, title, rows):
 def slide_trouble_gitops(prs):
     slide_trouble(
         prs,
-        13,
+        14,
         "트러블슈팅  ·  GitOps · CI/CD",
         [
             (
@@ -503,20 +557,20 @@ def slide_trouble_gitops(prs):
 def slide_trouble_eks(prs):
     slide_trouble(
         prs,
-        14,
+        15,
         "트러블슈팅  ·  EKS",
         [
             (
-                "HPA가 늘린 파드가 다시 1개로 줄어듦",
-                "배포 파일의 replicas: 1이 HPA 값을 덮고 있었습니다. 고정값을 빼고 HPA만 파드 수를 관리하도록 바꿨습니다.",
+                "HPA가 늘린 replicas가 1로 되돌아감 (9/15)",
+                "deployment.yaml의 replicas: 1이 CI 재배포마다 HPA 값을 덮었습니다. replicas 필드를 제거하고 HPA만 관리하도록 바꿨습니다. 한 필드는 하나의 제어 주체만 두어야 합니다.",
             ),
             (
-                "새 계정에서 일부 리소스가 생성되지 않음",
-                "기존 환경에 가려져 있던 의존성이 새 계정에서 드러났습니다. NAT와 라우팅을 먼저 만들도록 순서를 조정했습니다.",
+                "이관 중 Terraform 리소스 생성 순서 문제 (9/22)",
+                "기존 환경에 가려진 의존성이 빈 계정에서 드러났습니다. NAT·프라이빗 라우팅을 먼저 만들도록 순서를 재배치했습니다. 이관 시에는 전체 생성 테스트가 필요합니다.",
             ),
             (
-                "기존 DB 비밀번호가 약한 기본값일 가능성",
-                "ESO로 전환하면서 비밀번호도 새 난수로 교체했습니다. DB와 Secrets Manager 값을 함께 갱신했습니다.",
+                "기존 DB 비밀번호가 약한 기본값일 가능성 (9/29)",
+                "ESO 전환 시 약한 폴백 값을 그대로 옮길 위험이 있었습니다. 난수로 ALTER USER·Secrets Manager를 함께 갱신했습니다. 체계만 옮기지 말고 값의 안전성도 점검해야 합니다.",
             ),
         ],
     )
@@ -525,7 +579,7 @@ def slide_trouble_eks(prs):
 def slide_trouble_observe(prs):
     slide_trouble(
         prs,
-        15,
+        16,
         "트러블슈팅  ·  DB · 관측",
         [
             (
@@ -551,6 +605,62 @@ def slide_schedule(prs):
     s.shapes.add_picture(str(path), Inches(0), Inches(0), width=Inches(SW), height=Inches(SH))
 
 
+def slide_qa(prs):
+    s = blank(prs)
+    bg(s, NAVY)
+    box = s.shapes.add_textbox(Inches(0.8), Inches(2.0), Inches(11.7), Inches(1.2))
+    set_text(box.text_frame, "Q & A", 54, True, WHITE, PP_ALIGN.CENTER)
+    sub = s.shapes.add_textbox(Inches(0.8), Inches(3.3), Inches(11.7), Inches(0.5))
+    set_text(
+        sub.text_frame,
+        "감사합니다  ·  Aniverse Architecture V1 → V2",
+        20,
+        False,
+        RGBColor(191, 219, 254),
+        PP_ALIGN.CENTER,
+    )
+    roles = s.shapes.add_textbox(Inches(1.2), Inches(4.3), Inches(10.9), Inches(1.8))
+    set_text(roles.text_frame, "팀 역할", 18, True, WHITE, PP_ALIGN.CENTER)
+    add_para(
+        roles.text_frame,
+        "김현우 — GitOps · CI/CD (Actions · Argo · OIDC)",
+        16,
+        False,
+        RGBColor(226, 232, 240),
+        10,
+        PP_ALIGN.CENTER,
+    )
+    add_para(
+        roles.text_frame,
+        "박서이 — EKS · 네트워크 · 보안 (Ingress · WAF · RBAC)",
+        16,
+        False,
+        RGBColor(226, 232, 240),
+        6,
+        PP_ALIGN.CENTER,
+    )
+    add_para(
+        roles.text_frame,
+        "김윤주 — 컨테이너 · DB · 관측 (Helm · Tempo · Alert)",
+        16,
+        False,
+        RGBColor(226, 232, 240),
+        6,
+        PP_ALIGN.CENTER,
+    )
+    add_para(
+        roles.text_frame,
+        "강유민 — 컴퓨트 · 트래픽 (노드 · ALB 연동)",
+        16,
+        False,
+        RGBColor(226, 232, 240),
+        6,
+        PP_ALIGN.CENTER,
+    )
+    num = s.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
+    set_text(num.text_frame, f"18 / {TOTAL}", 12, False, RGBColor(148, 163, 184), PP_ALIGN.RIGHT)
+
+
 def main():
     prs = Presentation()
     prs.slide_width = Inches(SW)
@@ -568,14 +678,16 @@ def main():
     slide_stack(prs)
     slide_data_flow(prs)
     slide_next(prs)
+    slide_load_trace(prs)
     slide_trouble_gitops(prs)
     slide_trouble_eks(prs)
     slide_trouble_observe(prs)
     slide_schedule(prs)
+    slide_qa(prs)
 
     out = next_path()
     prs.save(out)
-    shutil.copy(out, WORKING)
+    shutil.copy2(out, WORKING)
     print(f"Wrote {out} and {WORKING} ({TOTAL} slides)")
 
 
