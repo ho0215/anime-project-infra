@@ -209,11 +209,15 @@ def make_arch_v2():
     d = ImageDraw.Draw(img)
     d.text((90, 635), "web ↔ db (SQL)   |   db → PVC   |   photos → S3 (not in DB)", font=fnt(16), fill=NAVY)
 
-    tile(img, 1150, 60, 200, 150, "githubactions", "Actions", "OIDC build", CYAN, SOFT_BLUE, 52)
-    tile(img, 1380, 60, 180, 150, "s3", "ECR", "sha-* image", ORANGE, SOFT_ORANGE, 52)
-    tile(img, 1150, 250, 410, 180, "terraform", "Argo CD", "GitOps sync", TEAL, SOFT_TEAL, 56)
-    tile(img, 1150, 460, 195, 200, "s3", "S3 media", "images", ORANGE, SOFT_ORANGE, 52)
-    tile(img, 1365, 460, 195, 200, "s3", "S3 backup", "db-backups/", GREEN, SOFT_GREEN, 52)
+    # GitOps: Actions → ECR → Argo → EKS (요약과 동일 화살표)
+    tile(img, 1140, 50, 145, 125, "githubactions", "Actions", "OIDC", CYAN, SOFT_BLUE, 44)
+    tile(img, 1390, 50, 145, 125, "s3", "ECR", "sha-*", ORANGE, SOFT_ORANGE, 44)
+    tile(img, 1140, 210, 395, 135, "argo", "Argo CD", "GitOps sync", TEAL, SOFT_TEAL, 52)
+    # 보안·캐시 뱃지 (8장 Zero-Key / Redis와 그림 정합)
+    tile(img, 1140, 370, 190, 120, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 40)
+    tile(img, 1345, 370, 190, 120, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 40)
+    tile(img, 1140, 510, 190, 120, "iam", "OIDC·SSO", "Zero-Key", CYAN, SOFT_BLUE, 40)
+    tile(img, 1345, 510, 190, 120, "s3", "S3", "media/backup", ORANGE, SOFT_ORANGE, 40)
 
     d = ImageDraw.Draw(img)
     arrow_h(d, 200, 135, 230, NAVY)
@@ -222,7 +226,13 @@ def make_arch_v2():
     arrow_v(d, 665, 210, 240, NAVY)
     arrow_h(d, 300, 450, 330, NAVY)
     arrow_h(d, 560, 450, 590, NAVY)
-    arrow_v(d, 1250, 210, 250, NAVY)
+    # Actions → ECR
+    arrow_h(d, 1285, 112, 1390, NAVY)
+    # ECR → Argo (아래로)
+    arrow_v(d, 1460, 175, 210, NAVY)
+    # Argo 왼쪽 → EKS
+    d.line([(1140, 275), (1115, 275)], fill=NAVY, width=4)
+    d.polygon([(1098, 275), (1118, 263), (1118, 287)], fill=NAVY)
 
     soft_card(img, (40, 730, 1560, 870), r=14, fill=SOFT_GREEN, shadow=False)
     d = ImageDraw.Draw(img)
@@ -372,8 +382,8 @@ def make_gitops():
         (50, "github", "Git push", "anime-project"),
         (340, "githubactions", "Actions", "build + OIDC"),
         (630, "s3", "ECR", "sha-* tag"),
-        (920, "terraform", "values bump", "image.tag"),
-        (1210, "vpc", "Argo sync", "EKS deploy"),
+        (920, "githubactions", "values bump", "image.tag"),
+        (1210, "argo", "Argo sync", "EKS deploy"),
     ]
     for x, icon, title, sub in steps:
         tile(img, x, 160, 260, 420, icon, title, sub, CYAN, SOFT_BLUE, 72)
@@ -388,22 +398,26 @@ def make_gitops():
 
 def make_observability():
     img = Image.new("RGBA", (W, H), BG + (255,))
-    tile(img, 60, 160, 300, 420, "django", "EKS Pods", "web / db", CYAN, SOFT_BLUE, 72)
-    tile(img, 430, 120, 300, 240, "cloudwatch", "Prometheus", "metrics", ORANGE, SOFT_ORANGE, 64)
-    tile(img, 430, 400, 300, 240, "cloudwatch", "Loki + Alloy", "logs", TEAL, SOFT_TEAL, 64)
-    tile(img, 800, 180, 340, 400, "cloudwatch", "Grafana", "dashboards", GREEN, SOFT_GREEN, 80)
-    soft_card(img, (1200, 160, 1540, 620), r=18, fill=SOFT_PURPLE, shadow=False)
+    tile(img, 40, 180, 260, 400, "django", "EKS Pods", "web / db", CYAN, SOFT_BLUE, 64)
+    tile(img, 350, 100, 260, 220, "cloudwatch", "Prometheus", "metrics", ORANGE, SOFT_ORANGE, 56)
+    tile(img, 350, 360, 260, 220, "cloudwatch", "Loki + Alloy", "logs", TEAL, SOFT_TEAL, 56)
+    tile(img, 660, 180, 280, 400, "grafana", "Grafana", "dashboards", GREEN, SOFT_GREEN, 72)
+    tile(img, 990, 100, 260, 220, "tempo", "Tempo · OTel", "traces", PURPLE, SOFT_PURPLE, 56)
+    tile(img, 990, 360, 260, 220, "alertmanager", "AlertManager", "Slack", RED, SOFT_RED, 56)
+    soft_card(img, (1280, 180, 1560, 580), r=18, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((1200, 160, 1540, 620), radius=18, outline=PURPLE, width=3)
-    # center Next block
-    center_text(d, "Next", 1370, 300, fnt(28, True), PURPLE)
-    center_text(d, "AlertManager", 1370, 400, fnt(20), NAVY)
-    center_text(d, "Tempo + OTel", 1370, 470, fnt(20), NAVY)
+    d.rounded_rectangle((1280, 180, 1560, 580), radius=18, outline=CYAN, width=3)
+    center_text(d, "성과", 1420, 280, fnt(26, True), CYAN)
+    center_text(d, "메트릭·로그", 1420, 360, fnt(18), NAVY)
+    center_text(d, "트레이스 수집", 1420, 420, fnt(18), NAVY)
+    center_text(d, "Slack 알림", 1420, 480, fnt(18), NAVY)
     d = ImageDraw.Draw(img)
-    arrow_h(d, 360, 320, 430, NAVY)
-    arrow_h(d, 360, 520, 430, NAVY)
-    arrow_h(d, 730, 320, 800, NAVY)
-    arrow_h(d, 730, 520, 800, NAVY)
+    arrow_h(d, 300, 320, 350, NAVY)
+    arrow_h(d, 300, 520, 350, NAVY)
+    arrow_h(d, 610, 320, 660, NAVY)
+    arrow_h(d, 610, 520, 660, NAVY)
+    arrow_h(d, 940, 210, 990, NAVY)
+    arrow_h(d, 940, 470, 990, NAVY)
     save(img, "hybrid_07_observability.png")
 
 
@@ -470,7 +484,7 @@ def make_tech_stack_v2():
             [
                 ("githubactions", "Actions"),
                 ("s3", "ECR"),
-                ("terraform", "Argo CD"),
+                ("argo", "Argo CD"),
             ],
         ),
         (
@@ -479,7 +493,7 @@ def make_tech_stack_v2():
             "보안 · 인증 · IaC",
             GREEN,
             SOFT_GREEN,
-            [("waf", "WAFv2"), ("iam", "OIDC · SSO"), ("terraform", "Terraform · IRSA")],
+            [("waf", "WAFv2"), ("iam", "OIDC · SSO"), ("terraform", "TF · IRSA · ESO")],
         ),
         (
             1050,
@@ -488,9 +502,9 @@ def make_tech_stack_v2():
             RED,
             SOFT_RED,
             [
-                ("cloudwatch", "Prometheus"),
-                ("cloudwatch", "Alloy"),
-                ("cloudwatch", "Loki"),
+                ("grafana", "Prom · Grafana"),
+                ("tempo", "Tempo · OTel"),
+                ("alertmanager", "Alert · Slack"),
             ],
         ),
     ]
@@ -505,8 +519,19 @@ def make_tech_stack_v2():
             soft_card(img, (ix, iy, ix + 140, iy + 300), r=14, fill=WHITE, shadow=False)
             d = ImageDraw.Draw(img)
             d.rounded_rectangle((ix, iy, ix + 140, iy + 300), radius=14, outline=color, width=2)
-            paste_icon(img, icon, ix + 70, iy + 110, 80)
-            center_text(d, label, ix + 70, iy + 230, fnt(17, True), NAVY)
+            paste_icon(img, icon, ix + 70, iy + 100, 72)
+            # 긴 라벨은 최대 3줄 (TF · IRSA · ESO 등)
+            if " · " in label or "·" in label:
+                parts = [p.strip() for p in label.replace(" · ", "\n").replace("·", "\n").split("\n") if p.strip()]
+                if len(parts) == 1:
+                    parts = label.split(" ", 1)
+                parts = parts[:3]
+                line_h = 24 if len(parts) >= 3 else 28
+                y0 = iy + (188 if len(parts) >= 3 else 200)
+                for j, part in enumerate(parts):
+                    center_text(d, part, ix + 70, y0 + j * line_h, fnt(14 if len(parts) >= 3 else 15, True), NAVY)
+            else:
+                center_text(d, label, ix + 70, iy + 230, fnt(16, True), NAVY)
 
     save(img, "hybrid_09_tech_stack.png")
 
