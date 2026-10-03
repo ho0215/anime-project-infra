@@ -17,7 +17,7 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 | 7 | V2 상세 ① | DB Pod, 배포 이미지 태그, 재구축 후 데이터 복구 |
 | 8 | V2 상세 ② | Zero-Key(OIDC·SSO) · WAF · DNS 유지 · 이관 한 줄 |
 | 9 | 검증 기준 | 확인/구성 기준 설명 · Tempo 포함 |
-| 10 | 기술 스택 | Argo 아이콘 · Prom rules/Tempo OTLP/Alert 설정 · TF·IRSA·ESO |
+| 10 | 기술 스택 | Argo 아이콘 · Prom/Grafana/Tempo/Alert · TF·IRSA·ESO |
 | 11 | 데이터 흐름 | PVC vs S3 · 시드(Git SQL) / 주기 백업(S3) 경로 |
 | 12 | 앞으로 보완할 점 | 트레이싱은 성과로 이동 · 발표·시연 칸 삭제 |
 | 13 | 부하 · 트레이싱 | HPA 2→4 · /works 병목 · Redis Timeout 재검증 |
@@ -37,7 +37,7 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 
 ## 13–16장 발표 멘트
 
-**13장 · 부하테스트·트레이싱** — 부하테스트에서 web 파드가 2개에서 4개로 늘어나는 것을 확인했습니다. 팀 측정에서 `/works/` 응답은 최대 약 2.91초였습니다. 수동 span은 Tempo에 도달했지만 실제 HTTP trace는 0건이어서 ASGI extra 누락을 보완했습니다. 실제 요청 trace와 Redis TimeoutError 재발 여부는 같은 부하 조건에서 다시 확인해야 합니다.
+**13장 · 부하테스트·트레이싱** — 부하테스트에서 web 파드가 2개에서 4개로 늘어나는 것을 확인했습니다. 팀 측정에서 `/works/` 응답은 최대 약 2.91초였고, ASGI extra를 보완한 뒤 Grafana에서 실제 요청 trace를 조회했습니다. AlertManager의 Slack 알림 수신도 확인했으며, Redis TimeoutError는 의존성 수정 후 같은 부하 조건에서 재검증할 예정입니다.
 **14장 · 현우** — 중지 검증, Argo Missing(SSA), 시드 행 검증  
 **15장 · 서이** — HPA replicas 충돌, Terraform 생성 순서, DB 비밀번호 로테이션  
 **16장 · 윤주** — 백업 0바이트, Alloy max-pods, Slack 웹훅
@@ -47,4 +47,4 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 - 김현우 — GitOps·CI/CD
 - 박서이 — EKS·네트워크·보안
 - 김윤주 — 컨테이너·DB·관측
-- 강유민 — 서비스 UI·콘텐츠
+- 강유민 — 창작마당·Compute 파트

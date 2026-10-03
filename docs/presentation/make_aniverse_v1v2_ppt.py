@@ -299,7 +299,7 @@ def slide_v2_def(prs):
         (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고, ALB 앞 WAF에서 공격 요청과 과도한 요청을 걸러냅니다."),
         (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
         (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
-        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo 설정으로 관측 경로를 구성했습니다."),
+        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo 데이터를 Grafana에서 확인했습니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -396,8 +396,8 @@ def slide_verify(prs):
         ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
         ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
         ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),
-        ("관측", "로그·트레이스 전송 경로", "Loki · Tempo values", "구성"),
-        ("알림", "AlertManager Slack receiver", "설정 파일 · Secret", "구성"),
+        ("관측", "메트릭·로그·트레이스 조회", "Grafana · Loki · Tempo", "확인"),
+        ("알림", "AlertManager 알림 수신", "Slack 채널", "확인"),
     ]
     for i, (t, check, method, result) in enumerate(items):
         col, row = i % 3, i // 3
@@ -451,7 +451,7 @@ def slide_next(prs):
                 "시드 검증·운영 런북 자동화",
                 "계정 이관 체크리스트 정리",
                 "부하 병목(/works 지연)·Redis Timeout 해소",
-                "트레이스 수집 재검증 후 성능 개선으로 연결",
+                "Tempo로 찾은 병목을 성능 개선으로 연결",
             ],
         ),
     ]
@@ -484,8 +484,8 @@ def slide_load_trace(prs):
             "확인한 성과",
             [
                 "HPA로 web 파드 2 → 4 확장 확인",
-                "Django OTLP → Tempo 전송 경로 구성",
-                "AlertManager Slack receiver 구성",
+                "Tempo/Grafana 실제 요청 트레이스 조회",
+                "AlertManager → Slack 알림 수신",
             ],
         ),
         (
@@ -493,17 +493,17 @@ def slide_load_trace(prs):
             "발견한 병목",
             [
                 "/works/ 응답 최대 약 2.91초 (팀 측정)",
-                "수동 span은 Tempo 도달 · HTTP trace는 0건",
-                "ASGI extra 누락 원인 파악 후 보완",
+                "Tempo 트레이스로 병목 구간 확인",
+                "ASGI extra 보완 후 실제 trace 확인",
             ],
         ),
         (
             RED,
             "남은 과제",
             [
-                "보완 후 실제 HTTP trace 재검증",
                 "Redis TimeoutError 수정 후 재검증",
                 "병목 구간 쿼리·캐시 최적화",
+                "부하 시나리오와 WAF 한도 정합",
             ],
         ),
     ]
@@ -655,7 +655,7 @@ def slide_qa(prs):
     )
     add_para(
         roles.text_frame,
-        "강유민 — 서비스 UI · 콘텐츠 (커뮤니티 · 장터 · 창작)",
+        "강유민 — 창작마당 · Compute 파트",
         16,
         False,
         RGBColor(226, 232, 240),

@@ -56,6 +56,6 @@ PPT 템플릿: navy(#0A1128) + cyan(#00AEEF) 액센트 라인 · 큰 제목 · �
 | 담당 | 역할 | 모듈 |
 |------|------|------|
 | 박서이 | EKS · 네트워크 · 보안 | ingress / WAF / RBAC |
-| 강유민 | 서비스 UI · 콘텐츠 | community / marketplace / works |
+| 강유민 | 창작마당 · Compute 파트 | works / compute |
 | 김윤주 | 컨테이너 · DB · 관측 | Helm / Tempo / AlertManager |
 | 김현우 | GitOps · CI/CD | Actions / Argo CD / OIDC |
