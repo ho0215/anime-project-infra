@@ -20,7 +20,7 @@
 | 7 | Architecture V2 · 배포와 데이터 | 3행 | DB Pod · sha 태그 · 시드 |
 | 8 | Architecture V2 · 보안과 DNS | 3행 | Zero-Key(OIDC·SSO) · WAF · DNS · 이관 한 줄 |
 | 9 | 기능 · 운영 검증 기준 | 6카드 | 확인/구성 기준 설명 |
-| 10 | 기술 스택 · V2 | **이미지** | Tempo/Grafana/Alert/ESO |
+| 10 | 기술 스택 · V2 | **이미지** | Prom rules/Tempo OTLP/Alert 설정/ESO |
 | 11 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
 | 12 | 앞으로 보완할 점 | 2열 | 트레이싱은 성과로 이동 · 발표·시연 칸 제거 |
 | 13 | 부하테스트 · 트레이싱 | 3열 | HPA 2→4 · /works 병목 · Redis Timeout |
@@ -45,9 +45,9 @@
 - 완성도: 런북 · 이관 체크리스트 · /works 병목·Redis Timeout 해소
 
 ### 13. 부하 · 트레이싱
-- 성과: HPA 2→4, Tempo/OTel 수집, Slack 알림
-- 병목: /works 최대 ~2.91초, ASGI 계측 보완 후 실제 요청 트레이스 확인
-- 과제: Redis TimeoutError 수정 후 재검증
+- 확인: HPA 2→4, Django OTLP→Tempo 경로, AlertManager Slack receiver 구성
+- 발견: /works 최대 ~2.91초(팀 측정), 수동 span 도달·HTTP trace 0건, ASGI extra 누락 보완
+- 과제: 실제 HTTP trace·Redis TimeoutError 재검증
 
 ### 15. 트러블슈팅 · EKS (서이)
 - HPA replicas 충돌 (9/15)

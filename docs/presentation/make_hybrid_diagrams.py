@@ -314,7 +314,7 @@ def make_roles():
     img = Image.new("RGBA", (W, H), BG + (255,))
     panels = [
         (50, CYAN, SOFT_BLUE, "Network / Compute", "서이 등", ["EKS · VPC", "Ingress / ALB", "노드 · NAT"], "vpc"),
-        (420, TEAL, SOFT_TEAL, "Container / DB / Observability", "윤주", ["Docker · Helm", "DB Pod · Backup", "Prom / Grafana / Loki"], "rds_maria"),
+        (420, TEAL, SOFT_TEAL, "Container / DB / Observability", "윤주", ["Docker · Helm", "DB Pod · Backup", "Loki · Tempo 설정"], "rds_maria"),
         (790, ORANGE, SOFT_ORANGE, "DevOps / GitOps", "현우", ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"], "githubactions"),
         (1160, PURPLE, SOFT_PURPLE, "App / Product", "팀", ["Aniverse 서비스", "장터 · 창작", "커뮤니티"], "django"),
     ]
@@ -401,16 +401,16 @@ def make_observability():
     tile(img, 40, 180, 260, 400, "django", "EKS Pods", "web / db", CYAN, SOFT_BLUE, 64)
     tile(img, 350, 100, 260, 220, "cloudwatch", "Prometheus", "metrics", ORANGE, SOFT_ORANGE, 56)
     tile(img, 350, 360, 260, 220, "cloudwatch", "Loki + Alloy", "logs", TEAL, SOFT_TEAL, 56)
-    tile(img, 660, 180, 280, 400, "grafana", "Grafana", "dashboards", GREEN, SOFT_GREEN, 72)
+    tile(img, 660, 180, 280, 400, "server", "Values", "manual deploy", GREEN, SOFT_GREEN, 72)
     tile(img, 990, 100, 260, 220, "tempo", "Tempo · OTel", "traces", PURPLE, SOFT_PURPLE, 56)
     tile(img, 990, 360, 260, 220, "alertmanager", "AlertManager", "Slack", RED, SOFT_RED, 56)
     soft_card(img, (1280, 180, 1560, 580), r=18, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((1280, 180, 1560, 580), radius=18, outline=CYAN, width=3)
-    center_text(d, "성과", 1420, 280, fnt(26, True), CYAN)
+    center_text(d, "구성 범위", 1420, 280, fnt(26, True), CYAN)
     center_text(d, "메트릭·로그", 1420, 360, fnt(18), NAVY)
-    center_text(d, "트레이스 수집", 1420, 420, fnt(18), NAVY)
-    center_text(d, "Slack 알림", 1420, 480, fnt(18), NAVY)
+    center_text(d, "Tempo 전송", 1420, 420, fnt(18), NAVY)
+    center_text(d, "Slack receiver", 1420, 480, fnt(18), NAVY)
     d = ImageDraw.Draw(img)
     arrow_h(d, 300, 320, 350, NAVY)
     arrow_h(d, 300, 520, 350, NAVY)
@@ -502,9 +502,9 @@ def make_tech_stack_v2():
             RED,
             SOFT_RED,
             [
-                ("grafana", "Prom · Grafana"),
-                ("tempo", "Tempo · OTel"),
-                ("alertmanager", "Alert · Slack"),
+                ("cloudwatch", "Prom rules"),
+                ("tempo", "Tempo · OTLP"),
+                ("alertmanager", "Alert config"),
             ],
         ),
     ]
