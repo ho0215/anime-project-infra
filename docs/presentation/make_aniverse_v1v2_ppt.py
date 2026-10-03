@@ -142,11 +142,16 @@ def footer(slide, n):
     r = p.add_run()
     r.text = "Aniverse  ·  Architecture V1 → V2"
     font(r, 13, False, GRAY)
-    num = slide.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
+    # 두 자리 페이지 번호도 LibreOffice 렌더링에서 잘리지 않도록
+    # 오른쪽 여백과 텍스트 상자 폭을 넉넉하게 확보한다.
+    num = slide.shapes.add_textbox(Inches(9.25), Inches(7.15), Inches(3.5), Inches(0.28))
+    num.text_frame.word_wrap = False
+    num.text_frame.margin_left = 0
+    num.text_frame.margin_right = 0
     p = num.text_frame.paragraphs[0]
     r = p.add_run()
     r.text = f"{n} / {TOTAL}"
-    font(r, 13, True, BLUE)
+    font(r, 12, True, BLUE)
     p.alignment = PP_ALIGN.RIGHT
 
 
@@ -294,7 +299,7 @@ def slide_v2_def(prs):
         (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고, ALB 앞 WAF에서 공격 요청과 과도한 요청을 걸러냅니다."),
         (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
         (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
-        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo로 메트릭·로그·트레이스를 확인합니다."),
+        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo 데이터를 Grafana에서 확인했습니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -357,8 +362,8 @@ def slide_v2_detail_2(prs):
             "계정 접근이 제한되어 복구가 어려웠을 때 팀원 계정으로 이관하며 SSO·OIDC 기반으로 전환했습니다.",
         ),
         (
-            "WAF로 ALB 앞단 보호",
-            "관리형 웹 공격·악성 입력·SQLi 규칙과 IP별 5분 2,000회 요청 제한을 적용했습니다. 글쓰기 BODY 규칙은 오탐 방지를 위해 Count합니다.",
+            "WAF ACL과 ALB 연동 로직 구성",
+            "Terraform으로 관리형 웹 공격·SQLi 규칙과 IP별 5분 2,000회 제한을 구성했습니다. 글쓰기 BODY 규칙은 오탐 방지를 위해 Count하며, 실제 Web ACL 연결은 배포 후 확인 항목입니다.",
         ),
         (
             "클러스터를 지워도 도메인은 유지",
@@ -391,7 +396,7 @@ def slide_verify(prs):
         ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
         ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
         ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),
-        ("관측", "메트릭·로그·트레이스 조회", "Prom · Loki · Tempo", "확인"),
+        ("관측", "메트릭·로그·트레이스 조회", "Grafana · Loki · Tempo", "확인"),
         ("알림", "AlertManager 알림 수신", "Slack 채널", "확인"),
     ]
     for i, (t, check, method, result) in enumerate(items):
@@ -479,7 +484,7 @@ def slide_load_trace(prs):
             "확인한 성과",
             [
                 "HPA로 web 파드 2 → 4 확장 확인",
-                "Tempo/OTel로 요청 구간 수집·조회",
+                "Tempo/Grafana 실제 요청 트레이스 조회",
                 "AlertManager → Slack 알림 수신",
             ],
         ),
@@ -487,16 +492,16 @@ def slide_load_trace(prs):
             ORANGE,
             "발견한 병목",
             [
-                "/works/ 응답 최대 약 2.91초",
-                "Tempo 트레이스로 구간 병목 위치 확인",
-                "WAF RateLimit에 걸려 차단된 구간도 확인",
+                "/works/ 응답 최대 약 2.91초 (팀 측정)",
+                "Tempo 트레이스로 병목 구간 확인",
+                "ASGI extra 보완 후 실제 trace 확인",
             ],
         ),
         (
             RED,
             "남은 과제",
             [
-                "Redis TimeoutError는 미해결",
+                "Redis TimeoutError 수정 후 재검증",
                 "병목 구간 쿼리·캐시 최적화",
                 "부하 시나리오와 WAF 한도 정합",
             ],
@@ -650,7 +655,7 @@ def slide_qa(prs):
     )
     add_para(
         roles.text_frame,
-        "강유민 — 컴퓨트 · 트래픽 (노드 · ALB 연동)",
+        "강유민 — 창작마당 · Compute 파트",
         16,
         False,
         RGBColor(226, 232, 240),

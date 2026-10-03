@@ -212,7 +212,7 @@ def agenda(prs):
         ("02", "아키텍처 v1 · v2 · 왜 EKS"),
         ("03", "랩 → EKS 경로 · 워크로드"),
         ("04", "GitOps · 데이터 백업/복구"),
-        ("05", "관측 (Prom / Grafana / Loki)"),
+        ("05", "관측 (Prom / Grafana / Loki / Tempo)"),
         ("06", "전환 이슈 · 계정 Block / 이관"),
         ("07", "Before / After · 다음"),
     ]
@@ -319,7 +319,7 @@ def data(prs):
 
 def observability(prs):
     s = blank(prs)
-    header(s, "5. 관측", "완료: Prom+Grafana · Loki/Alloy  —  예정: AlertManager · Tempo/OTel")
+    header(s, "5. 관측", "운영 확인: Grafana 조회 · 실제 요청 trace · AlertManager Slack 알림")
     put_img(s, "hybrid_07_observability.png")
     footer(s, 12)
 
@@ -369,7 +369,7 @@ def issue_tech(prs):
 
 def issue_account(prs):
     s = blank(prs)
-    header(s, "6. 계정 Block → 이관", "표면은 start 실패 · 근본은 키 유출")
+    header(s, "6. 계정 접근 제한 → 이관", "정확한 원인은 미확정 · OIDC·SSO 기반으로 재구성")
     put_img(s, "hybrid_08_account.png")
     footer(s, 15)
 
@@ -392,7 +392,7 @@ def before_after(prs):
         "EKS + Argo CD",
         "DB Pod + PVC · SQL/CronJob 백업",
         "Actions → ECR → GitOps",
-        "Prom/Grafana · Loki 관측",
+        "Grafana · Loki · Tempo 관측",
     ]:
         add_para(right.text_frame, "·  " + line, 18, False, BODY, 18)
     footer(s, 16)

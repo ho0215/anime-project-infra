@@ -3,19 +3,19 @@
 발표 슬라이드에 옮기기 쉬운 요약본.  
 원본 상세: [troubleshooting-log.md](../troubleshooting-log.md)
 
-**스토리 한 줄:** 키 유출로 구계정 Block → 신계정으로 이관 → ARN/인증서/시크릿/Argo 설정이 연쇄로 깨짐 → 하나씩 원인 고정.
+**스토리 한 줄:** 구계정 접근 제한 → 신계정으로 이관 → ARN/인증서/시크릿/Argo 설정이 연쇄로 깨짐 → 하나씩 복구.
 
 | | 구계정 | 신계정 |
 |--|--------|--------|
 | Account | `679583587966` | `841535407395` |
-| 계기 | `iac-admin` Access Key 유출 → Block | 운영 이전 |
+| 계기 | 계정 접근 제한 (원인 미확정) | 운영 이전 |
 
 ---
 
-## 슬라이드 A — 계정 Block (보안)
+## 슬라이드 A — 계정 접근 제한
 
 ### 제목
-표면은 `EKS start` 실패, 근본은 **Access Key 유출**
+`EKS start` 실패로 시작된 계정 접근 제한
 
 ### 증상 (1줄)
 Actions·콘솔 모두 `StartInstances` → **`Blocked`**
@@ -23,26 +23,26 @@ Actions·콘솔 모두 `StartInstances` → **`Blocked`**
 ### 잘못된 첫인상
 「GitHub Actions / start 스크립트 버그」
 
-### 실제 원인
-- `iac-admin` **장기 Access Key**가 GitHub `.env` 등에 노출
-- 도용 계정으로 **무단 `RunInstances`** (NAT AMI가 아닌 AMI)
-- AWS가 계정 제한 → EC2/NAT/워커 start 불가
+### 확인된 범위
+- Actions뿐 아니라 콘솔에서도 인스턴스 시작이 제한됨
+- 제한의 정확한 원인은 최종 확정하지 않음
+- 복구 일정 때문에 다른 팀원 계정으로 이관
 
 ### 교훈 (PPT bullet)
-1. **표면 로그 ≠ 근본 원인** (Blocked ≠ Terraform 문법 오류)
-2. 장기 Access Key 금지 → **GitHub OIDC**
+1. **표면 로그만으로 원인을 단정하지 않음**
+2. 재발 방지를 위해 장기 Access Key 대신 **GitHub OIDC·SSO**
 3. `.env` / 깃에 키 금지 · MFA · Budgets
-4. Support Resolved여도 제한 남을 수 있음 → 전담 에스컬레이션
+4. 계정 이관 시 ARN·인증서·레지스트리·권한을 모두 재검증
 
 ### 한 장 도식 (말풍선)
 ```
-.env에 iac-admin 키 노출
+  계정 접근 제한
         ↓
-  무단 RunInstances (CloudTrail)
+ Actions·콘솔에서 start 실패
         ↓
-   AWS Account Blocked
+  정확한 원인은 미확정
         ↓
-  StartInstances 전부 실패  ←── 우리가 본 증상
+ 신계정 이관 + Zero-Key 전환
 ```
 
 ---
@@ -51,7 +51,7 @@ Actions·콘솔 모두 `StartInstances` → **`Blocked`**
 
 | Before | After |
 |--------|--------|
-| 구계정 Block으로 컴퓨트 기동 불가 | 신계정 `841535407395` 에 EKS·OIDC·ACM 재구축 |
+| 구계정 접근 제한으로 컴퓨트 기동 불가 | 신계정 `841535407395` 에 EKS·OIDC·ACM 재구축 |
 | 포트폴리오/실습 일정 리스크 | GitOps(Argo)·Actions 경로 유지 |
 
 **이관 ≠ 복사:** 리소스 ARN·레지스트리·DNS·IAM이 **전부 새 ID**.  
@@ -145,7 +145,7 @@ ALB Controller가 ADDRESS를 못 만듦
 - [ ] (선택) DB dump main + Verify · media sync
 
 **한 줄 마무리 멘트 예시**  
-“계정 Block은 키가 원인이다. 이관 후에는 ARN을 안 고치면 Block과 다른 증상으로 같은 서비스가 또 죽는다.”
+“접근 제한의 정확한 원인은 확정하지 않았습니다. 대신 재발 방지를 위해 장기 키 없는 구조로 바꾸고, 이관 후 모든 ARN과 권한을 다시 검증했습니다.”
 
 ---
 

@@ -20,7 +20,7 @@
 | 7 | Architecture V2 · 배포와 데이터 | 3행 | DB Pod · sha 태그 · 시드 |
 | 8 | Architecture V2 · 보안과 DNS | 3행 | Zero-Key(OIDC·SSO) · WAF · DNS · 이관 한 줄 |
 | 9 | 기능 · 운영 검증 기준 | 6카드 | 확인/구성 기준 설명 |
-| 10 | 기술 스택 · V2 | **이미지** | Tempo/Grafana/Alert/ESO |
+| 10 | 기술 스택 · V2 | **이미지** | Prom/Grafana/Tempo/Alert/ESO |
 | 11 | 데이터 흐름 · V2 | **이미지** | `hybrid_10_data_flow.png` |
 | 12 | 앞으로 보완할 점 | 2열 | 트레이싱은 성과로 이동 · 발표·시연 칸 제거 |
 | 13 | 부하테스트 · 트레이싱 | 3열 | HPA 2→4 · /works 병목 · Redis Timeout |
@@ -45,9 +45,9 @@
 - 완성도: 런북 · 이관 체크리스트 · /works 병목·Redis Timeout 해소
 
 ### 13. 부하 · 트레이싱
-- 성과: HPA 2→4, Tempo/OTel 수집, Slack 알림
-- 병목: /works 최대 ~2.91초, WAF RateLimit 차단 확인
-- 과제: Redis TimeoutError 미해결
+- 확인: HPA 2→4, Grafana에서 실제 요청 trace 조회, AlertManager Slack 알림 수신
+- 발견: /works 최대 ~2.91초(팀 측정), Tempo 병목 구간, ASGI extra 누락 보완
+- 과제: Redis TimeoutError 수정 후 재검증
 
 ### 15. 트러블슈팅 · EKS (서이)
 - HPA replicas 충돌 (9/15)
@@ -56,7 +56,8 @@
 
 ### 17. 일정
 - 9/29 EKS: RBAC 설정
-- DB·관측: 9/18 백업·Loki, 9/28 OTel·Tempo·AlertManager, 9/29 안티어피니티, 10/1 부하테스트
+- DB·관측: 9/18 백업 IRSA, 9/21 Loki·Alloy·Alert·Tempo 설정, 9/23 DB dump·Slack
+- 성능·추적: 9/28 OTel·안티어피니티, 9/29 Tempo 배포·파드 분산, 10/1 부하테스트·ASGI trace
 
 ---
 
