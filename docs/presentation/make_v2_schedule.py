@@ -179,7 +179,7 @@ def main():
                 centered(draw, (left, top, left + col_w, top + row_h), value, font(28), "#CBD5E1")
 
     draw.text((55, 1305), "Aniverse  ·  Architecture V1 → V2", font=font(18), fill=MUTED)
-    page = "17 / 18"
+    page = "3 / 19"
     page_box = draw.textbbox((0, 0), page, font=font(18, True))
     draw.text((2345 - (page_box[2] - page_box[0]), 1305), page, font=font(18, True), fill="#2563EB")
 
