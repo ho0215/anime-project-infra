@@ -20,11 +20,11 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 | 10 | 기술 스택 | Argo 아이콘 · Tempo/Grafana/Alert · TF·IRSA·ESO |
 | 11 | 데이터 흐름 | PVC vs S3 · 시드(Git SQL) / 주기 백업(S3) 경로 |
 | 12 | 앞으로 보완할 점 | 트레이싱은 성과로 이동 · 발표·시연 칸 삭제 |
-| 13 | 부하 · 트레이싱 | HPA 2→4 · /works 병목 · Redis Timeout |
+| 13 | 부하 · 트레이싱 | HPA 2→4 · /works 병목 · Redis Timeout 재검증 |
 | 14 | 트러블슈팅 · GitOps·CI/CD | 현우 |
 | 15 | 트러블슈팅 · EKS | 서이 |
 | 16 | 트러블슈팅 · DB·관측 | 윤주 |
-| 17 | V2 일정 | 9/29 RBAC · DB·관측 일정 보강 |
+| 17 | V2 일정 | 실제 커밋 날짜에 맞춘 DB·관측·추적 일정 |
 | 18 | Q & A | 팀 역할 한 줄 |
 
 ## 8장 발표 멘트
@@ -37,6 +37,14 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 
 ## 13–16장 발표 멘트
 
+**13장 · 부하테스트·트레이싱** — 부하테스트에서 web 파드가 2개에서 4개로 늘어나는 것을 확인했습니다. `/works/` 응답은 최대 약 2.91초로 가장 느렸고, ASGI 계측 패키지를 보완한 뒤 Tempo에서 실제 요청 트레이스를 확인했습니다. Redis TimeoutError는 의존성 버전을 조정했으며 같은 부하 조건에서 재검증이 남아 있습니다.
 **14장 · 현우** — 중지 검증, Argo Missing(SSA), 시드 행 검증  
 **15장 · 서이** — HPA replicas 충돌, Terraform 생성 순서, DB 비밀번호 로테이션  
 **16장 · 윤주** — 백업 0바이트, Alloy max-pods, Slack 웹훅
+
+## 18장 팀 역할
+
+- 김현우 — GitOps·CI/CD
+- 박서이 — EKS·네트워크·보안
+- 김윤주 — 컨테이너·DB·관측
+- 강유민 — 서비스 UI·콘텐츠

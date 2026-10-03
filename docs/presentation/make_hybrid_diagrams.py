@@ -424,11 +424,11 @@ def make_observability():
 def make_account():
     img = Image.new("RGBA", (W, H), BG + (255,))
     steps = [
-        (40, RED, SOFT_RED, "secrets", "1. Key leak", ".env Access Key"),
-        (350, ORANGE, SOFT_ORANGE, "ec2", "2. Abuse", "RunInstances"),
-        (660, RED, SOFT_RED, "firewall", "3. Blocked", "StartInstances"),
+        (40, RED, SOFT_RED, "firewall", "1. Access limited", "원인 미확정"),
+        (350, ORANGE, SOFT_ORANGE, "ec2", "2. Start failed", "Actions / Console"),
+        (660, RED, SOFT_RED, "iam", "3. Migration", "복구 일정 확보"),
         (970, TEAL, SOFT_TEAL, "iam", "4. New account", "8415…"),
-        (1280, GREEN, SOFT_GREEN, "terraform", "5. Checklist", "ECR ACM OIDC"),
+        (1280, GREEN, SOFT_GREEN, "terraform", "5. Zero-Key", "OIDC / SSO"),
     ]
     for x, color, bg, icon, title, sub in steps:
         tile(img, x, 140, 280, 420, icon, title, sub, color, bg, 68)
@@ -439,7 +439,7 @@ def make_account():
     d = ImageDraw.Draw(img)
     d.text(
         (70, 710),
-        "표면: start 실패   |   근본: 장기 키 유출   |   이관 후 ARN 전수 교체 (ECR / ACM / OIDC / Secret)",
+        "확인: Actions·콘솔 start 실패   |   원인: 미확정   |   대응: 신계정 이관 + OIDC·SSO + ARN 전수 교체",
         font=fnt(18),
         fill=NAVY,
     )

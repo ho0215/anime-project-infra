@@ -369,7 +369,7 @@ def issue_tech(prs):
 
 def issue_account(prs):
     s = blank(prs)
-    header(s, "6. 계정 Block → 이관", "표면은 start 실패 · 근본은 키 유출")
+    header(s, "6. 계정 접근 제한 → 이관", "정확한 원인은 미확정 · OIDC·SSO 기반으로 재구성")
     put_img(s, "hybrid_08_account.png")
     footer(s, 15)
 

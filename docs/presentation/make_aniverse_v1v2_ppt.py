@@ -142,7 +142,9 @@ def footer(slide, n):
     r = p.add_run()
     r.text = "Aniverse  ·  Architecture V1 → V2"
     font(r, 13, False, GRAY)
-    num = slide.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
+    # 두 자리 페이지 번호도 LibreOffice 렌더링에서 잘리지 않도록
+    # 오른쪽 여백과 텍스트 상자 폭을 넉넉하게 확보한다.
+    num = slide.shapes.add_textbox(Inches(10.75), Inches(7.15), Inches(2.0), Inches(0.28))
     p = num.text_frame.paragraphs[0]
     r = p.add_run()
     r.text = f"{n} / {TOTAL}"
@@ -489,14 +491,14 @@ def slide_load_trace(prs):
             [
                 "/works/ 응답 최대 약 2.91초",
                 "Tempo 트레이스로 구간 병목 위치 확인",
-                "WAF RateLimit에 걸려 차단된 구간도 확인",
+                "ASGI 계측 보완 후 실제 요청 트레이스 확인",
             ],
         ),
         (
             RED,
             "남은 과제",
             [
-                "Redis TimeoutError는 미해결",
+                "Redis TimeoutError 수정 후 재검증",
                 "병목 구간 쿼리·캐시 최적화",
                 "부하 시나리오와 WAF 한도 정합",
             ],
@@ -650,7 +652,7 @@ def slide_qa(prs):
     )
     add_para(
         roles.text_frame,
-        "강유민 — 컴퓨트 · 트래픽 (노드 · ALB 연동)",
+        "강유민 — 서비스 UI · 콘텐츠 (커뮤니티 · 장터 · 창작)",
         16,
         False,
         RGBColor(226, 232, 240),
