@@ -627,11 +627,67 @@ def slide_schedule(prs):
 
 
 def slide_roles(prs):
-    """팀 역할분담 — Q&A에서 분리한 전용 장."""
+    """팀 역할분담 — PPT에서 텍스트 직접 수정 가능한 카드 구성."""
     s = blank(prs)
     bg(s)
     title_center(s, "팀 역할분담", size=34)
-    put_img(s, "hybrid_00_roles.png", top=Inches(0.95), bottom=Inches(7.05))
+    roles = [
+        (
+            ORANGE,
+            "김현우",
+            "DevOps / GitOps",
+            [
+                "Actions · ECR",
+                "Argo CD",
+                "OIDC · 이관 복구",
+            ],
+        ),
+        (
+            CYAN,
+            "박서이",
+            "EKS · 네트워크 · 보안",
+            [
+                "EKS · VPC",
+                "Ingress · WAF · RBAC",
+                "노드 · NAT",
+            ],
+        ),
+        (
+            TEAL,
+            "김윤주",
+            "컨테이너 · DB · 관측",
+            [
+                "Docker · Helm",
+                "DB Pod · Backup",
+                "Tempo · Alert",
+            ],
+        ),
+        (
+            PURPLE,
+            "강유민",
+            "창작마당 · Compute",
+            [
+                "창작마당",
+                "노드 운영",
+                "ALB · 트래픽",
+            ],
+        ),
+    ]
+    for i, (color, name, area, lines) in enumerate(roles):
+        x = Inches(0.35) + i * Inches(3.25)
+        head = card(s, x, Inches(1.15), Inches(3.05), Inches(1.35), color)
+        set_text(head.text_frame, name, 24, True, WHITE, PP_ALIGN.CENTER)
+        add_para(head.text_frame, area, 13, False, WHITE, 6, PP_ALIGN.CENTER)
+        body = card(s, x, Inches(2.65), Inches(3.05), Inches(4.0), LIGHT)
+        body.text_frame.clear()
+        pad(body.text_frame)
+        first = True
+        for line in lines:
+            if first:
+                set_text(body.text_frame, "·  " + line, 16, False, NAVY, PP_ALIGN.CENTER)
+                first = False
+            else:
+                add_para(body.text_frame, "·  " + line, 16, False, NAVY, 18, PP_ALIGN.CENTER)
     footer(s, 19)
 
 
