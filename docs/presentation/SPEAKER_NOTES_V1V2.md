@@ -1,10 +1,10 @@
-# Aniverse V1→V2 발표 대본 (작업 기준본 · 19장)
+# Aniverse V1→V2 발표 대본 (작업 기준본 · 20장)
 
 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`  
 내용 문서: `CONTENT_V1V2_working.md`  
 생성: `python3 make_hybrid_diagrams.py` → `python3 make_v2_schedule.py` → `python3 make_aniverse_v1v2_ppt.py`
 
-## 19장 구성
+## 20장 구성
 
 | # | 슬라이드 | 멘트 |
 |---|----------|------|
@@ -26,7 +26,8 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 | 16 | GitOps 트러블슈팅 | 중지·Argo Missing·DB 시드 검증 문제를 해결한 과정입니다. |
 | 17 | EKS 트러블슈팅 | HPA 충돌·Terraform 순서·DB 비밀번호 문제를 해결했습니다. |
 | 18 | DB·관측 트러블슈팅 | 백업 0바이트·파드 한도·Slack 연동 문제를 해결했습니다. |
-| 19 | Q & A | 이상으로 발표를 마치겠습니다. 질문 부탁드립니다. |
+| 19 | 팀 역할분담 | 현우 GitOps · 서이 EKS/보안 · 윤주 DB/관측 · 유민 창작마당/Compute |
+| 20 | Q & A | 이상으로 발표를 마치겠습니다. 질문 부탁드립니다. |
 
 ## 10장 발표 멘트
 

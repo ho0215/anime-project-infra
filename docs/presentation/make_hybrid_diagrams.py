@@ -98,20 +98,30 @@ def center_text(draw, text, cx, cy, font, fill=NAVY):
 
 
 def tile(img, x, y, w, h, icon, title, sub, border=CYAN, bg=SOFT_BLUE, icon_size=56):
-    """아이콘·제목·부제 — 타일 세로 중앙(약간 아래) 배치."""
+    """아이콘·제목·부제 — 부제가 타일 바닥에 붙거나 잘리지 않게 배치."""
     soft_card(img, (x, y, x + w, y + h), r=16, fill=bg)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((x, y, x + w, y + h), radius=16, outline=border, width=3)
 
     has_sub = bool(sub)
-    title_f = fnt(18 if h < 160 else 20, True)
-    sub_f = fnt(14 if h < 160 else 16)
-    gap = 12 if h < 180 else 16
-    title_h = 24
-    sub_h = 20 if has_sub else 0
-    stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
-    # slightly below geometric center so icons don't sit too high
-    top = y + max(14, int((h - stack) * 0.48))
+    title_f = fnt(16 if h < 140 else (18 if h < 160 else 20), True)
+    sub_f = fnt(13 if h < 140 else (14 if h < 160 else 16))
+    gap = 8 if h < 140 else (10 if h < 150 else (12 if h < 180 else 16))
+    title_h = 20 if h < 140 else (22 if h < 150 else 24)
+    sub_h = 16 if has_sub and h < 140 else (18 if has_sub and h < 150 else (20 if has_sub else 0))
+    bottom_pad = 18 if h < 160 else 16
+    top_pad = 8 if h < 140 else 10
+
+    while True:
+        stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
+        if stack + top_pad + bottom_pad <= h or icon_size <= 28:
+            break
+        icon_size -= 2
+
+    free = h - stack
+    max_top = max(0, free - bottom_pad)
+    ideal_top = free // 2
+    top = y + max(min(top_pad, max_top), min(ideal_top, max_top))
 
     paste_icon(img, icon, x + w // 2, top + icon_size // 2, icon_size)
     ty = top + icon_size + gap + title_h // 2
@@ -163,8 +173,8 @@ def make_arch_v1():
     d.text((1080, 322), "Private DB", font=fnt(16, True), fill=PURPLE)
     tile(img, 1090, 430, 210, 230, "rds_maria", "RDS MariaDB", "Primary DB", PURPLE, WHITE, 64)
 
-    tile(img, 1360, 380, 180, 140, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
-    tile(img, 1360, 540, 180, 130, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 48)
+    tile(img, 1360, 370, 180, 145, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
+    tile(img, 1360, 530, 180, 155, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 44)
 
     d = ImageDraw.Draw(img)
     arrow_h(d, 220, 145, 260, NAVY)
@@ -233,10 +243,10 @@ def make_arch_v2():
     soft_card(img, (1125, 330, 1560, 675), r=18, fill=WHITE, shadow=False)
     d.rounded_rectangle((1125, 330, 1560, 675), radius=18, outline=ORANGE, width=3)
     d.text((1145, 345), "운영 서비스", font=fnt(18, True), fill=ORANGE)
-    tile(img, 1145, 380, 185, 125, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 38)
-    tile(img, 1350, 380, 185, 125, "secrets", "ESO", "Secrets Manager", GREEN, SOFT_GREEN, 38)
-    tile(img, 1145, 525, 185, 125, "s3", "S3", "media · backup", ORANGE, SOFT_ORANGE, 38)
-    tile(img, 1350, 525, 185, 125, "grafana", "Observability", "Grafana · Loki · Tempo", RED, SOFT_RED, 38)
+    tile(img, 1145, 375, 185, 135, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 36)
+    tile(img, 1350, 375, 185, 135, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 36)
+    tile(img, 1145, 520, 185, 135, "s3", "S3", "media · backup", ORANGE, SOFT_ORANGE, 36)
+    tile(img, 1350, 520, 185, 135, "grafana", "Observability", "Grafana · Tempo", RED, SOFT_RED, 36)
 
     soft_card(img, (40, 700, 1560, 870), r=14, fill=SOFT_GREEN, shadow=False)
     d = ImageDraw.Draw(img)
@@ -323,10 +333,42 @@ def make_db_architecture():
 def make_roles():
     img = Image.new("RGBA", (W, H), BG + (255,))
     panels = [
-        (50, CYAN, SOFT_BLUE, "Network / Compute", "서이 등", ["EKS · VPC", "Ingress / ALB", "노드 · NAT"], "vpc"),
-        (420, TEAL, SOFT_TEAL, "Container / DB / Observability", "윤주", ["Docker · Helm", "DB Pod · Backup", "Prom / Grafana / Loki"], "rds_maria"),
-        (790, ORANGE, SOFT_ORANGE, "DevOps / GitOps", "현우", ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"], "githubactions"),
-        (1160, PURPLE, SOFT_PURPLE, "App / Product", "팀", ["Aniverse 서비스", "장터 · 창작", "커뮤니티"], "django"),
+        (
+            50,
+            ORANGE,
+            SOFT_ORANGE,
+            "DevOps / GitOps",
+            "김현우",
+            ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"],
+            "githubactions",
+        ),
+        (
+            420,
+            CYAN,
+            SOFT_BLUE,
+            "EKS · 네트워크 · 보안",
+            "박서이",
+            ["EKS · VPC", "Ingress · WAF · RBAC", "노드 · NAT"],
+            "vpc",
+        ),
+        (
+            790,
+            TEAL,
+            SOFT_TEAL,
+            "컨테이너 · DB · 관측",
+            "김윤주",
+            ["Docker · Helm", "DB Pod · Backup", "Tempo · Alert"],
+            "rds_maria",
+        ),
+        (
+            1160,
+            PURPLE,
+            SOFT_PURPLE,
+            "창작마당 · Compute",
+            "강유민",
+            ["창작마당", "노드 운영", "ALB · 트래픽"],
+            "alb",
+        ),
     ]
     for x, color, bg, title, who, lines, icon in panels:
         y0, y1 = 60, 840
@@ -335,13 +377,12 @@ def make_roles():
         d.rounded_rectangle((x, y0, x + 350, y1), radius=20, outline=color, width=4)
         icon_size = 88
         block_h = icon_size + 55 + 45 + 55 + 3 * 78
-        # lower half of panel
         top = y0 + int((y1 - y0 - block_h) * 0.72)
         paste_icon(img, icon, x + 175, top + icon_size // 2, icon_size)
-        center_text(d, title, x + 175, top + icon_size + 42, fnt(19, True), color)
+        center_text(d, title, x + 175, top + icon_size + 42, fnt(18, True), color)
         center_text(d, who, x + 175, top + icon_size + 100, fnt(32, True), NAVY)
         for i, line in enumerate(lines):
-            center_text(d, "· " + line, x + 175, top + icon_size + 185 + i * 78, fnt(24), NAVY)
+            center_text(d, "· " + line, x + 175, top + icon_size + 185 + i * 78, fnt(22), NAVY)
     save(img, "hybrid_00_roles.png")
 
 

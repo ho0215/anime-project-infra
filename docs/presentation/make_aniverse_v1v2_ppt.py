@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 19
+TOTAL = 20
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -626,60 +626,40 @@ def slide_schedule(prs):
     s.shapes.add_picture(str(path), Inches(0), Inches(0), width=Inches(SW), height=Inches(SH))
 
 
+def slide_roles(prs):
+    """팀 역할분담 — Q&A에서 분리한 전용 장."""
+    s = blank(prs)
+    bg(s)
+    title_center(s, "팀 역할분담", size=34)
+    put_img(s, "hybrid_00_roles.png", top=Inches(0.95), bottom=Inches(7.05))
+    footer(s, 19)
+
+
 def slide_qa(prs):
     s = blank(prs)
     bg(s, NAVY)
-    box = s.shapes.add_textbox(Inches(0.8), Inches(2.0), Inches(11.7), Inches(1.2))
+    box = s.shapes.add_textbox(Inches(0.8), Inches(2.4), Inches(11.7), Inches(1.2))
     set_text(box.text_frame, "Q & A", 54, True, WHITE, PP_ALIGN.CENTER)
-    sub = s.shapes.add_textbox(Inches(0.8), Inches(3.3), Inches(11.7), Inches(0.5))
+    sub = s.shapes.add_textbox(Inches(0.8), Inches(3.8), Inches(11.7), Inches(0.6))
     set_text(
         sub.text_frame,
         "감사합니다  ·  Aniverse Architecture V1 → V2",
-        20,
+        22,
         False,
         RGBColor(191, 219, 254),
         PP_ALIGN.CENTER,
     )
-    roles = s.shapes.add_textbox(Inches(1.2), Inches(4.3), Inches(10.9), Inches(1.8))
-    set_text(roles.text_frame, "팀 역할", 18, True, WHITE, PP_ALIGN.CENTER)
-    add_para(
-        roles.text_frame,
-        "김현우 — GitOps · CI/CD (Actions · Argo · OIDC)",
-        16,
+    team = s.shapes.add_textbox(Inches(0.8), Inches(4.8), Inches(11.7), Inches(0.5))
+    set_text(
+        team.text_frame,
+        "김현우  ·  박서이  ·  김윤주  ·  강유민",
+        18,
         False,
         RGBColor(226, 232, 240),
-        10,
-        PP_ALIGN.CENTER,
-    )
-    add_para(
-        roles.text_frame,
-        "박서이 — EKS · 네트워크 · 보안 (Ingress · WAF · RBAC)",
-        16,
-        False,
-        RGBColor(226, 232, 240),
-        6,
-        PP_ALIGN.CENTER,
-    )
-    add_para(
-        roles.text_frame,
-        "김윤주 — 컨테이너 · DB · 관측 (Helm · Tempo · Alert)",
-        16,
-        False,
-        RGBColor(226, 232, 240),
-        6,
-        PP_ALIGN.CENTER,
-    )
-    add_para(
-        roles.text_frame,
-        "강유민 — 창작마당 · Compute 파트",
-        16,
-        False,
-        RGBColor(226, 232, 240),
-        6,
         PP_ALIGN.CENTER,
     )
     num = s.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
-    set_text(num.text_frame, f"19 / {TOTAL}", 12, False, RGBColor(148, 163, 184), PP_ALIGN.RIGHT)
+    set_text(num.text_frame, f"20 / {TOTAL}", 12, False, RGBColor(148, 163, 184), PP_ALIGN.RIGHT)
 
 
 def main():
@@ -705,6 +685,7 @@ def main():
     slide_trouble_gitops(prs)
     slide_trouble_eks(prs)
     slide_trouble_observe(prs)
+    slide_roles(prs)
     slide_qa(prs)
 
     out = next_path()
