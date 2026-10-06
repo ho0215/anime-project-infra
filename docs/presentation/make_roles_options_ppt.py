@@ -167,16 +167,33 @@ def option_b(prs):
 
 
 def option_c(prs):
-    """2×2 그리드."""
+    """2×2 그리드 + 아이콘."""
     s = blank(prs)
     bg(s)
-    title_bar(s, "C", "2×2 그리드")
-    positions = [(0.55, 1.2), (6.9, 1.2), (0.55, 4.15), (6.9, 4.15)]
-    for (x, y), (color, name, area, lines) in zip(positions, ROLES):
-        c = card(s, Inches(x), Inches(y), Inches(5.9), Inches(2.7), SOFT, color)
-        set_text(c.text_frame, name, 26, True, color)
-        add_para(c.text_frame, area, 15, True, NAVY, 8)
-        add_para(c.text_frame, "  ·  ".join(lines), 16, False, SLATE, 12)
+    title_bar(s, "C", "2×2 그리드 + 아이콘")
+    icons = ["githubactions", "vpc", "rds_maria", "alb"]
+    positions = [(0.45, 1.15), (6.85, 1.15), (0.45, 4.1), (6.85, 4.1)]
+    icon_dir = BASE / "images" / "icons"
+    for (x, y), (color, name, area, lines), icon in zip(positions, ROLES, icons):
+        card(s, Inches(x), Inches(y), Inches(6.0), Inches(2.7), SOFT, color)
+        icon_path = icon_dir / f"{icon}.png"
+        if icon_path.exists():
+            s.shapes.add_picture(
+                str(icon_path),
+                Inches(x + 0.28),
+                Inches(y + 0.55),
+                width=Inches(0.85),
+                height=Inches(0.85),
+            )
+        text_x = Inches(x + 1.35)
+        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.22), Inches(4.4), Inches(0.5))
+        set_text(name_box.text_frame, name, 26, True, color)
+        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.75), Inches(4.4), Inches(0.4))
+        set_text(area_box.text_frame, area, 15, True, NAVY)
+        detail = s.shapes.add_textbox(text_x, Inches(y + 1.3), Inches(4.4), Inches(1.2))
+        set_text(detail.text_frame, "·  " + lines[0], 16, False, NAVY)
+        for line in lines[1:]:
+            add_para(detail.text_frame, "·  " + line, 16, False, NAVY, 8)
     footer(s, "C")
 
 
