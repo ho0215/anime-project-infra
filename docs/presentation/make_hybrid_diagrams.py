@@ -98,21 +98,31 @@ def center_text(draw, text, cx, cy, font, fill=NAVY):
 
 
 def tile(img, x, y, w, h, icon, title, sub, border=CYAN, bg=SOFT_BLUE, icon_size=56):
-    """아이콘·제목·부제 — 타일 세로 중앙(약간 아래) 배치."""
+    """아이콘·제목·부제 — 부제가 타일 바닥에 붙거나 잘리지 않게 배치."""
     soft_card(img, (x, y, x + w, y + h), r=16, fill=bg)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((x, y, x + w, y + h), radius=16, outline=border, width=3)
 
     has_sub = bool(sub)
-    title_f = fnt(18 if h < 160 else 20, True)
-    sub_f = fnt(14 if h < 160 else 16)
-    gap = 10 if h < 150 else (12 if h < 180 else 16)
-    title_h = 22 if h < 150 else 24
-    sub_h = 18 if has_sub and h < 150 else (20 if has_sub else 0)
-    stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
-    # keep bottom padding so subtitle (e.g. Manager) doesn't sit on the border
-    bottom_pad = 14 if h < 150 else 12
-    top = y + max(10, min(int((h - stack) * 0.35), h - stack - bottom_pad))
+    title_f = fnt(16 if h < 140 else (18 if h < 160 else 20), True)
+    sub_f = fnt(13 if h < 140 else (14 if h < 160 else 16))
+    gap = 8 if h < 140 else (10 if h < 150 else (12 if h < 180 else 16))
+    title_h = 20 if h < 140 else (22 if h < 150 else 24)
+    sub_h = 16 if has_sub and h < 140 else (18 if has_sub and h < 150 else (20 if has_sub else 0))
+    bottom_pad = 18 if h < 160 else 16
+    top_pad = 8 if h < 140 else 10
+
+    # 아이콘이 너무 크면 줄여서 하단 여백 확보
+    while True:
+        stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
+        if stack + top_pad + bottom_pad <= h or icon_size <= 28:
+            break
+        icon_size -= 2
+
+    free = h - stack
+    max_top = max(0, free - bottom_pad)
+    ideal_top = free // 2
+    top = y + max(min(top_pad, max_top), min(ideal_top, max_top))
 
     paste_icon(img, icon, x + w // 2, top + icon_size // 2, icon_size)
     ty = top + icon_size + gap + title_h // 2
@@ -211,14 +221,14 @@ def make_arch_v2():
     d.text((90, 635), "web ↔ db (SQL)   |   db → PVC   |   photos → S3 (not in DB)", font=fnt(16), fill=NAVY)
 
     # GitOps: Actions → ECR → Argo → EKS (요약과 동일 화살표)
-    tile(img, 1140, 50, 145, 125, "githubactions", "Actions", "OIDC", CYAN, SOFT_BLUE, 44)
-    tile(img, 1390, 50, 145, 125, "s3", "ECR", "sha-*", ORANGE, SOFT_ORANGE, 44)
-    tile(img, 1140, 210, 395, 135, "argo", "Argo CD", "GitOps sync", TEAL, SOFT_TEAL, 52)
+    tile(img, 1140, 40, 145, 140, "githubactions", "Actions", "OIDC", CYAN, SOFT_BLUE, 40)
+    tile(img, 1390, 40, 145, 140, "s3", "ECR", "sha-*", ORANGE, SOFT_ORANGE, 40)
+    tile(img, 1140, 200, 395, 140, "argo", "Argo CD", "GitOps sync", TEAL, SOFT_TEAL, 48)
     # 보안·캐시 뱃지 (8장 Zero-Key / Redis와 그림 정합)
-    tile(img, 1140, 370, 190, 120, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 40)
-    tile(img, 1345, 370, 190, 120, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 40)
-    tile(img, 1140, 510, 190, 120, "iam", "OIDC·SSO", "Zero-Key", CYAN, SOFT_BLUE, 40)
-    tile(img, 1345, 510, 190, 120, "s3", "S3", "media/backup", ORANGE, SOFT_ORANGE, 40)
+    tile(img, 1140, 355, 190, 140, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 36)
+    tile(img, 1345, 355, 190, 140, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 36)
+    tile(img, 1140, 510, 190, 140, "iam", "OIDC·SSO", "Zero-Key", CYAN, SOFT_BLUE, 36)
+    tile(img, 1345, 510, 190, 140, "s3", "S3", "media/backup", ORANGE, SOFT_ORANGE, 36)
 
     d = ImageDraw.Draw(img)
     arrow_h(d, 200, 135, 230, NAVY)
@@ -228,12 +238,12 @@ def make_arch_v2():
     arrow_h(d, 300, 450, 330, NAVY)
     arrow_h(d, 560, 450, 590, NAVY)
     # Actions → ECR
-    arrow_h(d, 1285, 112, 1390, NAVY)
+    arrow_h(d, 1285, 110, 1390, NAVY)
     # ECR → Argo (아래로)
-    arrow_v(d, 1460, 175, 210, NAVY)
+    arrow_v(d, 1460, 180, 200, NAVY)
     # Argo 왼쪽 → EKS
-    d.line([(1140, 275), (1115, 275)], fill=NAVY, width=4)
-    d.polygon([(1098, 275), (1118, 263), (1118, 287)], fill=NAVY)
+    d.line([(1140, 270), (1115, 270)], fill=NAVY, width=4)
+    d.polygon([(1098, 270), (1118, 258), (1118, 282)], fill=NAVY)
 
     soft_card(img, (40, 730, 1560, 870), r=14, fill=SOFT_GREEN, shadow=False)
     d = ImageDraw.Draw(img)
@@ -270,9 +280,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 290, 780, 520), radius=16, outline=GREEN, width=3)
     d.text((60, 302), "2) destroy 후 시드 복구", font=fnt(20, True), fill=GREEN)
-    tile(img, 70, 350, 180, 145, "github", "GitHub", "aniverse_backup.sql", NAVY, WHITE, 48)
-    tile(img, 300, 350, 200, 145, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 48)
-    tile(img, 550, 350, 180, 145, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 48)
+    tile(img, 70, 350, 180, 155, "github", "GitHub", "backup.sql", NAVY, WHITE, 44)
+    tile(img, 300, 350, 200, 155, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 44)
+    tile(img, 550, 350, 180, 155, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 44)
     d = ImageDraw.Draw(img)
     arrow_h(d, 250, 420, 300, NAVY)
     arrow_h(d, 500, 420, 550, NAVY)
@@ -281,9 +291,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((820, 290, 1560, 520), radius=16, outline=ORANGE, width=3)
     d.text((840, 302), "3) 주기 백업 (CronJob)", font=fnt(20, True), fill=ORANGE)
-    tile(img, 860, 350, 180, 145, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 48)
-    tile(img, 1100, 350, 180, 145, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 48)
-    tile(img, 1340, 350, 180, 145, "s3", "S3", "db-backups/", ORANGE, WHITE, 48)
+    tile(img, 860, 350, 180, 155, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 44)
+    tile(img, 1100, 350, 180, 155, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 44)
+    tile(img, 1340, 350, 180, 155, "s3", "S3", "db-backups/", ORANGE, WHITE, 44)
     d = ImageDraw.Draw(img)
     arrow_h(d, 1040, 420, 1100, NAVY)
     arrow_h(d, 1280, 420, 1340, NAVY)
@@ -292,9 +302,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 540, 1560, 700), radius=16, outline=PURPLE, width=3)
     d.text((60, 555), "4) 사진/미디어 — DB가 아님", font=fnt(20, True), fill=PURPLE)
-    tile(img, 70, 595, 220, 85, "django", "web Pod", "", CYAN, WHITE, 36)
+    tile(img, 70, 590, 220, 100, "django", "web Pod", "", CYAN, WHITE, 36)
     d.text((320, 625), "upload  →", font=fnt(18), fill=NAVY)
-    tile(img, 450, 595, 240, 85, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 36)
+    tile(img, 450, 590, 240, 100, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 36)
     d.text((740, 625), "destroy 시 S3도 삭제 → Sync media 로 재업로드", font=fnt(17), fill=RED)
 
     soft_card(img, (40, 720, 1560, 870), r=14, fill=SOFT_RED, shadow=False)
@@ -586,9 +596,9 @@ def make_data_flow_v2():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 620, 1560, 870), radius=16, outline=PURPLE, width=3)
     d.text((60, 638), "4) 사진 / 미디어 — DB가 아님", font=fnt(22, True), fill=PURPLE)
-    tile(img, 70, 690, 260, 145, "django", "web Pod", "upload", CYAN, WHITE, 52)
-    d.text((370, 750), "→", font=fnt(28, True), fill=NAVY)
-    tile(img, 420, 690, 300, 145, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 52)
+    tile(img, 70, 690, 260, 155, "django", "web Pod", "upload", CYAN, WHITE, 48)
+    d.text((370, 755), "→", font=fnt(28, True), fill=NAVY)
+    tile(img, 420, 690, 300, 155, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 48)
     d.text(
         (760, 745),
         "destroy 시 S3도 삭제 → Sync media 로 재업로드",
