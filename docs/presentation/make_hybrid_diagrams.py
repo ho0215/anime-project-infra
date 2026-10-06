@@ -106,12 +106,13 @@ def tile(img, x, y, w, h, icon, title, sub, border=CYAN, bg=SOFT_BLUE, icon_size
     has_sub = bool(sub)
     title_f = fnt(18 if h < 160 else 20, True)
     sub_f = fnt(14 if h < 160 else 16)
-    gap = 12 if h < 180 else 16
-    title_h = 24
-    sub_h = 20 if has_sub else 0
+    gap = 10 if h < 150 else (12 if h < 180 else 16)
+    title_h = 22 if h < 150 else 24
+    sub_h = 18 if has_sub and h < 150 else (20 if has_sub else 0)
     stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
-    # slightly below geometric center so icons don't sit too high
-    top = y + max(14, int((h - stack) * 0.48))
+    # keep bottom padding so subtitle (e.g. Manager) doesn't sit on the border
+    bottom_pad = 14 if h < 150 else 12
+    top = y + max(10, min(int((h - stack) * 0.35), h - stack - bottom_pad))
 
     paste_icon(img, icon, x + w // 2, top + icon_size // 2, icon_size)
     ty = top + icon_size + gap + title_h // 2
@@ -163,8 +164,8 @@ def make_arch_v1():
     d.text((1080, 322), "Private DB", font=fnt(16, True), fill=PURPLE)
     tile(img, 1090, 430, 210, 230, "rds_maria", "RDS MariaDB", "Primary DB", PURPLE, WHITE, 64)
 
-    tile(img, 1360, 380, 180, 140, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
-    tile(img, 1360, 540, 180, 130, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 48)
+    tile(img, 1360, 370, 180, 145, "s3", "S3", "Static / Media", ORANGE, SOFT_ORANGE, 48)
+    tile(img, 1360, 530, 180, 155, "secrets", "Secrets", "Manager", GREEN, SOFT_GREEN, 44)
 
     d = ImageDraw.Draw(img)
     arrow_h(d, 220, 145, 260, NAVY)
