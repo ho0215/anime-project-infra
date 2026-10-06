@@ -104,14 +104,16 @@ def option_c():
     positions = [(50, 130), (820, 130), (50, 490), (820, 490)]
     for (x, y), (color, name, area, lines), icon in zip(positions, ROLES, icons):
         rr(d, (x, y, x + 730, y + 320), 18, SOFT, color, 3)
+        # white circle behind icon
+        d.ellipse((x + 36, y + 90, x + 196, y + 250), fill=WHITE, outline=color, width=3)
         icon_path = icon_dir / f"{icon}.png"
         if icon_path.exists():
-            ic = Image.open(icon_path).convert("RGBA").resize((88, 88), Image.Resampling.LANCZOS)
-            img.paste(ic, (x + 36, y + 100), ic)
-        d.text((x + 150, y + 40), name, font=fnt(32, True), fill=color)
-        d.text((x + 150, y + 100), area, font=fnt(20, True), fill=NAVY)
+            ic = Image.open(icon_path).convert("RGBA").resize((110, 110), Image.Resampling.LANCZOS)
+            img.paste(ic, (x + 61, y + 115), ic)
+        d.text((x + 230, y + 45), name, font=fnt(32, True), fill=color)
+        d.text((x + 230, y + 105), area, font=fnt(20, True), fill=NAVY)
         for j, line in enumerate(lines):
-            d.text((x + 150, y + 165 + j * 40), "·  " + line, font=fnt(20), fill=GRAY)
+            d.text((x + 230, y + 170 + j * 40), "·  " + line, font=fnt(20), fill=GRAY)
     save(img, "roles_option_C.png")
 
 

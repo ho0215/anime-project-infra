@@ -167,7 +167,7 @@ def option_b(prs):
 
 
 def option_c(prs):
-    """2×2 그리드 + 아이콘."""
+    """2×2 그리드 + 큰 아이콘(배경 원)."""
     s = blank(prs)
     bg(s)
     title_bar(s, "C", "2×2 그리드 + 아이콘")
@@ -176,21 +176,29 @@ def option_c(prs):
     icon_dir = BASE / "images" / "icons"
     for (x, y), (color, name, area, lines), icon in zip(positions, ROLES, icons):
         card(s, Inches(x), Inches(y), Inches(6.0), Inches(2.7), SOFT, color)
+        # white circle behind icon for visibility
+        circle = s.shapes.add_shape(
+            MSO_SHAPE.OVAL, Inches(x + 0.28), Inches(y + 0.65), Inches(1.35), Inches(1.35)
+        )
+        circle.fill.solid()
+        circle.fill.fore_color.rgb = WHITE
+        circle.line.color.rgb = color
+        circle.line.width = Pt(1.5)
         icon_path = icon_dir / f"{icon}.png"
         if icon_path.exists():
             s.shapes.add_picture(
                 str(icon_path),
-                Inches(x + 0.28),
-                Inches(y + 0.55),
-                width=Inches(0.85),
-                height=Inches(0.85),
+                Inches(x + 0.45),
+                Inches(y + 0.82),
+                width=Inches(1.0),
+                height=Inches(1.0),
             )
-        text_x = Inches(x + 1.35)
-        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.22), Inches(4.4), Inches(0.5))
+        text_x = Inches(x + 1.9)
+        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.25), Inches(3.8), Inches(0.5))
         set_text(name_box.text_frame, name, 26, True, color)
-        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.75), Inches(4.4), Inches(0.4))
+        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.8), Inches(3.8), Inches(0.4))
         set_text(area_box.text_frame, area, 15, True, NAVY)
-        detail = s.shapes.add_textbox(text_x, Inches(y + 1.3), Inches(4.4), Inches(1.2))
+        detail = s.shapes.add_textbox(text_x, Inches(y + 1.35), Inches(3.8), Inches(1.15))
         set_text(detail.text_frame, "·  " + lines[0], 16, False, NAVY)
         for line in lines[1:]:
             add_para(detail.text_frame, "·  " + line, 16, False, NAVY, 8)
