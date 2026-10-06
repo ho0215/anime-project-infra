@@ -112,7 +112,6 @@ def tile(img, x, y, w, h, icon, title, sub, border=CYAN, bg=SOFT_BLUE, icon_size
     bottom_pad = 18 if h < 160 else 16
     top_pad = 8 if h < 140 else 10
 
-    # 아이콘이 너무 크면 줄여서 하단 여백 확보
     while True:
         stack = icon_size + gap + title_h + (gap + sub_h if has_sub else 0)
         if stack + top_pad + bottom_pad <= h or icon_size <= 28:
@@ -201,57 +200,67 @@ def make_arch_v2():
     img = Image.new("RGBA", (W, H), BG + (255,))
     d = ImageDraw.Draw(img)
 
-    tile(img, 50, 60, 150, 150, "users", "Users", "", CYAN, SOFT_BLUE, 48)
-    tile(img, 230, 60, 150, 150, "route53", "Route53", "ACM", PURPLE, SOFT_PURPLE, 48)
-    tile(img, 410, 60, 150, 150, "waf", "WAFv2", "Web ACL", RED, SOFT_RED, 48)
-    tile(img, 590, 60, 150, 150, "alb", "ALB", "Ingress", GREEN, SOFT_GREEN, 48)
+    # 요청 흐름: 외부 진입 뒤 EKS의 web/db/PVC로 이어지는 한 줄 구성
+    soft_card(img, (750, 35, 1310, 265), r=18, fill=WHITE, shadow=False)
+    d.rounded_rectangle((750, 35, 1310, 265), radius=18, outline=CYAN, width=3)
+    d.text((770, 45), "EKS Cluster  (aniverse)", font=fnt(17, True), fill=CYAN)
 
-    soft_card(img, (40, 240, 1100, 700), r=18, fill=WHITE, shadow=False)
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 240, 1100, 700), radius=18, outline=CYAN, width=3)
-    d.text((60, 255), "EKS Cluster  (aniverse)", font=fnt(20, True), fill=CYAN)
-
-    tile(img, 70, 310, 230, 280, "django", "web Pod", "Django + Daphne", CYAN, SOFT_BLUE, 64)
-    tile(img, 330, 310, 230, 280, "rds_maria", "db Pod", "MariaDB StatefulSet", PURPLE, SOFT_PURPLE, 64)
-    tile(img, 590, 310, 220, 280, "efs", "EBS PVC", "영구 볼륨", TEAL, SOFT_TEAL, 60)
-    tile(img, 840, 310, 220, 280, "cloudwatch", "Observability", "Prom / Alloy / Loki", ORANGE, SOFT_ORANGE, 56)
-
-    soft_card(img, (70, 620, 1070, 675), r=12, fill=SOFT_BLUE, shadow=False)
-    d = ImageDraw.Draw(img)
-    d.text((90, 635), "web ↔ db (SQL)   |   db → PVC   |   photos → S3 (not in DB)", font=fnt(16), fill=NAVY)
-
-    # GitOps: Actions → ECR → Argo → EKS (요약과 동일 화살표)
-    tile(img, 1140, 40, 145, 140, "githubactions", "Actions", "OIDC", CYAN, SOFT_BLUE, 40)
-    tile(img, 1390, 40, 145, 140, "s3", "ECR", "sha-*", ORANGE, SOFT_ORANGE, 40)
-    tile(img, 1140, 200, 395, 140, "argo", "Argo CD", "GitOps sync", TEAL, SOFT_TEAL, 48)
-    # 보안·캐시 뱃지 (8장 Zero-Key / Redis와 그림 정합)
-    tile(img, 1140, 355, 190, 140, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 36)
-    tile(img, 1345, 355, 190, 140, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 36)
-    tile(img, 1140, 510, 190, 140, "iam", "OIDC·SSO", "Zero-Key", CYAN, SOFT_BLUE, 36)
-    tile(img, 1345, 510, 190, 140, "s3", "S3", "media/backup", ORANGE, SOFT_ORANGE, 36)
+    request_tiles = [
+        (30, "users", "Users", "서비스 이용", CYAN, SOFT_BLUE),
+        (215, "route53", "Route53", "DNS", PURPLE, SOFT_PURPLE),
+        (400, "waf", "WAFv2", "Web ACL", RED, SOFT_RED),
+        (585, "alb", "ALB", "Ingress", GREEN, SOFT_GREEN),
+        (770, "django", "web Pod", "Django · Daphne", CYAN, SOFT_BLUE),
+        (955, "rds_maria", "MariaDB", "StatefulSet", PURPLE, SOFT_PURPLE),
+        (1140, "efs", "EBS PVC", "영구 볼륨", TEAL, SOFT_TEAL),
+    ]
+    for x, icon, title, sub, border, fill in request_tiles:
+        tile(img, x, 80, 150, 160, icon, title, sub, border, fill, 48)
 
     d = ImageDraw.Draw(img)
-    arrow_h(d, 200, 135, 230, NAVY)
-    arrow_h(d, 380, 135, 410, NAVY)
-    arrow_h(d, 560, 135, 590, NAVY)
-    arrow_v(d, 665, 210, 240, NAVY)
-    arrow_h(d, 300, 450, 330, NAVY)
-    arrow_h(d, 560, 450, 590, NAVY)
-    # Actions → ECR
-    arrow_h(d, 1285, 110, 1390, NAVY)
-    # ECR → Argo (아래로)
-    arrow_v(d, 1460, 180, 200, NAVY)
-    # Argo 왼쪽 → EKS
-    d.line([(1140, 270), (1115, 270)], fill=NAVY, width=4)
-    d.polygon([(1098, 270), (1118, 258), (1118, 282)], fill=NAVY)
+    for x0, x1 in [(180, 215), (365, 400), (550, 585), (735, 770), (920, 955), (1105, 1140)]:
+        arrow_h(d, x0, 160, x1, NAVY)
 
-    soft_card(img, (40, 730, 1560, 870), r=14, fill=SOFT_GREEN, shadow=False)
+    # GitOps: 웹훅 대신 Actions가 hard refresh와 sync를 직접 실행
+    gitops_tiles = [
+        (120, "githubactions", "GitHub Actions", "OIDC · build", CYAN, SOFT_BLUE),
+        (370, "s3", "ECR", "sha-* image", ORANGE, SOFT_ORANGE),
+        (620, "argo", "Argo CD", "hard refresh · sync", TEAL, SOFT_TEAL),
+        (870, "servers", "EKS", "Synced · rollout", PURPLE, SOFT_PURPLE),
+    ]
+    for x, icon, title, sub, border, fill in gitops_tiles:
+        tile(img, x, 365, 190, 210, icon, title, sub, border, fill, 62)
+
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((40, 730, 1560, 870), radius=14, outline=GREEN, width=3)
-    d.text((60, 755), "흐름 요약", font=fnt(18, True), fill=GREEN)
+    for x0, x1 in [(310, 370), (560, 620), (810, 870)]:
+        arrow_h(d, x0, 470, x1, TEAL)
+
+    # Argo CD 공식 문어 로고가 분명히 보이도록 별도 설명을 추가
+    soft_card(img, (620, 590, 810, 640), r=10, fill=SOFT_TEAL, shadow=False)
+    center_text(d, "별도 GitHub Webhook 없음", 715, 615, fnt(14, True), TEAL)
+
+    # 운영 구성은 발표 화면에서 읽기 쉽도록 2×2 카드로 정리
+    soft_card(img, (1125, 330, 1560, 675), r=18, fill=WHITE, shadow=False)
+    d.rounded_rectangle((1125, 330, 1560, 675), radius=18, outline=ORANGE, width=3)
+    d.text((1145, 345), "운영 서비스", font=fnt(18, True), fill=ORANGE)
+    tile(img, 1145, 375, 185, 135, "elasticache", "Redis", "Channels", PURPLE, SOFT_PURPLE, 36)
+    tile(img, 1350, 375, 185, 135, "secrets", "ESO", "Secrets Mgr", GREEN, SOFT_GREEN, 36)
+    tile(img, 1145, 520, 185, 135, "s3", "S3", "media · backup", ORANGE, SOFT_ORANGE, 36)
+    tile(img, 1350, 520, 185, 135, "grafana", "Observability", "Grafana · Tempo", RED, SOFT_RED, 36)
+
+    soft_card(img, (40, 700, 1560, 870), r=14, fill=SOFT_GREEN, shadow=False)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((40, 700, 1560, 870), radius=14, outline=GREEN, width=3)
+    d.text((60, 725), "흐름 요약", font=fnt(18, True), fill=GREEN)
     d.text(
-        (60, 805),
-        "Users → Route53 → WAF → ALB → web Pod → MariaDB   |   Actions → ECR → Argo → EKS   |   Media/Backup → S3",
+        (60, 775),
+        "요청: Users → Route53 → WAF → ALB → web Pod → MariaDB → PVC",
+        font=fnt(16),
+        fill=NAVY,
+    )
+    d.text(
+        (60, 815),
+        "배포: Actions → ECR → Argo CD → EKS   |   운영: Redis · ESO · S3 · Grafana/Loki/Tempo",
         font=fnt(16),
         fill=NAVY,
     )
@@ -280,9 +289,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 290, 780, 520), radius=16, outline=GREEN, width=3)
     d.text((60, 302), "2) destroy 후 시드 복구", font=fnt(20, True), fill=GREEN)
-    tile(img, 70, 350, 180, 155, "github", "GitHub", "backup.sql", NAVY, WHITE, 44)
-    tile(img, 300, 350, 200, 155, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 44)
-    tile(img, 550, 350, 180, 155, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 44)
+    tile(img, 70, 350, 180, 145, "github", "GitHub", "aniverse_backup.sql", NAVY, WHITE, 48)
+    tile(img, 300, 350, 200, 145, "codedeploy", "restore Job", "curl + import", ORANGE, WHITE, 48)
+    tile(img, 550, 350, 180, 145, "rds_maria", "MariaDB", "seed", PURPLE, WHITE, 48)
     d = ImageDraw.Draw(img)
     arrow_h(d, 250, 420, 300, NAVY)
     arrow_h(d, 500, 420, 550, NAVY)
@@ -291,9 +300,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((820, 290, 1560, 520), radius=16, outline=ORANGE, width=3)
     d.text((840, 302), "3) 주기 백업 (CronJob)", font=fnt(20, True), fill=ORANGE)
-    tile(img, 860, 350, 180, 155, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 44)
-    tile(img, 1100, 350, 180, 155, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 44)
-    tile(img, 1340, 350, 180, 155, "s3", "S3", "db-backups/", ORANGE, WHITE, 44)
+    tile(img, 860, 350, 180, 145, "rds_maria", "MariaDB", "mysqldump", PURPLE, WHITE, 48)
+    tile(img, 1100, 350, 180, 145, "cloudwatch", "CronJob", "schedule", TEAL, WHITE, 48)
+    tile(img, 1340, 350, 180, 145, "s3", "S3", "db-backups/", ORANGE, WHITE, 48)
     d = ImageDraw.Draw(img)
     arrow_h(d, 1040, 420, 1100, NAVY)
     arrow_h(d, 1280, 420, 1340, NAVY)
@@ -302,9 +311,9 @@ def make_db_architecture():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 540, 1560, 700), radius=16, outline=PURPLE, width=3)
     d.text((60, 555), "4) 사진/미디어 — DB가 아님", font=fnt(20, True), fill=PURPLE)
-    tile(img, 70, 590, 220, 100, "django", "web Pod", "", CYAN, WHITE, 36)
+    tile(img, 70, 595, 220, 85, "django", "web Pod", "", CYAN, WHITE, 36)
     d.text((320, 625), "upload  →", font=fnt(18), fill=NAVY)
-    tile(img, 450, 590, 240, 100, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 36)
+    tile(img, 450, 595, 240, 85, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 36)
     d.text((740, 625), "destroy 시 S3도 삭제 → Sync media 로 재업로드", font=fnt(17), fill=RED)
 
     soft_card(img, (40, 720, 1560, 870), r=14, fill=SOFT_RED, shadow=False)
@@ -355,9 +364,9 @@ def make_roles():
             1160,
             PURPLE,
             SOFT_PURPLE,
-            "컴퓨트 · 트래픽",
+            "창작마당 · Compute",
             "강유민",
-            ["노드 운영", "ALB 연동", "트래픽 경로"],
+            ["창작마당", "노드 운영", "ALB · 트래픽"],
             "alb",
         ),
     ]
@@ -449,10 +458,10 @@ def make_observability():
     soft_card(img, (1280, 180, 1560, 580), r=18, fill=SOFT_BLUE, shadow=False)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((1280, 180, 1560, 580), radius=18, outline=CYAN, width=3)
-    center_text(d, "성과", 1420, 280, fnt(26, True), CYAN)
+    center_text(d, "확인 결과", 1420, 280, fnt(26, True), CYAN)
     center_text(d, "메트릭·로그", 1420, 360, fnt(18), NAVY)
-    center_text(d, "트레이스 수집", 1420, 420, fnt(18), NAVY)
-    center_text(d, "Slack 알림", 1420, 480, fnt(18), NAVY)
+    center_text(d, "실제 trace 조회", 1420, 420, fnt(18), NAVY)
+    center_text(d, "Slack 알림 수신", 1420, 480, fnt(18), NAVY)
     d = ImageDraw.Draw(img)
     arrow_h(d, 300, 320, 350, NAVY)
     arrow_h(d, 300, 520, 350, NAVY)
@@ -466,11 +475,11 @@ def make_observability():
 def make_account():
     img = Image.new("RGBA", (W, H), BG + (255,))
     steps = [
-        (40, RED, SOFT_RED, "secrets", "1. Key leak", ".env Access Key"),
-        (350, ORANGE, SOFT_ORANGE, "ec2", "2. Abuse", "RunInstances"),
-        (660, RED, SOFT_RED, "firewall", "3. Blocked", "StartInstances"),
+        (40, RED, SOFT_RED, "firewall", "1. Access limited", "원인 미확정"),
+        (350, ORANGE, SOFT_ORANGE, "ec2", "2. Start failed", "Actions / Console"),
+        (660, RED, SOFT_RED, "iam", "3. Migration", "복구 일정 확보"),
         (970, TEAL, SOFT_TEAL, "iam", "4. New account", "8415…"),
-        (1280, GREEN, SOFT_GREEN, "terraform", "5. Checklist", "ECR ACM OIDC"),
+        (1280, GREEN, SOFT_GREEN, "terraform", "5. Zero-Key", "OIDC / SSO"),
     ]
     for x, color, bg, icon, title, sub in steps:
         tile(img, x, 140, 280, 420, icon, title, sub, color, bg, 68)
@@ -481,7 +490,7 @@ def make_account():
     d = ImageDraw.Draw(img)
     d.text(
         (70, 710),
-        "표면: start 실패   |   근본: 장기 키 유출   |   이관 후 ARN 전수 교체 (ECR / ACM / OIDC / Secret)",
+        "확인: Actions·콘솔 start 실패   |   원인: 미확정   |   대응: 신계정 이관 + OIDC·SSO + ARN 전수 교체",
         font=fnt(18),
         fill=NAVY,
     )
@@ -627,9 +636,9 @@ def make_data_flow_v2():
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((40, 620, 1560, 870), radius=16, outline=PURPLE, width=3)
     d.text((60, 638), "4) 사진 / 미디어 — DB가 아님", font=fnt(22, True), fill=PURPLE)
-    tile(img, 70, 690, 260, 155, "django", "web Pod", "upload", CYAN, WHITE, 48)
-    d.text((370, 755), "→", font=fnt(28, True), fill=NAVY)
-    tile(img, 420, 690, 300, 155, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 48)
+    tile(img, 70, 690, 260, 145, "django", "web Pod", "upload", CYAN, WHITE, 52)
+    d.text((370, 750), "→", font=fnt(28, True), fill=NAVY)
+    tile(img, 420, 690, 300, 145, "s3", "S3 media/", "goods_images 등", ORANGE, WHITE, 52)
     d.text(
         (760, 745),
         "destroy 시 S3도 삭제 → Sync media 로 재업로드",

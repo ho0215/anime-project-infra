@@ -28,7 +28,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SW, SH = 13.333, 7.5
 STEM = "Aniverse_V1V2_발표"
-TOTAL = 19
+TOTAL = 20
 WORKING = OUT / "Aniverse_V1V2_발표_working.pptx"
 
 NAVY = RGBColor(15, 23, 42)
@@ -142,11 +142,16 @@ def footer(slide, n):
     r = p.add_run()
     r.text = "Aniverse  ·  Architecture V1 → V2"
     font(r, 13, False, GRAY)
-    num = slide.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
+    # 두 자리 페이지 번호도 LibreOffice 렌더링에서 잘리지 않도록
+    # 오른쪽 여백과 텍스트 상자 폭을 넉넉하게 확보한다.
+    num = slide.shapes.add_textbox(Inches(9.25), Inches(7.15), Inches(3.5), Inches(0.28))
+    num.text_frame.word_wrap = False
+    num.text_frame.margin_left = 0
+    num.text_frame.margin_right = 0
     p = num.text_frame.paragraphs[0]
     r = p.add_run()
     r.text = f"{n} / {TOTAL}"
-    font(r, 13, True, BLUE)
+    font(r, 12, True, BLUE)
     p.alignment = PP_ALIGN.RIGHT
 
 
@@ -199,6 +204,25 @@ def slide_cover(prs):
     add_para(tf, "김현우, 박서이, 김윤주, 강유민", 16, False, NAVY, 8, PP_ALIGN.RIGHT)
 
 
+def slide_agenda(prs):
+    s = blank(prs)
+    bg(s)
+    title_center(s, "오늘 발표할 내용")
+    items = [
+        ("01", "프로젝트 일정", "V2를 준비하고 완성한 흐름"),
+        ("02", "Architecture V1", "기존 구조와 개선이 필요했던 이유"),
+        ("03", "Architecture V2", "EKS · GitOps · 보안 · 데이터 구성"),
+        ("04", "운영 검증", "관측 · 부하테스트 · 데이터 복구"),
+        ("05", "트러블슈팅", "문제 원인과 해결 과정 · 다음 과제"),
+    ]
+    for i, (num, title, desc) in enumerate(items):
+        y = Inches(1.2) + i * Inches(1.08)
+        c = card(s, Inches(0.8), y, Inches(11.7), Inches(0.88), LIGHT if i % 2 == 0 else SOFT)
+        set_text(c.text_frame, f"{num}   {title}", 20, True, BLUE)
+        add_para(c.text_frame, desc, 15, False, GRAY, 4)
+    footer(s, 2)
+
+
 def slide_v1_def(prs):
     s = blank(prs)
     bg(s)
@@ -206,19 +230,19 @@ def slide_v1_def(prs):
     items = [
         (
             "구성",
-            "ALB 뒤에 EC2 애플리케이션 서버를 두고, RDS·EFS·S3를 연결해 서비스를 운영했습니다.",
+            "ALB 뒤에 EC2를 두고 RDS·EFS·S3를 연결한 3-tier 구조로 시작했습니다.",
         ),
         (
             "배포",
-            "Terraform으로 인프라를 만들고, GitHub Actions와 CodeDeploy를 통해 EC2에 배포했습니다.",
+            "Terraform으로 인프라를 만들고, GitHub Actions와 CodeDeploy로 EC2에 배포했습니다.",
         ),
         (
             "전환 배경",
-            "온프레미스에서 운영하던 서비스를 AWS로 옮기면서 EC2 기반 3-tier 구조를 선택했습니다.",
+            "온프레미스 서비스를 AWS로 옮기며 익숙한 EC2 기반 구조를 먼저 선택했습니다.",
         ),
         (
             "운영 범위",
-            "HTTPS, WAF, Redis, S3 미디어 저장까지 실제 서비스에 필요한 구성을 갖췄습니다.",
+            "HTTPS·WAF·Redis·S3 미디어까지 서비스 운영에 필요한 기능을 붙였습니다.",
         ),
     ]
     positions = [(0.55, 1.25), (6.85, 1.25), (0.55, 4.15), (6.85, 4.15)]
@@ -226,7 +250,7 @@ def slide_v1_def(prs):
         c = card(s, Inches(x), Inches(y), Inches(5.95), Inches(2.6), LIGHT)
         set_text(c.text_frame, title, 22, True, BLUE)
         add_para(c.text_frame, body, 18, False, NAVY, 12)
-    footer(s, 2)
+    footer(s, 4)
 
 
 def slide_arch_v1(prs):
@@ -234,7 +258,7 @@ def slide_arch_v1(prs):
     bg(s)
     title_center(s, "시스템 구성도  ·  Architecture V1", size=34)
     put_img(s, "hybrid_01_arch_v1_vpc.png")
-    footer(s, 3)
+    footer(s, 5)
 
 
 def slide_v1_to_v2(prs):
@@ -251,19 +275,19 @@ def slide_v1_to_v2(prs):
         set_text(h.text_frame, text, 20, True, WHITE, PP_ALIGN.CENTER)
 
     left = [
-        ("상태를 한눈에 보기 어려움", "메트릭, 로그, 배포 상태가 흩어져 있어 문제를 찾는 데 시간이 걸렸습니다."),
-        ("변경 반영이 느리고 복잡함", "앱과 인프라 변경이 EC2와 배포 에이전트에 묶여 있었습니다."),
-        ("인스턴스 단위로만 확장", "작은 부하 변화에도 서버 단위로 늘려야 해 비용을 세밀하게 조절하기 어려웠습니다."),
+        ("문제를 찾는 데 시간이 걸림", "메트릭·로그·배포 상태가 흩어져 있어 원인을 한눈에 보기 어려웠습니다."),
+        ("배포 과정이 길고 복잡함", "앱과 인프라 변경이 EC2와 배포 에이전트에 묶여 있었습니다."),
+        ("서버 단위로만 확장", "작은 부하에도 서버 전체를 늘려야 해 비용을 세밀하게 조절하기 어려웠습니다."),
     ]
     mid = [
-        ("메트릭과 로그를 한곳에", "Prometheus, Alloy, Loki로 클러스터와 앱 상태를 함께 확인합니다."),
-        ("커밋부터 배포까지 자동화", "이미지를 빌드하고 Git을 갱신하면 Argo CD가 변경 사항을 반영합니다."),
-        ("노드와 파드를 따로 조절", "부하에 따라 파드를 늘리고, 사용하지 않을 때는 노드와 NAT를 중지합니다."),
+        ("관측 정보를 한곳에", "Prometheus·Alloy·Loki로 클러스터와 앱 상태를 함께 봤습니다."),
+        ("커밋부터 배포까지 자동화", "이미지를 빌드하고 Git을 갱신하면 Argo CD가 배포합니다."),
+        ("노드와 파드를 따로 조절", "부하에는 파드를 늘리고, 미사용 시간에는 노드와 NAT를 중지했습니다."),
     ]
     right = [
-        ("통합 관측", "Prometheus·Loki·Tempo를 구성하고 AlertManager→Slack 알림까지 연결했습니다."),
-        ("GitOps 배포", "Actions가 이미지를 올리고 태그를 바꾸면 Argo CD가 클러스터를 맞춥니다."),
-        ("EKS + DB Pod", "앱과 DB를 Kubernetes에서 운영하고, 데이터는 PVC에 보관합니다."),
+        ("통합 관측", "Grafana에서 메트릭·로그·트레이스를 보고 Slack으로 알림을 받았습니다."),
+        ("GitOps 배포", "Actions가 이미지를 올리고 태그를 바꾸면 Argo CD가 자동으로 맞춥니다."),
+        ("EKS + DB Pod", "앱과 DB를 Kubernetes에서 운영하고 데이터는 PVC에 보관했습니다."),
     ]
     for i, (t, b) in enumerate(left):
         accent_item(s, Inches(0.4), Inches(1.85) + i * Inches(1.65), Inches(4.05), Inches(1.5), RED, t, b)
@@ -271,7 +295,7 @@ def slide_v1_to_v2(prs):
         accent_item(s, Inches(4.65), Inches(1.85) + i * Inches(1.65), Inches(4.05), Inches(1.5), GREEN, t, b)
     for i, (t, b) in enumerate(right):
         accent_item(s, Inches(8.9), Inches(1.85) + i * Inches(1.65), Inches(4.05), Inches(1.5), BLUE, t, b)
-    footer(s, 4)
+    footer(s, 6)
 
 
 def slide_v2_def(prs):
@@ -282,7 +306,7 @@ def slide_v2_def(prs):
     set_text(vision.text_frame, "비전", 20, True, BLUE)
     add_para(
         vision.text_frame,
-        "EKS 위에서 같은 환경을 다시 만들 수 있도록 배포, 데이터 복구, 관측, 인증을 하나의 흐름으로 묶었습니다.",
+        "V2에서는 다시 만들 수 있는 환경을 목표로 배포·복구·관측·인증을 하나의 흐름으로 묶었습니다.",
         18,
         False,
         NAVY,
@@ -291,10 +315,10 @@ def slide_v2_def(prs):
     label = s.shapes.add_textbox(Inches(0.55), Inches(2.8), Inches(4), Inches(0.4))
     set_text(label.text_frame, "주요 기능", 20, True, BLACK)
     feats = [
-        (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고, ALB 앞 WAF에서 공격 요청과 과도한 요청을 걸러냅니다."),
-        (GREEN, "EKS web / db Pod", "Django·Daphne는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영합니다."),
-        (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고, Git의 이미지 태그를 기준으로 Argo CD가 배포합니다."),
-        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고, Prometheus·Loki·Tempo로 메트릭·로그·트레이스를 확인합니다."),
+        (BLUE, "ALB · HTTPS · WAF", "ACM으로 HTTPS를 적용하고 WAF에서 공격 요청과 과도한 요청을 걸렀습니다."),
+        (GREEN, "EKS web / db Pod", "Django는 Deployment로, MariaDB는 StatefulSet과 PVC로 운영했습니다."),
+        (ORANGE, "Actions → ECR → Argo", "OIDC로 이미지를 올리고 Git 태그를 기준으로 Argo CD가 배포했습니다."),
+        (PURPLE, "백업 · 관측", "DB는 S3에 백업하고 Grafana에서 메트릭·로그·트레이스를 확인했습니다."),
     ]
     for i, (color, title, body) in enumerate(feats):
         col, row = i % 2, i // 2
@@ -305,7 +329,7 @@ def slide_v2_def(prs):
         box = s.shapes.add_textbox(x + Inches(0.95), y + Inches(0.2), Inches(4.8), Inches(1.2))
         set_text(box.text_frame, title, 20, True, BLACK)
         add_para(box.text_frame, body, 17, False, GRAY, 8)
-    footer(s, 5)
+    footer(s, 7)
 
 
 def slide_arch_v2(prs):
@@ -313,7 +337,7 @@ def slide_arch_v2(prs):
     bg(s)
     title_center(s, "시스템 구성도  ·  Architecture V2", size=34)
     put_img(s, "hybrid_02_arch_v2_vpc.png")
-    footer(s, 6)
+    footer(s, 8)
 
 
 def slide_v2_detail_1(prs):
@@ -324,15 +348,15 @@ def slide_v2_detail_1(prs):
     rows = [
         (
             "DB를 클러스터 안으로",
-            "상시 RDS 비용을 줄이기 위해 MariaDB를 StatefulSet으로 운영하고, 데이터는 PVC에 저장했습니다.",
+            "상시 RDS 비용을 줄이기 위해 MariaDB를 StatefulSet으로 올리고 데이터는 PVC에 저장했습니다.",
         ),
         (
-            "배포 이미지도 Git으로 관리",
-            "ECR에 sha-* 이미지를 올린 뒤 Helm의 태그를 갱신해, Git과 실제 배포 버전을 맞췄습니다.",
+            "배포 버전도 Git으로 관리",
+            "ECR에 sha-* 이미지를 올리고 Helm 태그를 갱신해 Git과 실제 배포 버전을 맞췄습니다.",
         ),
         (
-            "인프라를 다시 만들어도 데이터 복구",
-            "클러스터를 다시 만든 뒤 restore Job이 SQL을 불러와 서비스에 필요한 초기 데이터를 복원합니다.",
+            "클러스터를 다시 만들어도 복구",
+            "재구축 뒤 restore Job이 SQL을 불러와 서비스에 필요한 초기 데이터를 복원했습니다.",
         ),
     ]
     for i, (a, b) in enumerate(rows):
@@ -340,7 +364,7 @@ def slide_v2_detail_1(prs):
         c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.55), LIGHT if i % 2 == 0 else SOFT)
         set_text(c.text_frame, a, 22, True, BLUE)
         add_para(c.text_frame, b, 18, False, NAVY, 10)
-    footer(s, 7)
+    footer(s, 9)
 
 
 def slide_v2_detail_2(prs):
@@ -351,18 +375,16 @@ def slide_v2_detail_2(prs):
     blocks = [
         (
             "장기 Access Key 미사용 (Zero-Key)",
-            "OIDC(워크로드): 파드·CI에서 Access Key가 돌지 않도록 차단합니다. "
-            "SSO(사람): 장기 키 없이 SSO 로그인으로 임시 자격증명만 받아 키 유출을 막습니다. "
-            "결과: 장기 키를 최소화한 Zero-Key 구성으로 바꿨습니다. "
-            "계정 접근이 제한되어 복구가 어려웠을 때 팀원 계정으로 이관하며 SSO·OIDC 기반으로 전환했습니다.",
+            "파드와 CI는 OIDC를, 사람은 SSO 임시 자격증명을 사용했습니다. "
+            "계정 이관 과정에서도 장기 키를 다시 만들지 않고 Zero-Key 구조로 전환했습니다.",
         ),
         (
-            "WAF로 ALB 앞단 보호",
-            "관리형 웹 공격·악성 입력·SQLi 규칙과 IP별 5분 2,000회 요청 제한을 적용했습니다. 글쓰기 BODY 규칙은 오탐 방지를 위해 Count합니다.",
+            "WAF ACL과 ALB 연동 로직 구성",
+            "관리형 웹 공격·SQLi 규칙과 IP별 5분 2,000회 제한을 구성했습니다. 글쓰기 BODY 규칙은 오탐을 막기 위해 Count로 뒀습니다.",
         ),
         (
             "클러스터를 지워도 도메인은 유지",
-            "Route53 영역은 삭제 대상에서 제외해, 클러스터를 다시 만들어도 네임서버를 재등록하지 않습니다.",
+            "Route53 영역은 삭제 대상에서 제외해 재구축 후에도 같은 도메인을 바로 사용했습니다.",
         ),
     ]
     for i, (head, body) in enumerate(blocks):
@@ -370,7 +392,7 @@ def slide_v2_detail_2(prs):
         c = card(s, Inches(0.55), y, Inches(12.2), Inches(1.7), LIGHT if i % 2 == 0 else SOFT)
         set_text(c.text_frame, head, 20, True, BLUE)
         add_para(c.text_frame, body, 15, False, NAVY, 6)
-    footer(s, 8)
+    footer(s, 10)
 
 
 def slide_verify(prs):
@@ -380,7 +402,7 @@ def slide_verify(prs):
     note = s.shapes.add_textbox(Inches(0.55), Inches(0.95), Inches(12.2), Inches(0.35))
     set_text(
         note.text_frame,
-        "확인 = 직접 검증 완료  ·  구성 = 스택 배포·연결까지 완료 (추가 시나리오 검증은 보완 과제)",
+        "확인 = 실제 동작까지 검증  ·  구성 = 배포와 연결까지 완료",
         14,
         False,
         GRAY,
@@ -391,7 +413,7 @@ def slide_verify(prs):
         ("DB 데이터", "복구 후 목록 데이터 표시", "테이블 수 · 시드 행", "확인"),
         ("GitOps", "Git 태그와 배포 이미지 일치", "Actions · Argo CD", "확인"),
         ("미디어", "재구축 후 이미지 정상 표시", "S3 media 경로", "확인"),
-        ("관측", "메트릭·로그·트레이스 조회", "Prom · Loki · Tempo", "확인"),
+        ("관측", "메트릭·로그·트레이스 조회", "Grafana · Loki · Tempo", "확인"),
         ("알림", "AlertManager 알림 수신", "Slack 채널", "확인"),
     ]
     for i, (t, check, method, result) in enumerate(items):
@@ -403,7 +425,7 @@ def slide_verify(prs):
         add_para(c.text_frame, check, 16, False, NAVY, 8)
         add_para(c.text_frame, "방법: " + method, 15, False, GRAY, 6)
         add_para(c.text_frame, result, 17, True, GREEN if result == "확인" else ORANGE, 8)
-    footer(s, 9)
+    footer(s, 11)
 
 
 def slide_stack(prs):
@@ -411,7 +433,7 @@ def slide_stack(prs):
     bg(s)
     title_center(s, "기술 스택  ·  Architecture V2", size=34)
     put_img(s, "hybrid_09_tech_stack.png")
-    footer(s, 10)
+    footer(s, 12)
 
 
 def slide_data_flow(prs):
@@ -419,7 +441,7 @@ def slide_data_flow(prs):
     bg(s)
     title_center(s, "데이터 흐름  ·  Architecture V2", size=34)
     put_img(s, "hybrid_10_data_flow.png")
-    footer(s, 11)
+    footer(s, 13)
 
 
 def slide_next(prs):
@@ -434,7 +456,6 @@ def slide_next(prs):
             [
                 "OIDC 권한 범위 최소화",
                 "정기 백업·복구 훈련 (S3 덤프 복구 경로 포함)",
-                "반복 장애 자동 복구(AIOps)",
                 "노드·NAT 중지·상시 RDS 제거로 비용 절감 유지",
             ],
         ),
@@ -465,7 +486,7 @@ def slide_next(prs):
                 first = False
             else:
                 add_para(body.text_frame, "·  " + line, 17, False, NAVY, 14)
-    footer(s, 12)
+    footer(s, 14)
 
 
 def slide_load_trace(prs):
@@ -479,7 +500,7 @@ def slide_load_trace(prs):
             "확인한 성과",
             [
                 "HPA로 web 파드 2 → 4 확장 확인",
-                "Tempo/OTel로 요청 구간 수집·조회",
+                "Tempo/Grafana 실제 요청 트레이스 조회",
                 "AlertManager → Slack 알림 수신",
             ],
         ),
@@ -487,16 +508,16 @@ def slide_load_trace(prs):
             ORANGE,
             "발견한 병목",
             [
-                "/works/ 응답 최대 약 2.91초",
-                "Tempo 트레이스로 구간 병목 위치 확인",
-                "WAF RateLimit에 걸려 차단된 구간도 확인",
+                "/works/ 응답 최대 약 2.91초 (팀 측정)",
+                "Tempo 트레이스로 병목 구간 확인",
+                "ASGI extra 보완 후 실제 trace 확인",
             ],
         ),
         (
             RED,
             "남은 과제",
             [
-                "Redis TimeoutError는 미해결",
+                "Redis TimeoutError 수정 후 재검증",
                 "병목 구간 쿼리·캐시 최적화",
                 "부하 시나리오와 WAF 한도 정합",
             ],
@@ -516,7 +537,7 @@ def slide_load_trace(prs):
                 first = False
             else:
                 add_para(body.text_frame, "·  " + line, 16, False, NAVY, 14)
-    footer(s, 13)
+    footer(s, 15)
 
 
 def slide_trouble(prs, n, title, rows):
@@ -535,20 +556,20 @@ def slide_trouble(prs, n, title, rows):
 def slide_trouble_gitops(prs):
     slide_trouble(
         prs,
-        14,
+        16,
         "트러블슈팅  ·  GitOps · CI/CD",
         [
             (
-                "중지 작업은 성공했지만 워커가 계속 실행됨",
-                "desired만 0으로 바꾸자 Autoscaler가 노드를 다시 만들었습니다. ASG의 Launch를 중지하고 인스턴스 0대까지 확인한 뒤 NAT도 함께 껐습니다.",
+                "중지했는데 워커가 다시 살아남",
+                "desired만 0으로 바꾸자 Autoscaler가 노드를 다시 만들었습니다. ASG Launch를 중지하고 0대까지 확인한 뒤 NAT도 함께 껐습니다.",
             ),
             (
-                "Argo CD에서 리소스가 계속 Missing으로 표시됨",
-                "이전에 사용한 ServerSideApply 설정이 남아 상태 비교를 막고 있었습니다. 해당 옵션을 제거하고 일반 apply 방식으로 다시 동기화했습니다.",
+                "Argo CD에서 리소스가 계속 Missing",
+                "남아 있던 ServerSideApply 설정이 상태 비교를 막고 있었습니다. 옵션을 제거하고 일반 apply 방식으로 다시 동기화했습니다.",
             ),
             (
-                "DB 복구 워크플로는 성공했지만 목록이 비어 있음",
-                "테이블 수만 확인해 빈 스키마도 복구된 것으로 처리했습니다. 시드 행이 1개 이상일 때만 성공하도록 검증 기준을 바꿨습니다.",
+                "복구는 성공했는데 목록이 비어 있음",
+                "테이블 수만 확인해 빈 스키마도 성공으로 처리한 것이 원인이었습니다. 시드 행이 1개 이상일 때만 성공하도록 바꿨습니다.",
             ),
         ],
     )
@@ -557,20 +578,20 @@ def slide_trouble_gitops(prs):
 def slide_trouble_eks(prs):
     slide_trouble(
         prs,
-        15,
+        17,
         "트러블슈팅  ·  EKS",
         [
             (
                 "HPA가 늘린 replicas가 1로 되돌아감 (9/15)",
-                "deployment.yaml의 replicas: 1이 CI 재배포마다 HPA 값을 덮었습니다. replicas 필드를 제거하고 HPA만 관리하도록 바꿨습니다. 한 필드는 하나의 제어 주체만 두어야 합니다.",
+                "CI 재배포 때 deployment.yaml의 replicas: 1이 HPA 값을 덮었습니다. 해당 필드를 지우고 HPA만 replicas를 관리하도록 바꿨습니다.",
             ),
             (
-                "이관 중 Terraform 리소스 생성 순서 문제 (9/22)",
-                "기존 환경에 가려진 의존성이 빈 계정에서 드러났습니다. NAT·프라이빗 라우팅을 먼저 만들도록 순서를 재배치했습니다. 이관 시에는 전체 생성 테스트가 필요합니다.",
+                "이관 중 Terraform 생성 순서가 꼬임 (9/22)",
+                "기존 환경에 가려졌던 의존성이 빈 계정에서 드러났습니다. NAT와 프라이빗 라우팅을 먼저 만들도록 순서를 다시 잡았습니다.",
             ),
             (
-                "기존 DB 비밀번호가 약한 기본값일 가능성 (9/29)",
-                "ESO 전환 시 약한 폴백 값을 그대로 옮길 위험이 있었습니다. 난수로 ALTER USER·Secrets Manager를 함께 갱신했습니다. 체계만 옮기지 말고 값의 안전성도 점검해야 합니다.",
+                "DB 비밀번호가 약한 기본값일 가능성 (9/29)",
+                "ESO 전환 중 약한 폴백 값을 발견했습니다. 난수 비밀번호로 DB와 Secrets Manager를 함께 바꿔 구조뿐 아니라 값도 안전하게 만들었습니다.",
             ),
         ],
     )
@@ -579,20 +600,20 @@ def slide_trouble_eks(prs):
 def slide_trouble_observe(prs):
     slide_trouble(
         prs,
-        16,
+        18,
         "트러블슈팅  ·  DB · 관측",
         [
             (
-                "S3에 올라간 DB 백업 파일이 0바이트",
-                "외부 컨테이너에서 DB에 연결하지 못하고 있었습니다. CronJob이 DB 파드 안에서 mariadb-dump를 실행하도록 바꿨습니다.",
+                "S3 DB 백업 파일이 0바이트",
+                "외부 컨테이너가 헤드리스 DB 서비스에 연결하지 못한 것이 원인이었습니다. DB 파드 안에서 mariadb-dump를 실행하도록 바꿨습니다.",
             ),
             (
-                "Alloy가 일부 노드에서 실행되지 않음",
-                "노드당 파드 한도 17개를 넘긴 것이 원인이었습니다. max-pods를 높이고 노드를 다시 만들어 정상화했습니다.",
+                "Alloy 3개 중 2개만 실행됨",
+                "노드당 파드 한도 17개를 넘긴 것이 원인이었습니다. max-pods를 높이고 노드를 다시 만들어 3개 모두 실행했습니다.",
             ),
             (
                 "AlertManager 알림이 Slack에 오지 않음",
-                "웹훅 시크릿이 AlertManager 파드에 연결되지 않았습니다. 시크릿을 마운트하고 api_url_file로 읽도록 수정했습니다.",
+                "웹훅 시크릿이 파드에 연결되지 않았습니다. 시크릿을 마운트하고 api_url_file로 읽게 바꾼 뒤 Slack 수신을 확인했습니다.",
             ),
         ],
     )
@@ -611,7 +632,7 @@ def slide_roles(prs):
     bg(s)
     title_center(s, "팀 역할분담", size=34)
     put_img(s, "hybrid_00_roles.png", top=Inches(0.95), bottom=Inches(7.05))
-    footer(s, 18)
+    footer(s, 19)
 
 
 def slide_qa(prs):
@@ -638,7 +659,7 @@ def slide_qa(prs):
         PP_ALIGN.CENTER,
     )
     num = s.shapes.add_textbox(Inches(11.3), Inches(7.15), Inches(1.5), Inches(0.28))
-    set_text(num.text_frame, f"19 / {TOTAL}", 12, False, RGBColor(148, 163, 184), PP_ALIGN.RIGHT)
+    set_text(num.text_frame, f"20 / {TOTAL}", 12, False, RGBColor(148, 163, 184), PP_ALIGN.RIGHT)
 
 
 def main():
@@ -647,6 +668,8 @@ def main():
     prs.slide_height = Inches(SH)
 
     slide_cover(prs)
+    slide_agenda(prs)
+    slide_schedule(prs)
     slide_v1_def(prs)
     slide_arch_v1(prs)
     slide_v1_to_v2(prs)
@@ -662,7 +685,6 @@ def main():
     slide_trouble_gitops(prs)
     slide_trouble_eks(prs)
     slide_trouble_observe(prs)
-    slide_schedule(prs)
     slide_roles(prs)
     slide_qa(prs)
 

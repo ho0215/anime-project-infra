@@ -46,9 +46,14 @@ def main():
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    draw.text((55, 36), "V2 일정", font=font(44, True), fill=TEXT)
-    draw.text((270, 50), "준비 → 구축 → 이관 → 복구 → 정리 → 보안", font=font(22, True), fill="#00AEEF")
-    draw.rectangle((55, 105, 275, 113), fill="#00AEEF")
+    centered(draw, (0, 25, W, 85), "V2 일정  ·  단계별 진행", font(58, True), TEXT)
+    centered(
+        draw,
+        (0, 88, W, 120),
+        "준비 → 구축 → 이관 → 복구 → 정리 → 보안",
+        font(22, True),
+        "#00AEEF",
+    )
 
     dates = [
         ("9/11", "금"),
@@ -139,13 +144,13 @@ def main():
                 "Helm 차트\n로컬 쿠버",
                 "PVC 검증",
                 "파드 한도\nQuota",
-                "백업·Loki\n설정",
+                "백업 IRSA",
+                "Loki·Alloy\nAlert·Tempo",
                 "—",
-                "—",
-                "DB 덤프\nmariadb-dump",
-                "OTel·Tempo\nAlertManager",
-                "파드\n안티어피니티",
-                "부하\n테스트",
+                "DB dump\nSlack 연동",
+                "OTel 연동\n안티어피니티",
+                "Tempo 배포\n파드 분산",
+                "부하 테스트\nASGI trace",
             ],
         ),
     ]
@@ -172,6 +177,11 @@ def main():
                 )
             else:
                 centered(draw, (left, top, left + col_w, top + row_h), value, font(28), "#CBD5E1")
+
+    draw.text((55, 1305), "Aniverse  ·  Architecture V1 → V2", font=font(18), fill=MUTED)
+    page = "3 / 19"
+    page_box = draw.textbbox((0, 0), page, font=font(18, True))
+    draw.text((2345 - (page_box[2] - page_box[0]), 1305), page, font=font(18, True), fill="#2563EB")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUT, "PNG", optimize=True)

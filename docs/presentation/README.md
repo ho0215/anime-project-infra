@@ -7,7 +7,7 @@
 | 파일 | 용도 |
 |------|------|
 | **`ppt/Aniverse_발표_강사용.pptx`** | 발표 PPT (온프렘→AWS 강사용) |
-| **`ppt/Aniverse_V1V2_발표_working.pptx`** | **V1→V2 작업 기준본 (16장)** · 내용=`CONTENT_V1V2_working.md` |
+| **`ppt/Aniverse_V1V2_발표_working.pptx`** | **V1→V2 작업 기준본 (19장)** · 내용=`CONTENT_V1V2_working.md` |
 | **`ppt/Aniverse_V1V2_발표_vN.pptx`** | V1→V2 버전 스냅샷 (working과 동기) |
 | **`ppt/Aniverse_하이브리드_EKS_vN.pptx`** | 이전 하이브리드 상세판 |
 | **`VIEW_강사발표.html`** | 브라우저 요약 |
@@ -27,7 +27,7 @@ python3 make_instructor_ppt.py             # ppt/Aniverse_발표_강사용.pptx
 python3 make_instructor_view.py            # VIEW_강사발표.html
 python3 make_hybrid_diagrams.py            # images/hybrid/*.png (PIL+한글 폰트)
 python3 make_v2_schedule.py                # images/v2_schedule_by_day.png
-python3 make_aniverse_v1v2_ppt.py          # ppt/Aniverse_V1V2_발표_working.pptx + vN (16장)
+python3 make_aniverse_v1v2_ppt.py          # ppt/Aniverse_V1V2_발표_working.pptx + vN (19장)
 python3 make_hybrid_ppt.py                 # ppt/Aniverse_하이브리드_EKS_vN.pptx (상세판)
 ```
 
@@ -55,7 +55,7 @@ PPT 템플릿: navy(#0A1128) + cyan(#00AEEF) 액센트 라인 · 큰 제목 · �
 
 | 담당 | 역할 | 모듈 |
 |------|------|------|
-| 박서이 | Network & Security | network / security / nat |
-| 강유민 | Compute & Traffic | compute / alb |
-| 김윤주 | Data & Storage | database / storage |
-| 김현우 | DevOps & CI/CD | environments/dev · cicd · Actions |
+| 박서이 | EKS · 네트워크 · 보안 | ingress / WAF / RBAC |
+| 강유민 | 창작마당 · Compute 파트 | works / compute |
+| 김윤주 | 컨테이너 · DB · 관측 | Helm / Tempo / AlertManager |
+| 김현우 | GitOps · CI/CD | Actions / Argo CD / OIDC |
