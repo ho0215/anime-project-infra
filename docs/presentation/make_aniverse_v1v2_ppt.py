@@ -24,6 +24,7 @@ FONT = "맑은 고딕"
 BASE = Path(__file__).resolve().parent
 IMG = BASE / "images" / "hybrid"
 ICON = BASE / "images" / "icons"
+ROLES_ICON = BASE / "images" / "roles_icons"
 OUT = BASE / "ppt"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -628,11 +629,41 @@ def slide_schedule(prs):
 
 
 def slide_roles(prs):
-    """팀 역할분담 — 첨부하신 4열 카드 이미지(hybrid_00_roles)를 그대로 사용."""
+    """팀 역할분담 — 2×2 레이아웃 + 각 담당 영역 아이콘 이미지."""
     s = blank(prs)
     bg(s)
     title_center(s, "팀 역할분담", size=34)
-    put_img(s, "hybrid_00_roles.png", top=Inches(0.95), bottom=Inches(7.05))
+    roles = [
+        (ORANGE, "role_hyunwoo.png", "김현우", "DevOps / GitOps",
+         ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"]),
+        (CYAN, "role_seoi.png", "박서이", "EKS · 네트워크 · 보안",
+         ["EKS · VPC", "Ingress · WAF · RBAC", "노드 · NAT"]),
+        (TEAL, "role_yoonju.png", "김윤주", "컨테이너 · DB · 관측",
+         ["Docker · Helm", "DB Pod · Backup", "Tempo · Alert"]),
+        (PURPLE, "role_yumin.png", "강유민", "컴퓨트 · 트래픽",
+         ["노드 운영", "ALB 연동", "트래픽 경로"]),
+    ]
+    positions = [(0.45, 1.1), (6.85, 1.1), (0.45, 4.05), (6.85, 4.05)]
+    for (x, y), (color, icon_file, name, area, lines) in zip(positions, roles):
+        card(s, Inches(x), Inches(y), Inches(6.0), Inches(2.75), SOFT, color)
+        icon_path = ROLES_ICON / icon_file
+        if icon_path.exists():
+            s.shapes.add_picture(
+                str(icon_path),
+                Inches(x + 0.28),
+                Inches(y + 0.55),
+                width=Inches(1.5),
+                height=Inches(1.5),
+            )
+        text_x = Inches(x + 2.05)
+        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.28), Inches(3.65), Inches(0.5))
+        set_text(name_box.text_frame, name, 26, True, color)
+        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.82), Inches(3.65), Inches(0.4))
+        set_text(area_box.text_frame, area, 15, True, NAVY)
+        detail = s.shapes.add_textbox(text_x, Inches(y + 1.35), Inches(3.65), Inches(1.2))
+        set_text(detail.text_frame, "·  " + lines[0], 16, False, NAVY)
+        for line in lines[1:]:
+            add_para(detail.text_frame, "·  " + line, 16, False, NAVY, 8)
     footer(s, 19)
 
 
