@@ -3,7 +3,7 @@
 **기준 파일 (앞으로 여기 기준):**
 - `docs/presentation/ppt/Aniverse_V1V2_발표_working.pptx`
 - 생성 스크립트: `make_aniverse_v1v2_ppt.py` · 다이어그램: `make_hybrid_diagrams.py` · 일정: `make_v2_schedule.py`
-- 슬라이드: **18장** · 13.333×7.5 in
+- 슬라이드: **19장** · 13.333×7.5 in
 
 ---
 
@@ -28,7 +28,19 @@
 | 15 | 트러블슈팅 · EKS | 3행 | 서이 (HPA·생성순서·비밀번호) |
 | 16 | 트러블슈팅 · DB · 관측 | 3행 | 윤주 |
 | 17 | V2 일정 · 일자별 | 이미지 | 9/29 RBAC · DB·관측 일정 보강 |
-| 18 | Q & A | 텍스트 | 팀 역할 한 줄 |
+| 18 | 팀 역할분담 | 이미지 | `hybrid_00_roles.png` · Q&A에서 분리 |
+| 19 | Q & A | 텍스트 | 감사 · 팀 이름만 |
+
+---
+
+## 18. 팀 역할분담
+
+| 이름 | 영역 | 내용 |
+|------|------|------|
+| 김현우 | DevOps / GitOps | Actions · ECR · Argo CD · OIDC · 이관 복구 |
+| 박서이 | EKS · 네트워크 · 보안 | EKS · VPC · Ingress · WAF · RBAC · 노드 · NAT |
+| 김윤주 | 컨테이너 · DB · 관측 | Docker · Helm · DB Pod · Backup · Tempo · Alert |
+| 강유민 | 컴퓨트 · 트래픽 | 노드 운영 · ALB 연동 · 트래픽 경로 |
 
 ---
 
@@ -62,7 +74,7 @@
 
 ## 앞으로 작업 규칙
 
-1. 편집·재생성은 **이 18장 구조·문구**를 기준으로 한다.
+1. 편집·재생성은 **이 19장 구조·문구**를 기준으로 한다.
 2. 소스 오브 트루스 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 3. 버전 올리면 `Aniverse_V1V2_발표_vN.pptx`로 쌓되, working도 같이 갱신한다.
 4. 생성: `python3 make_hybrid_diagrams.py` → `python3 make_v2_schedule.py` → `python3 make_aniverse_v1v2_ppt.py`

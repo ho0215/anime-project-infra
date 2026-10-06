@@ -1,10 +1,10 @@
-# Aniverse V1→V2 발표 대본 (작업 기준본 · 18장)
+# Aniverse V1→V2 발표 대본 (작업 기준본 · 19장)
 
 PPT: `ppt/Aniverse_V1V2_발표_working.pptx`  
 내용 문서: `CONTENT_V1V2_working.md`  
 생성: `python3 make_hybrid_diagrams.py` → `python3 make_v2_schedule.py` → `python3 make_aniverse_v1v2_ppt.py`
 
-## 18장 구성
+## 19장 구성
 
 | # | 슬라이드 | 멘트 |
 |---|----------|------|
@@ -25,7 +25,8 @@ PPT: `ppt/Aniverse_V1V2_발표_working.pptx`
 | 15 | 트러블슈팅 · EKS | 서이 |
 | 16 | 트러블슈팅 · DB·관측 | 윤주 |
 | 17 | V2 일정 | 9/29 RBAC · DB·관측 일정 보강 |
-| 18 | Q & A | 팀 역할 한 줄 |
+| 18 | 팀 역할분담 | 현우 GitOps · 서이 EKS/보안 · 윤주 DB/관측 · 유민 컴퓨트/트래픽 |
+| 19 | Q & A | 감사 · 팀 이름 |
 
 ## 8장 발표 멘트
 

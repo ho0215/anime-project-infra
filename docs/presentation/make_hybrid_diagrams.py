@@ -324,10 +324,42 @@ def make_db_architecture():
 def make_roles():
     img = Image.new("RGBA", (W, H), BG + (255,))
     panels = [
-        (50, CYAN, SOFT_BLUE, "Network / Compute", "서이 등", ["EKS · VPC", "Ingress / ALB", "노드 · NAT"], "vpc"),
-        (420, TEAL, SOFT_TEAL, "Container / DB / Observability", "윤주", ["Docker · Helm", "DB Pod · Backup", "Prom / Grafana / Loki"], "rds_maria"),
-        (790, ORANGE, SOFT_ORANGE, "DevOps / GitOps", "현우", ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"], "githubactions"),
-        (1160, PURPLE, SOFT_PURPLE, "App / Product", "팀", ["Aniverse 서비스", "장터 · 창작", "커뮤니티"], "django"),
+        (
+            50,
+            ORANGE,
+            SOFT_ORANGE,
+            "DevOps / GitOps",
+            "김현우",
+            ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"],
+            "githubactions",
+        ),
+        (
+            420,
+            CYAN,
+            SOFT_BLUE,
+            "EKS · 네트워크 · 보안",
+            "박서이",
+            ["EKS · VPC", "Ingress · WAF · RBAC", "노드 · NAT"],
+            "vpc",
+        ),
+        (
+            790,
+            TEAL,
+            SOFT_TEAL,
+            "컨테이너 · DB · 관측",
+            "김윤주",
+            ["Docker · Helm", "DB Pod · Backup", "Tempo · Alert"],
+            "rds_maria",
+        ),
+        (
+            1160,
+            PURPLE,
+            SOFT_PURPLE,
+            "컴퓨트 · 트래픽",
+            "강유민",
+            ["노드 운영", "ALB 연동", "트래픽 경로"],
+            "alb",
+        ),
     ]
     for x, color, bg, title, who, lines, icon in panels:
         y0, y1 = 60, 840
@@ -336,13 +368,12 @@ def make_roles():
         d.rounded_rectangle((x, y0, x + 350, y1), radius=20, outline=color, width=4)
         icon_size = 88
         block_h = icon_size + 55 + 45 + 55 + 3 * 78
-        # lower half of panel
         top = y0 + int((y1 - y0 - block_h) * 0.72)
         paste_icon(img, icon, x + 175, top + icon_size // 2, icon_size)
-        center_text(d, title, x + 175, top + icon_size + 42, fnt(19, True), color)
+        center_text(d, title, x + 175, top + icon_size + 42, fnt(18, True), color)
         center_text(d, who, x + 175, top + icon_size + 100, fnt(32, True), NAVY)
         for i, line in enumerate(lines):
-            center_text(d, "· " + line, x + 175, top + icon_size + 185 + i * 78, fnt(24), NAVY)
+            center_text(d, "· " + line, x + 175, top + icon_size + 185 + i * 78, fnt(22), NAVY)
     save(img, "hybrid_00_roles.png")
 
 
