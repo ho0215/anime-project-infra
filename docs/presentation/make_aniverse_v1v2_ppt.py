@@ -628,64 +628,13 @@ def slide_schedule(prs):
 
 
 def slide_roles(prs):
-    """팀 역할분담 — 옵션 C(2×2) + 큰 아이콘(배경 원), 텍스트 수정 가능."""
+    """팀 역할분담 — 첨부하신 4열 카드 이미지(hybrid_00_roles)를 그대로 사용."""
     s = blank(prs)
     bg(s)
     title_center(s, "팀 역할분담", size=34)
-    roles = [
-        (
-            ORANGE,
-            "githubactions",
-            "김현우",
-            "DevOps / GitOps",
-            ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"],
-        ),
-        (
-            CYAN,
-            "vpc",
-            "박서이",
-            "EKS · 네트워크 · 보안",
-            ["EKS · VPC", "Ingress · WAF · RBAC", "노드 · NAT"],
-        ),
-        (
-            TEAL,
-            "rds_maria",
-            "김윤주",
-            "컨테이너 · DB · 관측",
-            ["Docker · Helm", "DB Pod · Backup", "Tempo · Alert"],
-        ),
-        (
-            PURPLE,
-            "alb",
-            "강유민",
-            "창작마당 · Compute",
-            ["창작마당", "노드 운영", "ALB · 트래픽"],
-        ),
-    ]
-    positions = [(0.45, 1.1), (6.85, 1.1), (0.45, 4.05), (6.85, 4.05)]
-    for (x, y), (color, icon, name, area, lines) in zip(positions, roles):
-        card(s, Inches(x), Inches(y), Inches(6.0), Inches(2.75), SOFT, color)
-        # 아이콘이 잘 보이도록 흰 원 배경 + 큰 아이콘
-        circle_icon(s, Inches(x + 0.28), Inches(y + 0.7), Inches(1.35), WHITE)
-        icon_path = ICON / f"{icon}.png"
-        if icon_path.exists():
-            s.shapes.add_picture(
-                str(icon_path),
-                Inches(x + 0.45),
-                Inches(y + 0.87),
-                width=Inches(1.0),
-                height=Inches(1.0),
-            )
-        text_x = Inches(x + 1.9)
-        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.28), Inches(3.8), Inches(0.55))
-        set_text(name_box.text_frame, name, 26, True, color)
-        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.85), Inches(3.8), Inches(0.4))
-        set_text(area_box.text_frame, area, 15, True, NAVY)
-        detail = s.shapes.add_textbox(text_x, Inches(y + 1.4), Inches(3.8), Inches(1.15))
-        set_text(detail.text_frame, "·  " + lines[0], 16, False, NAVY)
-        for line in lines[1:]:
-            add_para(detail.text_frame, "·  " + line, 16, False, NAVY, 8)
+    put_img(s, "hybrid_00_roles.png", top=Inches(0.95), bottom=Inches(7.05))
     footer(s, 19)
+
 
 
 def slide_qa(prs):
