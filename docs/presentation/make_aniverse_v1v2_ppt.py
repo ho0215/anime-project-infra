@@ -23,6 +23,8 @@ from pptx.util import Inches, Pt
 FONT = "맑은 고딕"
 BASE = Path(__file__).resolve().parent
 IMG = BASE / "images" / "hybrid"
+ICON = BASE / "images" / "icons"
+ROLES_ICON = BASE / "images" / "roles_icons"
 OUT = BASE / "ppt"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -627,68 +629,43 @@ def slide_schedule(prs):
 
 
 def slide_roles(prs):
-    """팀 역할분담 — PPT에서 텍스트 직접 수정 가능한 카드 구성."""
+    """팀 역할분담 — 2×2 레이아웃 + 각 담당 영역 아이콘 이미지."""
     s = blank(prs)
     bg(s)
     title_center(s, "팀 역할분담", size=34)
     roles = [
-        (
-            ORANGE,
-            "김현우",
-            "DevOps / GitOps",
-            [
-                "Actions · ECR",
-                "Argo CD",
-                "OIDC · 이관 복구",
-            ],
-        ),
-        (
-            CYAN,
-            "박서이",
-            "EKS · 네트워크 · 보안",
-            [
-                "EKS · VPC",
-                "Ingress · WAF · RBAC",
-                "노드 · NAT",
-            ],
-        ),
-        (
-            TEAL,
-            "김윤주",
-            "컨테이너 · DB · 관측",
-            [
-                "Docker · Helm",
-                "DB Pod · Backup",
-                "Tempo · Alert",
-            ],
-        ),
-        (
-            PURPLE,
-            "강유민",
-            "창작마당 · Compute",
-            [
-                "창작마당",
-                "노드 운영",
-                "ALB · 트래픽",
-            ],
-        ),
+        (ORANGE, "role_hyunwoo.png", "김현우", "DevOps / GitOps",
+         ["Actions · ECR", "Argo CD", "OIDC · 이관 복구"]),
+        (CYAN, "role_seoi.png", "박서이", "EKS · 네트워크 · 보안",
+         ["EKS · VPC", "Ingress · WAF · RBAC", "노드 · NAT"]),
+        (TEAL, "role_yoonju.png", "김윤주", "컨테이너 · DB · 관측",
+         ["Docker · Helm", "DB Pod · Backup", "Tempo · Alert"]),
+        (PURPLE, "role_yumin.png", "강유민", "컴퓨트 · 트래픽",
+         ["노드 운영", "ALB 연동", "트래픽 경로"]),
     ]
-    for i, (color, name, area, lines) in enumerate(roles):
-        x = Inches(0.35) + i * Inches(3.25)
-        head = card(s, x, Inches(1.15), Inches(3.05), Inches(1.35), color)
-        set_text(head.text_frame, name, 24, True, WHITE, PP_ALIGN.CENTER)
-        add_para(head.text_frame, area, 13, False, WHITE, 6, PP_ALIGN.CENTER)
-        body = card(s, x, Inches(2.65), Inches(3.05), Inches(4.0), LIGHT)
-        body.text_frame.clear()
-        pad(body.text_frame)
-        first = True
-        for line in lines:
-            if first:
-                set_text(body.text_frame, "·  " + line, 16, False, NAVY, PP_ALIGN.CENTER)
-                first = False
-            else:
-                add_para(body.text_frame, "·  " + line, 16, False, NAVY, 18, PP_ALIGN.CENTER)
+    positions = [(0.45, 1.1), (6.85, 1.1), (0.45, 4.05), (6.85, 4.05)]
+    for (x, y), (color, icon_file, name, area, lines) in zip(positions, roles):
+        card(s, Inches(x), Inches(y), Inches(6.0), Inches(2.75), SOFT, color)
+        icon_path = ROLES_ICON / icon_file
+        if icon_path.exists():
+            s.shapes.add_picture(
+                str(icon_path),
+                Inches(x + 0.28),
+                Inches(y + 0.55),
+                width=Inches(1.5),
+                height=Inches(1.5),
+            )
+        text_x = Inches(x + 2.05)
+        name_box = s.shapes.add_textbox(text_x, Inches(y + 0.28), Inches(3.65), Inches(0.5))
+        set_text(name_box.text_frame, name, 26, True, color)
+        area_box = s.shapes.add_textbox(text_x, Inches(y + 0.82), Inches(3.65), Inches(0.4))
+        set_text(area_box.text_frame, area, 15, True, NAVY)
+        detail = s.shapes.add_textbox(text_x, Inches(y + 1.35), Inches(3.65), Inches(1.2))
+        set_text(detail.text_frame, "·  " + lines[0], 16, False, NAVY)
+        for line in lines[1:]:
+            add_para(detail.text_frame, "·  " + line, 16, False, NAVY, 8)
     footer(s, 19)
+
 
 
 def slide_qa(prs):

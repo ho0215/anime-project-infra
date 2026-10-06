@@ -364,25 +364,25 @@ def make_roles():
             1160,
             PURPLE,
             SOFT_PURPLE,
-            "창작마당 · Compute",
+            "컴퓨트 · 트래픽",
             "강유민",
-            ["창작마당", "노드 운영", "ALB · 트래픽"],
+            ["노드 운영", "ALB 연동", "트래픽 경로"],
             "alb",
         ),
     ]
-    for x, color, bg, title, who, lines, icon in panels:
-        y0, y1 = 60, 840
-        soft_card(img, (x, y0, x + 350, y1), r=20, fill=bg)
+    for x, color, fill, title, who, lines, icon in panels:
+        y0, y1 = 40, 860
+        soft_card(img, (x, y0, x + 350, y1), r=22, fill=fill)
         d = ImageDraw.Draw(img)
-        d.rounded_rectangle((x, y0, x + 350, y1), radius=20, outline=color, width=4)
-        icon_size = 88
-        block_h = icon_size + 55 + 45 + 55 + 3 * 78
-        top = y0 + int((y1 - y0 - block_h) * 0.72)
-        paste_icon(img, icon, x + 175, top + icon_size // 2, icon_size)
-        center_text(d, title, x + 175, top + icon_size + 42, fnt(18, True), color)
-        center_text(d, who, x + 175, top + icon_size + 100, fnt(32, True), NAVY)
+        d.rounded_rectangle((x, y0, x + 350, y1), radius=22, outline=color, width=4)
+        # 아이콘을 카드 상단에 크게 (첨부 이미지와 동일 배치)
+        icon_size = 110
+        icon_cy = y0 + 130
+        paste_icon(img, icon, x + 175, icon_cy, icon_size)
+        center_text(d, title, x + 175, icon_cy + 95, fnt(18, True), color)
+        center_text(d, who, x + 175, icon_cy + 165, fnt(34, True), NAVY)
         for i, line in enumerate(lines):
-            center_text(d, "· " + line, x + 175, top + icon_size + 185 + i * 78, fnt(22), NAVY)
+            center_text(d, "· " + line, x + 175, icon_cy + 260 + i * 70, fnt(22), NAVY)
     save(img, "hybrid_00_roles.png")
 
 
