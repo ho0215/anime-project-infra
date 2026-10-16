@@ -85,6 +85,16 @@ module "ecr" {
   keep_image_count = var.ecr_keep_image_count
 }
 
+# db-backup CronJob 전용 이미지 — 메인 앱과 변경 빈도가 달라서 별도 레포로 분리
+# (환경변수 설명은 variables.tf의 ecr_db_backup_* 주석 참고)
+module "ecr_db_backup" {
+  source = "../../modules/ecr"
+
+  project_name     = var.project_name
+  repository_name  = var.ecr_db_backup_repository_name
+  keep_image_count = var.ecr_db_backup_keep_image_count
+}
+
 # ==========================================
 # EKS
 # ==========================================

@@ -106,7 +106,23 @@ variable "ecr_repository_name" {
 variable "ecr_keep_image_count" {
   description = "ECR 라이프사이클으로 유지할 최대 이미지 수"
   type        = number
-  default     = 20
+  default     = 50
+}
+
+# db-backup CronJob 전용 이미지(kubectl 미리 설치된 것) — 메인 앱 이미지와
+# 변경 빈도가 완전히 달라서(앱: PR 머지마다, 이건: 거의 안 바뀜) 같은 레포에
+# 태그로만 나눠 쓰면 메인 앱이 자주 쌓이면서 이 이미지가 라이프사이클
+# 정책에 밀려 삭제될 위험이 있음(2026-10-16 발견) — 별도 레포로 분리.
+variable "ecr_db_backup_repository_name" {
+  description = "DB 백업 CronJob 전용 ECR 리포지토리 이름"
+  type        = string
+  default     = "aniverse-db-backup-tools"
+}
+
+variable "ecr_db_backup_keep_image_count" {
+  description = "DB 백업 이미지 라이프사이클 유지 개수 (거의 안 바뀌므로 적게 유지)"
+  type        = number
+  default     = 10
 }
 
 variable "eks_cluster_version" {

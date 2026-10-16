@@ -39,6 +39,10 @@ output "ecr_repository_name" {
   value = module.ecr.repository_name
 }
 
+output "ecr_db_backup_repository_url" {
+  value = module.ecr_db_backup.repository_url
+}
+
 output "eks_cluster_name" {
   value = module.eks.cluster_name
 }
