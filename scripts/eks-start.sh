@@ -281,12 +281,50 @@ wait_nodes_ready() {
   return 0
 }
 
+# desired=0으로 내리는 순간 전체 워크로드가 Pending 되는 걸 보고 Cluster
+# Autoscaler가 desired를 도로 올려버리는 레이스 방지(2026-10-16/17 관측).
+pause_cluster_autoscaler() {
+  if ! command -v kubectl >/dev/null; then
+    echo "kubectl 없음 — Cluster Autoscaler 일시정지 스킵"
+    return 0
+  fi
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    aws eks update-kubeconfig --region "${REGION}" --name "${CLUSTER}" >/dev/null 2>&1 || true
+  fi
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    echo "WARN: kubectl 미인증 — Cluster Autoscaler 일시정지 스킵"
+    return 0
+  fi
+  echo "==> Cluster Autoscaler 일시정지 (replicas=0) — desired=0 레이스 방지"
+  kubectl -n kube-system scale deploy/cluster-autoscaler-aws-cluster-autoscaler --replicas=0 2>&1 || \
+    echo "WARN: Cluster Autoscaler scale down 실패 — 계속 진행" >&2
+}
+
+# eks-stop.sh가 멈춰둔 Cluster Autoscaler를 다시 살림(위 pause와 짝).
+resume_cluster_autoscaler() {
+  if ! command -v kubectl >/dev/null; then
+    echo "kubectl 없음 — Cluster Autoscaler 재개 스킵"
+    return 0
+  fi
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    aws eks update-kubeconfig --region "${REGION}" --name "${CLUSTER}" >/dev/null 2>&1 || true
+  fi
+  if ! kubectl get nodes --request-timeout=5s >/dev/null 2>&1; then
+    echo "WARN: kubectl 미인증 — Cluster Autoscaler 재개 스킵"
+    return 0
+  fi
+  echo "==> Cluster Autoscaler 재개 (replicas=1)"
+  kubectl -n kube-system scale deploy/cluster-autoscaler-aws-cluster-autoscaler --replicas=1 2>&1 || \
+    echo "WARN: Cluster Autoscaler scale up 실패 — 수동 확인 필요" >&2
+}
+
 cmd="$(basename "$0")"
 need_aws
 
 case "${cmd}" in
   eks-stop.sh)
     echo "Stopping workers + NAT on ${CLUSTER} (control plane stays UP ~\$0.10/h)"
+    pause_cluster_autoscaler
     for ng in $(list_ngs); do
       asg="$(asg_name_for_ng "${ng}")"
       if [ -z "${asg}" ] || [ "${asg}" = "None" ]; then
@@ -322,6 +360,7 @@ case "${cmd}" in
       wait_asg_inservice "${asg}" "${DESIRED}"
     done
     wait_nodes_ready
+    resume_cluster_autoscaler
     echo "OK — workers up. curl -sI https://aniverse.my/health/"
     echo "Note: eks-stop 만 한 경우 Argo 재설치 불필요. Pod 가 노드에 다시 스케줄되면 됨."
     ;;
